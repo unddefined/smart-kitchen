@@ -1,0 +1,58 @@
+{
+  "timestamp": "2026-02-19T11:28:35.762Z",
+  "serverInfo": {
+    "hostname": "iZ0jl74dfngaeh059mjkqlZ",
+    "uptime": " 19:28:41 up 23:24,  2 users,  load average: 0.33, 0.19, 0.13",
+    "diskUsage": "/dev/vda3        40G   12G   27G  30% /"
+  },
+  "connectionTests": [
+    {
+      "name": "SSH连接",
+      "status": "success",
+      "details": "连接正常"
+    },
+    {
+      "name": "数据库连接",
+      "status": "success",
+      "details": "响应时间: 205ms",
+      "latency": 205,
+      "version": "PostgreSQL 15.16"
+    }
+  ],
+  "performanceMetrics": {
+    "databaseSize": "7887 kB",
+    "tableCount": "7",
+    "activeConnections": "2"
+  },
+  "dataStats": {
+    "users": "0",
+    "dishes": "12",
+    "orders": "2",
+    "order_items": "0",
+    "stations": "6",
+    "recipes": "0"
+  },
+  "securityInfo": {
+    "userPermissions": {
+      "isSuperUser": true,
+      "canCreateDB": true,
+      "hasPassword": true
+    },
+    "activeConnections": [
+      {
+        "ip": "112.24.224.90",
+        "port": 3351,
+        "application": "pgAdmin 4 - DB:smart_kitchen_prod",
+        "state": "idle",
+        "connectedAt": "2026-02-19T06:46:16.545Z"
+      },
+      {
+        "ip": "112.24.224.90",
+        "port": 3238,
+        "application": "unknown",
+        "state": "active",
+        "connectedAt": "2026-02-19T11:28:43.834Z"
+      }
+    ]
+  }
+}
