@@ -1,5 +1,5 @@
 // API基础配置和服务
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://8.145.34.30:3000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
 // 通用请求函数
 async function request(url, options = {}) {
@@ -12,7 +12,9 @@ async function request(url, options = {}) {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}${url}`, config)
+    // 生产环境使用相对路径，开发环境使用完整URL
+    const requestUrl = API_BASE_URL ? `${API_BASE_URL}${url}` : url
+    const response = await fetch(requestUrl, config)
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
