@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS修复测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>CORS跨域问题修复测试</h1>
+    
+    <div>
+        <button onclick="testDishesAPI()">测试菜品API</button>
+        <button onclick="testOrdersAPI()">测试订单API</button>
+        <button onclick="testHealthCheck()">健康检查</button>
+        <button onclick="clearResults()">清空结果</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        const API_BASE_URL = 'http://8.145.34.30:3000';
+        
+        function addResult(message, isSuccess = true) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${isSuccess ? 'success' : 'error'}`;
+            resultDiv.innerHTML = `
+                <strong>${new Date().toLocaleTimeString()}</strong>: ${message}
+                <br><small>请求URL: ${API_BASE_URL}</small>
+            `;
+            resultsDiv.appendChild(resultDiv);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        async function testDishesAPI() {
+            try {
+                addResult('开始测试菜品API...');
+                const response = await fetch(`${API_BASE_URL}/api/dishes`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult(`✅ 菜品API测试成功！返回 ${data.length || 0} 条记录`, true);
+                } else {
+                    addResult(`❌ 菜品API请求失败: ${response.status} ${response.statusText}`, false);
+                }
+            } catch (error) {
+                addResult(`❌ 菜品API测试异常: ${error.message}`, false);
+            }
+        }
+
+        async function testOrdersAPI() {
+            try {
+                addResult('开始测试订单API...');
+                const response = await fetch(`${API_BASE_URL}/api/orders`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult(`✅ 订单API测试成功！返回 ${data.length || 0} 条记录`, true);
+                } else {
+                    addResult(`❌ 订单API请求失败: ${response.status} ${response.statusText}`, false);
+                }
+            } catch (error) {
+                addResult(`❌ 订单API测试异常: ${error.message}`, false);
+            }
+        }
+
+        async function testHealthCheck() {
+            try {
+                addResult('开始健康检查...');
+                const response = await fetch(`${API_BASE_URL}/health`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult(`✅ 健康检查成功！服务器状态: ${data.status}`, true);
+                } else {
+                    addResult(`❌ 健康检查失败: ${response.status} ${response.statusText}`, false);
+                }
+            } catch (error) {
+                addResult(`❌ 健康检查异常: ${error.message}`, false);
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // 页面加载时自动进行健康检查
+        window.onload = function() {
+            addResult('页面加载完成，准备测试...');
+            setTimeout(testHealthCheck, 1000);
+        };
+    </script>
+</body>
+</html>
