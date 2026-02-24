@@ -10,7 +10,7 @@ echo "🚀 开始智能厨房完整部署..."
 # 配置变量
 PROJECT_NAME="smart-kitchen"
 SERVER_IP="8.145.34.30"
-DEPLOY_PATH="/var/www/$PROJECT_NAME"
+DEPLOY_PATH="/root/$PROJECT_NAME"
 BACKEND_PORT="3000"
 
 # 1. 系统环境检查
