@@ -1,12 +1,5 @@
 <template>
   <div class="order-container">
-    <div class="order-header">
-      <button class="back-button" @click="$emit('back')">
-        ← 返回
-      </button>
-      <h2 class="order-title">订单详情</h2>
-    </div>
-    
     <div class="order-content">
       <!-- 订单信息表格 -->
       <div class="order-info-section">

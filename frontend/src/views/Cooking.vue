@@ -39,33 +39,30 @@
         <button :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'" class="tab-button overview-tab">总览</button>
 
         <!-- 订单选项卡区域 -->
-        <div class="order-tabs-section">
-          <div class="order-tabs">
-            <button
-              v-for="order in orders"
-              :key="order.id"
-              :class="{
-                active: activeTab === `order-${order.id}`,
-                urgent: order.hasUrgentItems,
-                pending: order.isPending,
-              }"
-              @click="activeTab = `order-${order.id}`"
-              class="order-tab">
-              {{ order.hallNumber }}
-            </button>
-          </div>
+        <div class="order-tabs">
+          <button
+            v-for="order in orders"
+            :key="order.id"
+            :class="{
+              active: activeTab === `order-${order.id}`,
+              urgent: order.hasUrgentItems,
+              pending: order.isPending,
+            }"
+            @click="activeTab = `order-${order.id}`"
+            class="order-tab">
+            {{ order.hallNumber }}
+          </button>
         </div>
       </aside>
 
       <!-- 右侧内容区域 -->
       <div class="content-area">
         <!-- 总览视图 -->
-        <OverviewView 
-          v-if="activeTab === 'overview'" 
+        <OverviewView
+          v-if="activeTab === 'overview'"
           :pending-dishes="mockPendingDishes"
           :served-dishes="mockServedDishes"
-          @dish-action="handleDishAction" 
-        />
+          @dish-action="handleDishAction" />
 
         <!-- 订单详情视图 -->
         <OrderView v-else-if="activeTab.startsWith('order-')" :order-id="activeOrderId" @back="activeTab = 'overview'" />
@@ -188,7 +185,7 @@ const mockPendingDishes = ref([
     priority: 1,
     status: "pending",
     details: ["少盐"],
-  }
+  },
 ]);
 
 // 模拟已出菜品数据
@@ -196,18 +193,18 @@ const mockServedDishes = ref([
   {
     id: 101,
     name: "糖醋里脊",
-    quantity: 1
+    quantity: 1,
   },
   {
     id: 102,
     name: "干煸豆角",
-    quantity: 2
+    quantity: 2,
   },
   {
     id: 103,
     name: "蒜蓉西兰花",
-    quantity: 1
-  }
+    quantity: 1,
+  },
 ]);
 
 // 计算属性
@@ -341,7 +338,6 @@ const handleOrderSubmit = (orderData) => {
 .meal-btn {
   padding: 6px 16px;
   border: 1px solid #ddd;
-  border-radius: 20px;
   background: white;
   font-size: 13px;
   cursor: pointer;
@@ -371,30 +367,103 @@ const handleOrderSubmit = (orderData) => {
   text-align: center;
 }
 
-/* 调整按钮颜色，降低视觉冲击力 */
+/* 按钮颜色样式 */
 .func-btn.primary {
-  background: #60a5fa; /* 从 #3B82F6 调浅 */
+  background: #60a5fa;
   color: white;
 }
 .func-btn.warning {
-  background: #fbbf24; /* 从 #F59E0B 调浅 */
+  background: #fbbf24;
   color: white;
 }
 .func-btn.success {
-  background: #34d399; /* 从 #10B981 调浅 */
+  background: #34d399;
   color: white;
 }
 .func-btn.info {
-  background: #a78bfa; /* 从 #8B5CF6 调浅 */
+  background: #a78bfa;
   color: white;
 }
 .func-btn.danger {
-  background: #f87171; /* 从 #EF4444 调浅 */
+  background: #f87171;
   color: white;
 }
 .func-btn.secondary {
-  background: #9ca3af; /* 从 #6B7280 调浅 */
+  background: #9ca3af;
   color: white;
+}
+
+/* 移动端优化：保持一行六个按钮 */
+@media (max-width: 768px) {
+  .function-buttons {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+  }
+
+  .func-btn {
+    padding: 8px 4px;
+    font-size: 12px;
+    background: #ddd;
+  }
+}
+
+@media (max-width: 480px) {
+  .function-buttons {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+  }
+
+  .func-btn {
+    padding: 6px 3px;
+    font-size: 11px;
+    background: #ddd;
+  }
+
+  .sidebar {
+    width: 60px;
+  }
+}
+
+/* 超窄屏幕特殊处理：水平滚动确保一行六按钮 */
+@media (max-width: 380px) {
+  .function-buttons {
+    display: flex;
+    overflow-x: auto;
+    gap: 4px;
+    padding-bottom: 8px;
+    scrollbar-width: thin;
+  }
+
+  .function-buttons::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .function-buttons::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 2px;
+  }
+
+  .func-btn {
+    flex: 0 0 auto;
+    min-width: 50px;
+    padding: 6px 8px;
+    font-size: 10px;
+    white-space: nowrap;
+    background: #ddd;
+  }
+}
+
+@media (max-width: 400px) and (min-width: 381px) {
+  .function-buttons {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 3px;
+  }
+
+  .func-btn {
+    padding: 5px 2px;
+    font-size: 10px;
+    background: #ddd;
+  }
 }
 
 /* Body区域样式 */
@@ -405,7 +474,7 @@ const handleOrderSubmit = (orderData) => {
 }
 
 .sidebar {
-  width: 140px;
+  width: 80px;
   background: rgb(222, 221, 221);
   border-right: 1px solid #e0e0e0;
   overflow-y: auto;
@@ -420,7 +489,6 @@ const handleOrderSubmit = (orderData) => {
   padding: 14px 12px;
   border: none;
   background: rgb(222, 221, 221);
-  margin-bottom: 8px;
   cursor: pointer;
   font-size: 18px;
   color: #000000;
@@ -435,7 +503,7 @@ const handleOrderSubmit = (orderData) => {
 }
 
 .order-tabs-section {
-  padding-top: 10px;
+  padding-top: 0px;
 }
 
 .order-tabs {
@@ -580,23 +648,81 @@ const handleOrderSubmit = (orderData) => {
 }
 
 /* 响应式设计 */
+@media (max-width: 768px) {
+  .cooking-header {
+    padding: 12px;
+  }
+
+  .header-content {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .date-section {
+    text-align: center;
+  }
+
+  .date-display {
+    display: block;
+    margin-right: 0;
+    margin-bottom: 8px;
+  }
+
+  .meal-toggle {
+    display: flex;
+    justify-content: center;
+  }
+}
+
 @media (max-width: 480px) {
-  .sidebar {
-    width: 120px;
-  }
-
-  .function-buttons {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-  }
-
-  .func-btn {
+  .cooking-header {
     padding: 10px;
+  }
+
+  .user-info {
+    gap: 8px;
+  }
+
+  .avatar-placeholder {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+
+  .station-name {
+    font-size: 15px;
+  }
+
+  .username {
     font-size: 13px;
   }
 
+  .sidebar {
+    width: 60px;
+  }
+
+  .overview-tab,
+  .order-tab {
+    padding: 10px 8px;
+    font-size: 16px;
+  }
+}
+
+/* 超窄屏幕特殊处理 */
+@media (max-width: 360px) {
+  .sidebar {
+    width: 50px;
+  }
+
+  .overview-tab,
+  .order-tab {
+    padding: 8px 6px;
+    font-size: 14px;
+  }
+
   .user-sidebar {
-    width: 280px;
+    width: 260px;
   }
 }
 </style>
