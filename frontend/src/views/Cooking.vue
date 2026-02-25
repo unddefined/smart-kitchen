@@ -358,7 +358,7 @@ const handleOrderSubmit = (orderData) => {
 }
 
 .func-btn {
-  padding: 6px ;
+  padding: 6px;
   border: none;
   border-radius: 8px;
   font-size: 16px;
@@ -415,16 +415,6 @@ const handleOrderSubmit = (orderData) => {
     grid-template-columns: repeat(6, 1fr);
     gap: 4px;
   }
-
-  .func-btn {
-    padding: 6px 3px;
-    font-size: 11px;
-    background: #ddd;
-  }
-
-  .sidebar {
-    width: 60px;
-  }
 }
 
 /* Body区域样式 */
@@ -454,7 +444,7 @@ const handleOrderSubmit = (orderData) => {
   color: #000000;
   font-weight: 600;
   transition: all 0.2s;
-  text-align:left;
+  text-align: left;
 }
 
 .overview-tab.active {
