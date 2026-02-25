@@ -7,30 +7,30 @@ export declare class ServingService {
     getOrder(orderId: number): Promise<({
         orderItems: ({
             dish: {
-                id: number;
                 name: string;
                 createdAt: Date;
-                recipeId: number | null;
+                id: number;
                 shortcutCode: string | null;
+                recipeId: number | null;
                 stationId: number;
                 categoryId: number;
             };
         } & {
-            id: number;
             createdAt: Date;
+            id: number;
             countable: boolean;
             status: string;
+            remark: string | null;
             quantity: number;
             weight: string | null;
             priority: number;
-            remark: string | null;
             servedAt: Date | null;
             orderId: number;
             dishId: number;
         })[];
     } & {
-        id: number;
         createdAt: Date;
+        id: number;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
@@ -41,30 +41,30 @@ export declare class ServingService {
     getAllOrders(): Promise<({
         orderItems: ({
             dish: {
-                id: number;
                 name: string;
                 createdAt: Date;
-                recipeId: number | null;
+                id: number;
                 shortcutCode: string | null;
+                recipeId: number | null;
                 stationId: number;
                 categoryId: number;
             };
         } & {
-            id: number;
             createdAt: Date;
+            id: number;
             countable: boolean;
             status: string;
+            remark: string | null;
             quantity: number;
             weight: string | null;
             priority: number;
-            remark: string | null;
             servedAt: Date | null;
             orderId: number;
             dishId: number;
         })[];
     } & {
-        id: number;
         createdAt: Date;
+        id: number;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
@@ -73,8 +73,8 @@ export declare class ServingService {
         updatedAt: Date;
     })[]>;
     updateOrderStatus(orderId: number, status: string): Promise<{
-        id: number;
         createdAt: Date;
+        id: number;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
@@ -84,17 +84,17 @@ export declare class ServingService {
     }>;
     getOrderItem(itemId: number): Promise<({
         dish: {
-            id: number;
             name: string;
             createdAt: Date;
-            recipeId: number | null;
+            id: number;
             shortcutCode: string | null;
+            recipeId: number | null;
             stationId: number;
             categoryId: number;
         };
         order: {
-            id: number;
             createdAt: Date;
+            id: number;
             hallNumber: string;
             peopleCount: number;
             tableCount: number;
@@ -103,70 +103,70 @@ export declare class ServingService {
             updatedAt: Date;
         };
     } & {
-        id: number;
         createdAt: Date;
+        id: number;
         countable: boolean;
         status: string;
+        remark: string | null;
         quantity: number;
         weight: string | null;
         priority: number;
-        remark: string | null;
         servedAt: Date | null;
         orderId: number;
         dishId: number;
     }) | null>;
     updateOrderItemStatus(itemId: number, status: string): Promise<{
-        id: number;
         createdAt: Date;
+        id: number;
         countable: boolean;
         status: string;
+        remark: string | null;
         quantity: number;
         weight: string | null;
         priority: number;
-        remark: string | null;
         servedAt: Date | null;
         orderId: number;
         dishId: number;
     }>;
     updateOrderItemPriority(itemId: number, priority: number): Promise<{
-        id: number;
         createdAt: Date;
+        id: number;
         countable: boolean;
         status: string;
+        remark: string | null;
         quantity: number;
         weight: string | null;
         priority: number;
-        remark: string | null;
         servedAt: Date | null;
         orderId: number;
         dishId: number;
     }>;
     markAsServed(itemId: number): Promise<{
-        id: number;
         createdAt: Date;
+        id: number;
         countable: boolean;
         status: string;
+        remark: string | null;
         quantity: number;
         weight: string | null;
         priority: number;
-        remark: string | null;
         servedAt: Date | null;
         orderId: number;
         dishId: number;
     }>;
     getPendingItems(): Promise<({
         dish: {
-            id: number;
             name: string;
             createdAt: Date;
-            recipeId: number | null;
+            id: number;
             shortcutCode: string | null;
+            recipeId: number | null;
             stationId: number;
             categoryId: number;
         };
         order: {
-            id: number;
             createdAt: Date;
+            id: number;
             hallNumber: string;
             peopleCount: number;
             tableCount: number;
@@ -175,31 +175,31 @@ export declare class ServingService {
             updatedAt: Date;
         };
     } & {
-        id: number;
         createdAt: Date;
+        id: number;
         countable: boolean;
         status: string;
+        remark: string | null;
         quantity: number;
         weight: string | null;
         priority: number;
-        remark: string | null;
         servedAt: Date | null;
         orderId: number;
         dishId: number;
     })[]>;
     getServedItems(): Promise<({
         dish: {
-            id: number;
             name: string;
             createdAt: Date;
-            recipeId: number | null;
+            id: number;
             shortcutCode: string | null;
+            recipeId: number | null;
             stationId: number;
             categoryId: number;
         };
         order: {
-            id: number;
             createdAt: Date;
+            id: number;
             hallNumber: string;
             peopleCount: number;
             tableCount: number;
@@ -208,14 +208,14 @@ export declare class ServingService {
             updatedAt: Date;
         };
     } & {
-        id: number;
         createdAt: Date;
+        id: number;
         countable: boolean;
         status: string;
+        remark: string | null;
         quantity: number;
         weight: string | null;
         priority: number;
-        remark: string | null;
         servedAt: Date | null;
         orderId: number;
         dishId: number;
