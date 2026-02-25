@@ -469,20 +469,19 @@ onUnmounted(() => {
   color: #666;
 }
 
-/* 待处理菜品瀑布流容器 - JavaScript增强版 */
+/* 待处理菜品瀑布流容器 */
 .dish-grid {
   position: relative;
   width: 100%;
   column-count: 2;
-  column-gap: 10px;
-  padding: 10px;
+  column-gap: 8px;
   transition: height 0.3s ease;
 }
 .dish-card {
   display: block;
   background: white;
   border-radius: 12px;
-  padding: 16px;
+  padding: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -500,7 +499,7 @@ onUnmounted(() => {
 
 /* 待切配/待处理状态样式 */
 .dish-card.pending-processing {
-  border: 6px solid #3b82f6;
+  border: 5px solid #3b82f6;
 }
 
 .processing-overlay {
