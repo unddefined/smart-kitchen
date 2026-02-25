@@ -13,9 +13,9 @@ class DatabaseManager extends EventEmitter {
         this.defaultConfig = {
             host: 'localhost',
             port: 5432,
-            database: 'smart_kitchen_dev',
-            user: 'postgres',
-            password: 'postgres',
+            database: 'smart_kitchen_prod',
+            user: 'smart_kitchen',
+            password: '13814349230cX',
             // 连接池配置
             max: 20,
             min: 5,
@@ -31,7 +31,7 @@ class DatabaseManager extends EventEmitter {
             host: '8.145.34.30',
             port: 5432,
             database: 'smart_kitchen_prod',
-            user: 'smart_kitchen_user',
+            user: 'smart_kitchen',
             password: '13814349230cX',
             max: 10,
             min: 2,

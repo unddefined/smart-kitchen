@@ -7,6 +7,24 @@ export class ServingService {
 
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * 计算菜品优先级（与数据库函数保持一致）
+   */
+  private calculateDishPriority(
+    categoryName: string,
+    isAddedLater: boolean = false,
+    basePriority: number = 0
+  ): number {
+    // 如果是后来加菜的，优先级为3级（催菜级别）
+    if (isAddedLater) {
+      return 3;
+    }
+
+    // 订单未起菜时，所有菜品优先级都为0
+    // 不再根据菜品分类设置不同的默认优先级
+    return 0;
+  }
+
   // 获取订单详情
   async getOrder(orderId: number) {
     const order = await this.prisma.order.findUnique({

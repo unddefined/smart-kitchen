@@ -4,57 +4,57 @@ export declare class UsersService {
     private prisma;
     constructor(prisma: PrismaService);
     create(createUserDto: CreateUserDto): Promise<{
-        station: string | null;
+        id: number;
         name: string;
+        createdAt: Date;
+        station: string | null;
         tel: string | null;
         avatar: string | null;
         password: string | null;
-        createdAt: Date;
-        id: number;
     }>;
     findAll(): Promise<{
-        station: string | null;
+        id: number;
         name: string;
+        createdAt: Date;
+        station: string | null;
         tel: string | null;
         avatar: string | null;
         password: string | null;
-        createdAt: Date;
-        id: number;
     }[]>;
     findOne(id: number): Promise<{
-        station: string | null;
+        id: number;
         name: string;
+        createdAt: Date;
+        station: string | null;
         tel: string | null;
         avatar: string | null;
         password: string | null;
-        createdAt: Date;
-        id: number;
     } | null>;
     findByTel(tel: string): Promise<{
-        station: string | null;
+        id: number;
         name: string;
+        createdAt: Date;
+        station: string | null;
         tel: string | null;
         avatar: string | null;
         password: string | null;
-        createdAt: Date;
-        id: number;
     } | null>;
     update(id: number, updateUserDto: Partial<CreateUserDto>): Promise<{
-        station: string | null;
+        id: number;
         name: string;
+        createdAt: Date;
+        station: string | null;
         tel: string | null;
         avatar: string | null;
         password: string | null;
-        createdAt: Date;
-        id: number;
     }>;
     remove(id: number): Promise<{
-        station: string | null;
+        id: number;
         name: string;
+        createdAt: Date;
+        station: string | null;
         tel: string | null;
         avatar: string | null;
         password: string | null;
-        createdAt: Date;
-        id: number;
     }>;
 }

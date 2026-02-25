@@ -14,14 +14,17 @@ const prisma_module_1 = require("./prisma/prisma.module");
 const users_module_1 = require("./users/users.module");
 const serving_module_1 = require("./serving/serving.module");
 const dishes_module_1 = require("./dishes/dishes.module");
+const orders_module_1 = require("./orders/orders.module");
+const test_controller_1 = require("./test.controller");
+const mock_data_service_1 = require("./mock-data.service");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
-        imports: [prisma_module_1.PrismaModule, users_module_1.UsersModule, serving_module_1.ServingModule, dishes_module_1.DishesModule],
-        controllers: [app_controller_1.AppController],
-        providers: [app_service_1.AppService],
+        imports: [prisma_module_1.PrismaModule, users_module_1.UsersModule, serving_module_1.ServingModule, dishes_module_1.DishesModule, orders_module_1.OrdersModule],
+        controllers: [app_controller_1.AppController, test_controller_1.TestController],
+        providers: [app_service_1.AppService, mock_data_service_1.MockDataService],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map
