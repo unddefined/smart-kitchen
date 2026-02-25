@@ -15,52 +15,47 @@
 
         <!-- 输入区域 -->
         <div class="flex-1 overflow-y-auto p-4 space-y-4">
-          <!-- 人数和桌数输入（同一行） -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">用餐信息</label>
-            <div class="flex space-x-3">
-              <div class="flex-1">
-                <label class="block text-xs text-gray-500 mb-1">人数</label>
-                <input
-                  v-model.number="personCount"
-                  type="number"
-                  min="1"
-                  placeholder="人数"
-                  class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
-              </div>
-              <div class="flex-1">
-                <label class="block text-xs text-gray-500 mb-1">桌数</label>
-                <input
-                  v-model.number="tableCount"
-                  type="number"
-                  min="1"
-                  placeholder="桌数"
-                  class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
-              </div>
+          <!-- 用餐信息输入（全部同一行） -->
+          <div class="flex  space-x-4">
+            <div class="flex items-center space-x-3 flex-1">
+              <label class="text-xl text-gray-500 whitespace-nowrap">人数</label>
+              <input
+                v-model.number="personCount"
+                type="number"
+                min="1"
+                placeholder="人数"
+                class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label class="text-xl text-gray-500 whitespace-nowrap">桌数</label>
+              <input
+                v-model.number="tableCount"
+                type="number"
+                min="1"
+                placeholder="桌数"
+                class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
           </div>
 
           <!-- 台号输入 -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">台号</label>
+          <div class="flex space-x-4 items-center">
+            <label class=" text-xl font-medium text-gray-700 whitespace-nowrap">台号</label>
             <input
               v-model="hallNumber"
               type="text"
               placeholder="请输入台号"
-              class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
 
           <!-- 用餐时间 -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">用餐时间</label>
+          <div class="flex space-x-4 items-center">
+            <label class="text-xl font-medium text-gray-700 whitespace-nowrap ">用餐时间</label>
             <div class="flex space-x-2">
               <input
                 v-model="mealDate"
                 type="date"
-                class="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               <select
                 v-model="mealTime"
-                class="w-24 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                class="w-18 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="午餐">午餐</option>
                 <option value="晚餐">晚餐</option>
               </select>
@@ -70,8 +65,8 @@
           <!-- 菜品选择区域 -->
           <div>
             <div class="flex items-center justify-between mb-3">
-              <label class="block text-sm font-medium text-gray-700">菜品</label>
-              <button @click="showAddDishModal = true" class="text-blue-500 hover:text-blue-700 text-sm font-medium">+ 新增菜品</button>
+              <label class="block text-xl font-medium text-gray-700">菜品</label>
+              <button @click="showAddDishModal = true" class="text-blue-500 hover:text-blue-700 text-xl font-medium">+ 新增菜品</button>
             </div>
 
             <!-- 加载状态 -->
@@ -87,13 +82,13 @@
             </div>
 
             <!-- 菜品按钮网格 -->
-            <div v-else class="grid grid-cols-3 gap-2">
+            <div v-else class="flex flex-wrap gap-2">
               <button
                 v-for="dish in allDishes"
                 :key="dish.id"
                 @click="toggleDishSelection(dish)"
                 :class="[
-                  'p-3 rounded-lg border-2 text-sm font-medium transition-all',
+                  'px-3 py-2 rounded-lg border-2 text-xl font-medium transition-all whitespace-nowrap',
                   isSelected(dish.id) ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
                 ]">
                 {{ dish.name }}

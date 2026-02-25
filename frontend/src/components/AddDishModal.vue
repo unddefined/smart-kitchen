@@ -39,7 +39,7 @@
         <!-- 已选订单信息 -->
         <div v-if="selectedOrder" class="bg-blue-50 rounded-lg p-4">
           <h3 class="font-medium text-blue-900 mb-2">当前订单信息</h3>
-          <div class="grid grid-cols-2 gap-2 text-sm">
+          <div class="grid grid-cols-2 gap-2 text-xl">
             <div>
               <span class="text-gray-600">桌号:</span>
               <span class="ml-2 font-medium">{{ selectedOrder.tableNumber }}</span>
@@ -462,4 +462,3 @@ watch(() => props.visible, (newVal) => {
   border-radius: 3px;
 }
 </style>
-```
