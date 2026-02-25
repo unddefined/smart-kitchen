@@ -78,7 +78,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://8.145.34.30:3000', // 直接指定完整的后端地址
+        target: 'http://8.145.34.30:3001', // 直接指定完整的后端地址
         changeOrigin: true,
         secure: false
       }
