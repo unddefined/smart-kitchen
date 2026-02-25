@@ -10,6 +10,6 @@ async function bootstrap() {
   // 启用 CORS - 支持多个来源
   app.enableCors();
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 3001);
 }
 bootstrap();
