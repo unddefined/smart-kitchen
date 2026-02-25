@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nginx配置测试</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-result { 
+            margin: 15px 0; 
+            padding: 15px; 
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+        .success { 
+            background-color: #d4edda; 
+            border-color: #28a745; 
+            color: #155724; 
+        }
+        .error { 
+            background-color: #f8d7da; 
+            border-color: #dc3545; 
+            color: #721c24; 
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+        button { 
+            padding: 12px 24px; 
+            margin: 8px; 
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            font-size: 14px;
+        }
+        .endpoint {
+            background-color: #e9ecef;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Nginx反向代理配置测试</h1>
+        
+        <div class="info">
+            <h3>测试端点:</h3>
+            <div class="endpoint">直接后端: http://8.145.34.30:3001/health</div>
+            <div class="endpoint">Nginx代理: http://8.145.34.30/health</div>
+            <div class="endpoint">API接口: http://8.145.34.30/api/dishes</div>
+        </div>
+
+        <div>
+            <button onclick="testDirectBackend()">测试直接后端</button>
+            <button onclick="testNginxProxy()">测试Nginx代理</button>
+            <button onclick="testAPI()">测试API接口</button>
+            <button onclick="testAll()">全部测试</button>
+            <button onclick="clearResults()">清空结果</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function addResult(message, isSuccess = true, type = null) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            const resultType = type || (isSuccess ? 'success' : 'error');
+            resultDiv.className = `test-result ${resultType}`;
+            resultDiv.innerHTML = `
+                <strong>[${new Date().toLocaleTimeString()}]</strong> ${message}
+            `;
+            resultsDiv.appendChild(resultDiv);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        async function testEndpoint(url, description) {
+            try {
+                addResult(`🔄 测试 ${description}: ${url}`);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult(`✅ ${description} 成功！状态码: ${response.status}`, true);
+                    addResult(`📋 响应: ${JSON.stringify(data, null, 2)}`, true, 'info');
+                } else {
+                    addResult(`❌ ${description} 失败: ${response.status} ${response.statusText}`, false);
+                }
+            } catch (error) {
+                addResult(`❌ ${description} 异常: ${error.message}`, false);
+                console.error('详细错误:', error);
+            }
+        }
+
+        async function testDirectBackend() {
+            await testEndpoint('http://8.145.34.30:3001/health', '直接后端健康检查');
+        }
+
+        async function testNginxProxy() {
+            await testEndpoint('http://8.145.34.30/health', 'Nginx代理健康检查');
+        }
+
+        async function testAPI() {
+            await testEndpoint('http://8.145.34.30/api/dishes', '菜品API');
+        }
+
+        async function testAll() {
+            addResult('🚀 开始全面测试...', true, 'info');
+            await testDirectBackend();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testNginxProxy();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testAPI();
+            addResult('🏁 测试完成', true, 'info');
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // 页面加载时显示初始信息
+        window.onload = function() {
+            addResult('📄 Nginx配置测试页面加载完成', true, 'info');
+            addResult('💡 点击按钮开始测试各项服务', true, 'info');
+        };
+    </script>
+</body>
+</html>
