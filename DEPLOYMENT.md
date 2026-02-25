@@ -62,7 +62,7 @@ DB_NAME=smart_kitchen_prod
 
 # 应用配置
 NODE_ENV=production
-PORT=3000
+PORT=3001
 
 # JWT配置
 JWT_SECRET=your_jwt_secret_key_here  # 修改为随机字符串
