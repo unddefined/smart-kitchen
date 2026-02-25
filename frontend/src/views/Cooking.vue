@@ -351,20 +351,23 @@ const handleOrderSubmit = (orderData) => {
 }
 
 .function-buttons {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  display: flex;
+  justify-content: space-around;
+  color: #000;
   gap: 12px;
 }
 
 .func-btn {
-  padding: 12px;
+  padding: 6px ;
   border: none;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 500;
+  color: #000;
   cursor: pointer;
   transition: all 0.2s;
   text-align: center;
+  width: 100%;
 }
 
 /* 按钮颜色样式 */
@@ -389,8 +392,8 @@ const handleOrderSubmit = (orderData) => {
   color: white;
 }
 .func-btn.secondary {
-  background: #9ca3af;
-  color: white;
+  background: #d5d5d5;
+  color: rgb(0, 0, 0);
 }
 
 /* 移动端优化：保持一行六个按钮 */
@@ -424,48 +427,6 @@ const handleOrderSubmit = (orderData) => {
   }
 }
 
-/* 超窄屏幕特殊处理：水平滚动确保一行六按钮 */
-@media (max-width: 380px) {
-  .function-buttons {
-    display: flex;
-    overflow-x: auto;
-    gap: 4px;
-    padding-bottom: 8px;
-    scrollbar-width: thin;
-  }
-
-  .function-buttons::-webkit-scrollbar {
-    height: 4px;
-  }
-
-  .function-buttons::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 2px;
-  }
-
-  .func-btn {
-    flex: 0 0 auto;
-    min-width: 50px;
-    padding: 6px 8px;
-    font-size: 10px;
-    white-space: nowrap;
-    background: #ddd;
-  }
-}
-
-@media (max-width: 400px) and (min-width: 381px) {
-  .function-buttons {
-    grid-template-columns: repeat(6, 1fr);
-    gap: 3px;
-  }
-
-  .func-btn {
-    padding: 5px 2px;
-    font-size: 10px;
-    background: #ddd;
-  }
-}
-
 /* Body区域样式 */
 .cooking-body {
   display: flex;
@@ -474,9 +435,8 @@ const handleOrderSubmit = (orderData) => {
 }
 
 .sidebar {
-  width: 80px;
-  background: rgb(222, 221, 221);
-  border-right: 1px solid #e0e0e0;
+  width: 100px;
+  background: rgb(230, 230, 230);
   overflow-y: auto;
 }
 
@@ -486,24 +446,19 @@ const handleOrderSubmit = (orderData) => {
 
 .overview-tab {
   width: 100%;
-  padding: 14px 12px;
+  padding: 14px 16px;
   border: none;
-  background: rgb(222, 221, 221);
+  background: rgb(231, 230, 230);
   cursor: pointer;
   font-size: 18px;
   color: #000000;
   font-weight: 600;
   transition: all 0.2s;
-  text-align: center;
+  text-align:left;
 }
 
 .overview-tab.active {
-  background: #ffffff;
-  color: rgb(0, 0, 0);
-}
-
-.order-tabs-section {
-  padding-top: 0px;
+  background: #f8f9fa;
 }
 
 .order-tabs {
@@ -513,19 +468,18 @@ const handleOrderSubmit = (orderData) => {
 
 .order-tab {
   width: 100%;
-  padding: 12px 12px;
+  padding: 12px 16px;
   border: none;
-  background: rgb(222, 221, 221);
+  background: rgb(230, 230, 230);
   cursor: pointer;
   font-size: 18px;
   transition: all 0.2s;
-  text-align: center;
+  text-align: left;
 }
 
 .order-tab.active {
-  background: #ffffff;
+  background: #f8f9fa;
   color: rgb(0, 0, 0);
-  border-color: #3b82f6;
 }
 
 .order-tab.urgent {
