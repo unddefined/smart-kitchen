@@ -1,4 +1,13 @@
 {
+  "name": "smart-kitchen",
+  "version": "1.0.0",
+  "description": "智能厨房管理系统",
+  "scripts": {
+    "test:cors": "node start-local-server.js",
+    "test:cors:html": "start test-cors-fix.html",
+    "dev:backend": "cd backend && npm run start:dev",
+    "dev:frontend": "cd frontend && npm run dev"
+  },
   "dependencies": {
     "axios": "^1.13.5",
     "pg": "^8.18.0"
