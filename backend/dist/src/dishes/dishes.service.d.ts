@@ -4,73 +4,73 @@ export declare class DishesService {
     constructor(prisma: PrismaService);
     findAll(): Promise<({
         station: {
+            id: number;
             name: string;
             createdAt: Date;
-            id: number;
         };
         category: {
+            id: number;
             name: string;
             createdAt: Date;
-            id: number;
             description: string | null;
             displayOrder: number;
         };
     } & {
-        recipe: string | null;
+        id: number;
         name: string;
         createdAt: Date;
-        id: number;
+        recipeId: number | null;
+        shortcutCode: string | null;
         stationId: number;
         categoryId: number;
-        shortcutCode: string | null;
     })[]>;
     findOne(id: number): Promise<({
         station: {
+            id: number;
             name: string;
             createdAt: Date;
-            id: number;
         };
         category: {
+            id: number;
             name: string;
             createdAt: Date;
-            id: number;
             description: string | null;
             displayOrder: number;
         };
     } & {
-        recipe: string | null;
+        id: number;
         name: string;
         createdAt: Date;
-        id: number;
+        recipeId: number | null;
+        shortcutCode: string | null;
         stationId: number;
         categoryId: number;
-        shortcutCode: string | null;
     }) | null>;
     create(data: any): Promise<{
-        recipe: string | null;
+        id: number;
         name: string;
         createdAt: Date;
-        id: number;
+        recipeId: number | null;
+        shortcutCode: string | null;
         stationId: number;
         categoryId: number;
-        shortcutCode: string | null;
     }>;
     update(id: number, data: any): Promise<{
-        recipe: string | null;
+        id: number;
         name: string;
         createdAt: Date;
-        id: number;
+        recipeId: number | null;
+        shortcutCode: string | null;
         stationId: number;
         categoryId: number;
-        shortcutCode: string | null;
     }>;
     remove(id: number): Promise<{
-        recipe: string | null;
+        id: number;
         name: string;
         createdAt: Date;
-        id: number;
+        recipeId: number | null;
+        shortcutCode: string | null;
         stationId: number;
         categoryId: number;
-        shortcutCode: string | null;
     }>;
 }

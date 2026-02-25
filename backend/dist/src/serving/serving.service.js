@@ -19,6 +19,12 @@ let ServingService = ServingService_1 = class ServingService {
     constructor(prisma) {
         this.prisma = prisma;
     }
+    calculateDishPriority(categoryName, isAddedLater = false, basePriority = 0) {
+        if (isAddedLater) {
+            return 3;
+        }
+        return 0;
+    }
     async getOrder(orderId) {
         const order = await this.prisma.order.findUnique({
             where: { id: orderId },
