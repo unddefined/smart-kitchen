@@ -1,5 +1,5 @@
 // API基础配置和服务
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://8.145.34.30:3000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://8.145.34.30:3001'
 
 // 通用请求函数
 async function request(url, options = {}) {
