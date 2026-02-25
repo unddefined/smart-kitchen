@@ -38,7 +38,7 @@ echo "=== 修复建议 ==="
 # 如果容器没运行，启动它们
 if ! docker ps | grep -q smart-kitchen; then
     echo "检测到容器未运行，尝试启动..."
-    cd /home/smart-kitchen
+    cd /root/smart-kitchen  # 修正路径
     docker-compose -f docker-compose.prod.yml up -d
     sleep 10
     echo "重新检查容器状态:"

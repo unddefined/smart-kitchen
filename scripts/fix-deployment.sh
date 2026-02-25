@@ -4,7 +4,7 @@ echo "=== Smart Kitchen 部署修复脚本 ==="
 echo
 
 # 设置工作目录
-cd /home/smart-kitchen
+cd /root/smart-kitchen  # 修正路径
 
 # 停止现有容器
 echo "1. 停止现有容器..."
