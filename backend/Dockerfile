@@ -29,6 +29,7 @@ RUN npm ci --only=production && npm cache clean --force
 # 复制构建产物和依赖
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
 
 # 暴露端口
 EXPOSE 3001
