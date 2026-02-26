@@ -509,6 +509,7 @@ onUnmounted(() => {
   transform: translateX(-50%);
   color: rgb(0, 100, 146);
   font-size: 24px;
+  font-weight: bold;
   z-index: 10;
   white-space: nowrap;
 }
