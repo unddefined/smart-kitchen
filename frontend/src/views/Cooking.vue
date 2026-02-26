@@ -358,7 +358,7 @@ const handleOrderSubmit = (orderData) => {
 }
 
 .func-btn {
-  padding: 6px;
+  padding: 3px;
   border: none;
   border-radius: 8px;
   font-size: 16px;
@@ -367,7 +367,7 @@ const handleOrderSubmit = (orderData) => {
   cursor: pointer;
   transition: all 0.2s;
   text-align: center;
-  width: 100%;
+  width:auto;
 }
 
 /* 按钮颜色样式 */
