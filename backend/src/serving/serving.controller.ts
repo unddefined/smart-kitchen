@@ -33,11 +33,15 @@ export class ServingController {
   @Put('items/:itemId/priority')
   async updateItemPriority(
     @Param('itemId', ParseIntPipe) itemId: number,
-    @Body() updateData: { priority: number; reason?: string }
+    @Body() updateData: { priority: number; reason?: string },
   ) {
     const { priority, reason } = updateData;
     this.logger.log(`更新订单菜品 ${itemId} 优先级为 ${priority}`);
-    return await this.servingService.updateItemPriority(itemId, priority, reason);
+    return await this.servingService.updateItemPriority(
+      itemId,
+      priority,
+      reason,
+    );
   }
 
   /**
@@ -65,7 +69,9 @@ export class ServingController {
    * POST /api/serving/orders/:orderId/auto-adjust
    */
   @Post('orders/:orderId/auto-adjust')
-  async autoAdjustOrderPriorities(@Param('orderId', ParseIntPipe) orderId: number) {
+  async autoAdjustOrderPriorities(
+    @Param('orderId', ParseIntPipe) orderId: number,
+  ) {
     this.logger.log(`自动调整订单 ${orderId} 优先级`);
     return await this.servingService.autoAdjustOrderPriorities(orderId);
   }
@@ -106,16 +112,16 @@ export class ServingController {
         { category: '尾菜', priority: 1, color: 'green' },
       ],
       rules: {
-        'later_addition': '后来加菜优先级为3级',
-        'priority_boost': '前面菜品上完后后面菜品自动+1优先级',
-        'color_coding': {
-          'red': '优先出(催菜)，优先级3',
-          'yellow': '等一下，优先级2',
-          'green': '不急，优先级1',
-          'gray': '未起菜，优先级0',
-          'negative_one': '已出，优先级-1'
-        }
-      }
+        later_addition: '后来加菜优先级为3级',
+        priority_boost: '前面菜品上完后后面菜品自动+1优先级',
+        color_coding: {
+          red: '优先出(催菜)，优先级3',
+          yellow: '等一下，优先级2',
+          green: '不急，优先级1',
+          gray: '未起菜，优先级0',
+          negative_one: '已出，优先级-1',
+        },
+      },
     };
   }
 }

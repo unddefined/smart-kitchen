@@ -7,16 +7,32 @@
       @finish="onFinish"
     >
       <!-- 基本信息 -->
-      <a-form-item label="台号" name="hallNumber" :rules="[{ required: true, message: '请输入台号' }]">
+      <a-form-item
+        label="台号"
+        name="hallNumber"
+        :rules="[{ required: true, message: '请输入台号' }]"
+      >
         <a-input v-model:value="formState.hallNumber" placeholder="如：A01" />
       </a-form-item>
 
-      <a-form-item label="人数" name="peopleCount" :rules="[{ required: true, message: '请输入用餐人数' }]">
-        <a-input-number v-model:value="formState.peopleCount" :min="1" :max="20" />
+      <a-form-item
+        label="人数"
+        name="peopleCount"
+        :rules="[{ required: true, message: '请输入用餐人数' }]"
+      >
+        <a-input-number
+          v-model:value="formState.peopleCount"
+          :min="1"
+          :max="20"
+        />
       </a-form-item>
 
       <a-form-item label="桌数" name="tableCount">
-        <a-input-number v-model:value="formState.tableCount" :min="1" :max="5" />
+        <a-input-number
+          v-model:value="formState.tableCount"
+          :min="1"
+          :max="5"
+        />
       </a-form-item>
 
       <a-form-item label="用餐时间" name="mealTime">
@@ -34,16 +50,21 @@
               v-model:value="searchKeyword"
               placeholder="搜索菜品..."
               @search="searchDishes"
-              style="margin-bottom: 10px;"
+              style="margin-bottom: 10px"
             />
-            <a-button type="link" @click="showAddDishModal">+ 新增菜品</a-button>
+            <a-button type="link" @click="showAddDishModal"
+              >+ 新增菜品</a-button
+            >
           </div>
 
           <div class="dish-categories">
-            <a-tabs v-model:activeKey="activeCategory" @change="onCategoryChange">
-              <a-tab-pane 
-                v-for="category in dishCategories" 
-                :key="category.id" 
+            <a-tabs
+              v-model:activeKey="activeCategory"
+              @change="onCategoryChange"
+            >
+              <a-tab-pane
+                v-for="category in dishCategories"
+                :key="category.id"
                 :tab="category.name"
               >
                 <div class="dish-grid">
@@ -57,7 +78,9 @@
                     <div class="dish-name">{{ dish.name }}</div>
                     <div class="dish-info">
                       <span class="station">{{ dish.stationName }}</span>
-                      <span v-if="dish.countable" class="countable">(计数)</span>
+                      <span v-if="dish.countable" class="countable"
+                        >(计数)</span
+                      >
                     </div>
                   </div>
                 </div>
@@ -81,7 +104,7 @@
                     :min="1"
                     :max="20"
                     size="small"
-                    style="width: 70px; margin: 0 10px;"
+                    style="width: 70px; margin: 0 10px"
                   />
                   <span>份</span>
                 </div>
@@ -90,13 +113,13 @@
                     v-model:value="selected.remark"
                     placeholder="备注"
                     size="small"
-                    style="width: 120px; margin-right: 10px;"
+                    style="width: 120px; margin-right: 10px"
                   />
                   <a-select
                     v-model:value="selected.weight"
                     placeholder="份量"
                     size="small"
-                    style="width: 80px; margin-right: 10px;"
+                    style="width: 80px; margin-right: 10px"
                   >
                     <a-select-option value="小份">小份</a-select-option>
                     <a-select-option value="中份">中份</a-select-option>
@@ -119,7 +142,7 @@
 
       <a-form-item :wrapper-col="{ offset: 6, span: 18 }">
         <a-button type="primary" html-type="submit">提交订单</a-button>
-        <a-button style="margin-left: 10px;" @click="resetForm">重置</a-button>
+        <a-button style="margin-left: 10px" @click="resetForm">重置</a-button>
       </a-form-item>
     </a-form>
 
@@ -135,12 +158,26 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item label="菜品名称" name="name" :rules="[{ required: true, message: '请输入菜品名称' }]">
-          <a-input v-model:value="newDishForm.name" placeholder="请输入菜品名称" />
+        <a-form-item
+          label="菜品名称"
+          name="name"
+          :rules="[{ required: true, message: '请输入菜品名称' }]"
+        >
+          <a-input
+            v-model:value="newDishForm.name"
+            placeholder="请输入菜品名称"
+          />
         </a-form-item>
-        
-        <a-form-item label="所属分类" name="categoryId" :rules="[{ required: true, message: '请选择分类' }]">
-          <a-select v-model:value="newDishForm.categoryId" placeholder="请选择分类">
+
+        <a-form-item
+          label="所属分类"
+          name="categoryId"
+          :rules="[{ required: true, message: '请选择分类' }]"
+        >
+          <a-select
+            v-model:value="newDishForm.categoryId"
+            placeholder="请选择分类"
+          >
             <a-select-option
               v-for="category in dishCategories"
               :key="category.id"
@@ -150,9 +187,16 @@
             </a-select-option>
           </a-select>
         </a-form-item>
-        
-        <a-form-item label="所属工位" name="stationId" :rules="[{ required: true, message: '请选择工位' }]">
-          <a-select v-model:value="newDishForm.stationId" placeholder="请选择工位">
+
+        <a-form-item
+          label="所属工位"
+          name="stationId"
+          :rules="[{ required: true, message: '请选择工位' }]"
+        >
+          <a-select
+            v-model:value="newDishForm.stationId"
+            placeholder="请选择工位"
+          >
             <a-select-option
               v-for="station in stations"
               :key="station.id"
@@ -162,7 +206,7 @@
             </a-select-option>
           </a-select>
         </a-form-item>
-        
+
         <a-form-item label="是否计数">
           <a-switch v-model:checked="newDishForm.countable" />
           <span class="help-text">开启后按用餐人数计算份量</span>
@@ -173,89 +217,168 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, reactive, computed, onMounted } from "vue";
+import { message } from "ant-design-vue";
 
 export default {
-  name: 'OrderEntryForm',
-  emits: ['submit'],
+  name: "OrderEntryForm",
+  emits: ["submit"],
   setup(props, { emit }) {
     // 表单状态
     const formState = reactive({
-      hallNumber: '',
+      hallNumber: "",
       peopleCount: 1,
       tableCount: 1,
-      mealTime: '午餐',
-      items: []
+      mealTime: "午餐",
+      items: [],
     });
 
     // 搜索关键词
-    const searchKeyword = ref('');
+    const searchKeyword = ref("");
     const activeCategory = ref(1);
 
     // 新增菜品表单
     const addDishVisible = ref(false);
     const newDishForm = reactive({
-      name: '',
+      name: "",
       categoryId: undefined,
       stationId: undefined,
-      countable: false
+      countable: false,
     });
 
     // 数据
     const dishCategories = ref([
-      { id: 1, name: '前菜' },
-      { id: 2, name: '中菜' },
-      { id: 3, name: '后菜' },
-      { id: 4, name: '尾菜' },
-      { id: 5, name: '凉菜' },
-      { id: 6, name: '点心' },
-      { id: 7, name: '蒸菜' }
+      { id: 1, name: "前菜" },
+      { id: 2, name: "中菜" },
+      { id: 3, name: "后菜" },
+      { id: 4, name: "尾菜" },
+      { id: 5, name: "凉菜" },
+      { id: 6, name: "点心" },
+      { id: 7, name: "蒸菜" },
     ]);
 
     const stations = ref([
-      { id: 1, name: '热菜' },
-      { id: 2, name: '打荷' },
-      { id: 3, name: '凉菜' },
-      { id: 4, name: '蒸煮' },
-      { id: 5, name: '点心' },
-      { id: 6, name: '切配' }
+      { id: 1, name: "热菜" },
+      { id: 2, name: "打荷" },
+      { id: 3, name: "凉菜" },
+      { id: 4, name: "蒸煮" },
+      { id: 5, name: "点心" },
+      { id: 6, name: "切配" },
     ]);
 
     const allDishes = ref([
       // 前菜
-      { id: 1, name: '椒盐基围虾', categoryId: 1, stationId: 1, stationName: '热菜', countable: false },
-      { id: 2, name: '藜麦元宝虾', categoryId: 1, stationId: 1, stationName: '热菜', countable: false },
-      { id: 3, name: '盐水河虾', categoryId: 1, stationId: 1, stationName: '热菜', countable: false },
-      
+      {
+        id: 1,
+        name: "椒盐基围虾",
+        categoryId: 1,
+        stationId: 1,
+        stationName: "热菜",
+        countable: false,
+      },
+      {
+        id: 2,
+        name: "藜麦元宝虾",
+        categoryId: 1,
+        stationId: 1,
+        stationName: "热菜",
+        countable: false,
+      },
+      {
+        id: 3,
+        name: "盐水河虾",
+        categoryId: 1,
+        stationId: 1,
+        stationName: "热菜",
+        countable: false,
+      },
+
       // 中菜
-      { id: 4, name: '红烧肉', categoryId: 2, stationId: 1, stationName: '热菜', countable: false },
-      { id: 5, name: '宫保鸡丁', categoryId: 2, stationId: 1, stationName: '热菜', countable: false },
-      { id: 6, name: '托炉饼', categoryId: 2, stationId: 5, stationName: '点心', countable: true },
-      { id: 7, name: '椒盐排骨', categoryId: 2, stationId: 1, stationName: '热菜', countable: true },
-      
+      {
+        id: 4,
+        name: "红烧肉",
+        categoryId: 2,
+        stationId: 1,
+        stationName: "热菜",
+        countable: false,
+      },
+      {
+        id: 5,
+        name: "宫保鸡丁",
+        categoryId: 2,
+        stationId: 1,
+        stationName: "热菜",
+        countable: false,
+      },
+      {
+        id: 6,
+        name: "托炉饼",
+        categoryId: 2,
+        stationId: 5,
+        stationName: "点心",
+        countable: true,
+      },
+      {
+        id: 7,
+        name: "椒盐排骨",
+        categoryId: 2,
+        stationId: 1,
+        stationName: "热菜",
+        countable: true,
+      },
+
       // 后菜
-      { id: 8, name: '菠萝炒饭', categoryId: 3, stationId: 1, stationName: '热菜', countable: false },
-      { id: 9, name: '荷塘月色', categoryId: 3, stationId: 1, stationName: '热菜', countable: false },
-      
+      {
+        id: 8,
+        name: "菠萝炒饭",
+        categoryId: 3,
+        stationId: 1,
+        stationName: "热菜",
+        countable: false,
+      },
+      {
+        id: 9,
+        name: "荷塘月色",
+        categoryId: 3,
+        stationId: 1,
+        stationName: "热菜",
+        countable: false,
+      },
+
       // 尾菜
-      { id: 10, name: '时蔬', categoryId: 4, stationId: 1, stationName: '热菜', countable: false },
-      { id: 11, name: '蛋皮汤', categoryId: 4, stationId: 1, stationName: '热菜', countable: false }
+      {
+        id: 10,
+        name: "时蔬",
+        categoryId: 4,
+        stationId: 1,
+        stationName: "热菜",
+        countable: false,
+      },
+      {
+        id: 11,
+        name: "蛋皮汤",
+        categoryId: 4,
+        stationId: 1,
+        stationName: "热菜",
+        countable: false,
+      },
     ]);
 
     const selectedDishes = ref([]);
 
     // 计算属性
     const filteredDishes = computed(() => (categoryId) => {
-      let dishes = allDishes.value.filter(dish => dish.categoryId === categoryId);
-      
+      let dishes = allDishes.value.filter(
+        (dish) => dish.categoryId === categoryId,
+      );
+
       if (searchKeyword.value) {
         const keyword = searchKeyword.value.toLowerCase();
-        dishes = dishes.filter(dish => 
-          dish.name.toLowerCase().includes(keyword)
+        dishes = dishes.filter((dish) =>
+          dish.name.toLowerCase().includes(keyword),
         );
       }
-      
+
       return dishes;
     });
 
@@ -269,12 +392,14 @@ export default {
     };
 
     const isSelected = (dishId) => {
-      return selectedDishes.value.some(item => item.dishId === dishId);
+      return selectedDishes.value.some((item) => item.dishId === dishId);
     };
 
     const toggleDishSelection = (dish) => {
-      const index = selectedDishes.value.findIndex(item => item.dishId === dish.id);
-      
+      const index = selectedDishes.value.findIndex(
+        (item) => item.dishId === dish.id,
+      );
+
       if (index > -1) {
         // 已选择，移除
         selectedDishes.value.splice(index, 1);
@@ -285,7 +410,7 @@ export default {
           dishName: dish.name,
           quantity: 1,
           weight: undefined,
-          remark: ''
+          remark: "",
         });
       }
     };
@@ -298,18 +423,22 @@ export default {
       addDishVisible.value = true;
       // 重置表单
       Object.assign(newDishForm, {
-        name: '',
+        name: "",
         categoryId: undefined,
         stationId: undefined,
-        countable: false
+        countable: false,
       });
     };
 
     const handleAddDish = async () => {
       try {
         // 验证表单
-        if (!newDishForm.name || !newDishForm.categoryId || !newDishForm.stationId) {
-          message.error('请填写完整信息');
+        if (
+          !newDishForm.name ||
+          !newDishForm.categoryId ||
+          !newDishForm.stationId
+        ) {
+          message.error("请填写完整信息");
           return;
         }
 
@@ -319,58 +448,60 @@ export default {
           name: newDishForm.name,
           categoryId: newDishForm.categoryId,
           stationId: newDishForm.stationId,
-          stationName: stations.value.find(s => s.id === newDishForm.stationId)?.name || '',
-          countable: newDishForm.countable
+          stationName:
+            stations.value.find((s) => s.id === newDishForm.stationId)?.name ||
+            "",
+          countable: newDishForm.countable,
         };
 
         // 添加到菜品列表
         allDishes.value.push(newDish);
-        
-        message.success('菜品添加成功');
+
+        message.success("菜品添加成功");
         addDishVisible.value = false;
       } catch (error) {
-        message.error('添加菜品失败: ' + error.message);
+        message.error("添加菜品失败: " + error.message);
       }
     };
 
     const onFinish = async (values) => {
       try {
         if (selectedDishes.value.length === 0) {
-          message.error('请至少选择一个菜品');
+          message.error("请至少选择一个菜品");
           return;
         }
 
         // 构造订单数据
         const orderData = {
           ...formState,
-          items: selectedDishes.value.map(item => ({
+          items: selectedDishes.value.map((item) => ({
             dishId: item.dishId,
             quantity: item.quantity,
             weight: item.weight,
-            remark: item.remark
-          }))
+            remark: item.remark,
+          })),
         };
 
         // 发送提交事件
-        emit('submit', orderData);
-        
-        message.success('订单提交成功');
+        emit("submit", orderData);
+
+        message.success("订单提交成功");
         resetForm();
       } catch (error) {
-        message.error('提交订单失败: ' + error.message);
+        message.error("提交订单失败: " + error.message);
       }
     };
 
     const resetForm = () => {
       Object.assign(formState, {
-        hallNumber: '',
+        hallNumber: "",
         peopleCount: 1,
         tableCount: 1,
-        mealTime: '午餐'
+        mealTime: "午餐",
       });
-      
+
       selectedDishes.value = [];
-      searchKeyword.value = '';
+      searchKeyword.value = "";
       activeCategory.value = 1;
     };
 
@@ -398,9 +529,9 @@ export default {
       showAddDishModal,
       handleAddDish,
       onFinish,
-      resetForm
+      resetForm,
     };
-  }
+  },
 };
 </script>
 
@@ -517,12 +648,12 @@ export default {
   .dish-grid {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
-  
+
   .item-main {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .item-actions {
     flex-direction: column;
     align-items: stretch;

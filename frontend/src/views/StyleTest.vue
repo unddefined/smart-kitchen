@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-gray-100 p-4">
     <div class="max-w-2xl mx-auto">
       <h1 class="text-3xl font-bold text-gray-900 mb-6">样式测试页面</h1>
-      
+
       <!-- 基础颜色测试 -->
       <div class="bg-white rounded-lg shadow-md p-6 mb-6">
         <h2 class="text-xl font-semibold text-gray-800 mb-4">基础颜色测试</h2>
@@ -29,16 +29,24 @@
       <div class="bg-white rounded-lg shadow-md p-6 mb-6">
         <h2 class="text-xl font-semibold text-gray-800 mb-4">按钮样式测试</h2>
         <div class="flex flex-wrap gap-3">
-          <button class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+          <button
+            class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
             主要按钮
           </button>
-          <button class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+          <button
+            class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+          >
             次要按钮
           </button>
-          <button class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
+          <button
+            class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+          >
             成功按钮
           </button>
-          <button class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
+          <button
+            class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+          >
             危险按钮
           </button>
         </div>
@@ -47,7 +55,9 @@
       <!-- 布局测试 -->
       <div class="bg-white rounded-lg shadow-md p-6 mb-6">
         <h2 class="text-xl font-semibold text-gray-800 mb-4">布局测试</h2>
-        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+        <div
+          class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+        >
           <div class="flex items-center space-x-3">
             <div class="w-10 h-10 bg-blue-500 rounded-full"></div>
             <div>
@@ -55,7 +65,9 @@
               <p class="text-sm text-gray-500">水平居中对齐</p>
             </div>
           </div>
-          <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+          <span
+            class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm"
+          >
             状态标签
           </span>
         </div>

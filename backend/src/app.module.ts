@@ -10,7 +10,13 @@ import { TestController } from './test.controller';
 import { MockDataService } from './mock-data.service';
 
 @Module({
-  imports: [PrismaModule, UsersModule, ServingModule, DishesModule, OrdersModule],
+  imports: [
+    PrismaModule,
+    UsersModule,
+    ServingModule,
+    DishesModule,
+    OrdersModule,
+  ],
   controllers: [AppController, TestController],
   providers: [AppService, MockDataService],
 })

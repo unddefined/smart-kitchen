@@ -15,7 +15,7 @@ export class AppController {
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
-      service: 'smart-kitchen-backend'
+      service: 'smart-kitchen-backend',
     };
   }
 }

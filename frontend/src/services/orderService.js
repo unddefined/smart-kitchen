@@ -1,4 +1,4 @@
-import { api, ORDER_STATUS, ORDER_ITEM_STATUS } from './api'
+import { api, ORDER_STATUS, ORDER_ITEM_STATUS } from "./api";
 
 // 订单管理服务
 export class OrderService {
@@ -7,7 +7,7 @@ export class OrderService {
     try {
       // 验证必要字段
       if (!orderData.hallNumber || !orderData.peopleCount) {
-        throw new Error('台号和人数为必填项')
+        throw new Error("台号和人数为必填项");
       }
 
       const order = await api.orders.create({
@@ -15,19 +15,19 @@ export class OrderService {
         peopleCount: orderData.peopleCount,
         tableCount: orderData.tableCount || 1,
         mealTime: orderData.mealTime || this.getCurrentMealTime(),
-        status: ORDER_STATUS.CREATED
-      })
+        status: ORDER_STATUS.CREATED,
+      });
 
       return {
         success: true,
-        message: '订单创建成功',
-        data: order
-      }
+        message: "订单创建成功",
+        data: order,
+      };
     } catch (error) {
       return {
         success: false,
-        message: '订单创建失败: ' + error.message
-      }
+        message: "订单创建失败: " + error.message,
+      };
     }
   }
 
@@ -36,7 +36,7 @@ export class OrderService {
     try {
       // 验证必要字段
       if (!dishData.dishId || !dishData.quantity) {
-        throw new Error('菜品和数量为必填项')
+        throw new Error("菜品和数量为必填项");
       }
 
       const orderItem = await api.orderItems.create(orderId, {
@@ -46,39 +46,39 @@ export class OrderService {
         remark: dishData.remark || null,
         countable: dishData.countable || false,
         status: ORDER_ITEM_STATUS.PENDING,
-        priority: dishData.priority || 0
-      })
+        priority: dishData.priority || 0,
+      });
 
       return {
         success: true,
-        message: '菜品添加成功',
-        data: orderItem
-      }
+        message: "菜品添加成功",
+        data: orderItem,
+      };
     } catch (error) {
       return {
         success: false,
-        message: '菜品添加失败: ' + error.message
-      }
+        message: "菜品添加失败: " + error.message,
+      };
     }
   }
 
   // 批量添加菜品
   static async addMultipleDishes(orderId, dishes) {
-    const results = []
-    
+    const results = [];
+
     for (const dish of dishes) {
-      const result = await this.addDishToOrder(orderId, dish)
-      results.push(result)
+      const result = await this.addDishToOrder(orderId, dish);
+      results.push(result);
     }
 
-    const successCount = results.filter(r => r.success).length
-    const totalCount = results.length
+    const successCount = results.filter((r) => r.success).length;
+    const totalCount = results.length;
 
     return {
       success: successCount === totalCount,
       message: `成功添加 ${successCount}/${totalCount} 个菜品`,
-      data: results
-    }
+      data: results,
+    };
   }
 
   // 更新订单状态
@@ -86,47 +86,53 @@ export class OrderService {
     try {
       // 验证状态有效性
       if (!Object.values(ORDER_STATUS).includes(status)) {
-        throw new Error('无效的订单状态')
+        throw new Error("无效的订单状态");
       }
 
-      const order = await api.orders.updateStatus(orderId, status)
-      
+      const order = await api.orders.updateStatus(orderId, status);
+
       return {
         success: true,
-        message: '订单状态更新成功',
-        data: order
-      }
+        message: "订单状态更新成功",
+        data: order,
+      };
     } catch (error) {
       return {
         success: false,
-        message: '订单状态更新失败: ' + error.message
-      }
+        message: "订单状态更新失败: " + error.message,
+      };
     }
   }
 
   // 获取订单列表
   static async getOrders(filters = {}) {
     try {
-      const orders = await api.orders.list()
-      
+      const orders = await api.orders.list();
+
       // 应用过滤条件
-      let filteredOrders = orders
-      
+      let filteredOrders = orders;
+
       if (filters.status) {
-        filteredOrders = filteredOrders.filter(order => order.status === filters.status)
+        filteredOrders = filteredOrders.filter(
+          (order) => order.status === filters.status,
+        );
       }
-      
+
       if (filters.date) {
-        filteredOrders = filteredOrders.filter(order => 
-          new Date(order.createdAt).toDateString() === new Date(filters.date).toDateString()
-        )
+        filteredOrders = filteredOrders.filter(
+          (order) =>
+            new Date(order.createdAt).toDateString() ===
+            new Date(filters.date).toDateString(),
+        );
       }
-      
+
       // 按创建时间倒序排列
-      return filteredOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      return filteredOrders.sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+      );
     } catch (error) {
-      console.error('获取订单列表失败:', error)
-      return []
+      console.error("获取订单列表失败:", error);
+      return [];
     }
   }
 
@@ -135,18 +141,18 @@ export class OrderService {
     try {
       const [order, orderItems] = await Promise.all([
         api.orders.get(orderId),
-        api.orderItems.listByOrder(orderId)
-      ])
+        api.orderItems.listByOrder(orderId),
+      ]);
 
       return {
         ...order,
         items: orderItems,
         // 计算统计数据
-        stats: this.calculateOrderStats(orderItems)
-      }
+        stats: this.calculateOrderStats(orderItems),
+      };
     } catch (error) {
-      console.error('获取订单详情失败:', error)
-      return null
+      console.error("获取订单详情失败:", error);
+      return null;
     }
   }
 
@@ -158,85 +164,85 @@ export class OrderService {
       preparingCount: 0,
       readyCount: 0,
       servedCount: 0,
-      totalCountable: 0
-    }
+      totalCountable: 0,
+    };
 
-    orderItems.forEach(item => {
+    orderItems.forEach((item) => {
       switch (item.status) {
         case ORDER_ITEM_STATUS.PENDING:
-          stats.pendingCount++
-          break
+          stats.pendingCount++;
+          break;
         case ORDER_ITEM_STATUS.PREPARING:
-          stats.preparingCount++
-          break
+          stats.preparingCount++;
+          break;
         case ORDER_ITEM_STATUS.READY:
-          stats.readyCount++
-          break
+          stats.readyCount++;
+          break;
         case ORDER_ITEM_STATUS.SERVED:
-          stats.servedCount++
-          break
+          stats.servedCount++;
+          break;
       }
-      
-      if (item.countable) {
-        stats.totalCountable += item.quantity
-      }
-    })
 
-    return stats
+      if (item.countable) {
+        stats.totalCountable += item.quantity;
+      }
+    });
+
+    return stats;
   }
 
   // 获取当前餐次
   static getCurrentMealTime() {
-    const now = new Date()
-    const hour = now.getHours()
-    
+    const now = new Date();
+    const hour = now.getHours();
+
     if (hour >= 11 && hour < 14) {
-      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} 午餐`
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} 午餐`;
     } else if (hour >= 17 && hour < 21) {
-      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} 晚餐`
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} 晚餐`;
     } else {
-      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} 其他`
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} 其他`;
     }
   }
 
   // 验证订单数据
   static validateOrderData(orderData) {
-    const errors = []
+    const errors = [];
 
     if (!orderData.hallNumber) {
-      errors.push('台号不能为空')
+      errors.push("台号不能为空");
     }
 
     if (!orderData.peopleCount || orderData.peopleCount <= 0) {
-      errors.push('人数必须大于0')
+      errors.push("人数必须大于0");
     }
 
     if (orderData.tableCount && orderData.tableCount <= 0) {
-      errors.push('桌数必须大于0')
+      errors.push("桌数必须大于0");
     }
 
     return {
       isValid: errors.length === 0,
-      errors
-    }
+      errors,
+    };
   }
 
   // 验证菜品数据
   static validateDishData(dishData) {
-    const errors = []
+    const errors = [];
 
     if (!dishData.dishId) {
-      errors.push('必须选择菜品')
+      errors.push("必须选择菜品");
     }
 
     if (!dishData.quantity || dishData.quantity <= 0) {
-      errors.push('数量必须大于0')
+      errors.push("数量必须大于0");
     }
 
     return {
       isValid: errors.length === 0,
-      errors
-    }
+      errors,
+    };
   }
 
   // 格式化订单显示信息
@@ -248,32 +254,32 @@ export class OrderService {
       tableCount: order.tableCount,
       status: order.status,
       mealTime: order.mealTime,
-      createdAt: new Date(order.createdAt).toLocaleString('zh-CN'),
-      statusText: this.getOrderStatusText(order.status)
-    }
+      createdAt: new Date(order.createdAt).toLocaleString("zh-CN"),
+      statusText: this.getOrderStatusText(order.status),
+    };
   }
 
   // 获取订单状态文本
   static getOrderStatusText(status) {
     const statusMap = {
-      [ORDER_STATUS.CREATED]: '已创建',
-      [ORDER_STATUS.STARTED]: '已起菜',
-      [ORDER_STATUS.SERVING]: '制作中',
-      [ORDER_STATUS.DONE]: '已完成',
-      [ORDER_STATUS.CANCELLED]: '已取消'
-    }
-    return statusMap[status] || '未知状态'
+      [ORDER_STATUS.CREATED]: "已创建",
+      [ORDER_STATUS.STARTED]: "已起菜",
+      [ORDER_STATUS.SERVING]: "制作中",
+      [ORDER_STATUS.DONE]: "已完成",
+      [ORDER_STATUS.CANCELLED]: "已取消",
+    };
+    return statusMap[status] || "未知状态";
   }
 
   // 获取菜品状态文本
   static getOrderItemStatusText(status) {
     const statusMap = {
-      [ORDER_ITEM_STATUS.PENDING]: '待制作',
-      [ORDER_ITEM_STATUS.PREPARING]: '制作中',
-      [ORDER_ITEM_STATUS.READY]: '已备好',
-      [ORDER_ITEM_STATUS.SERVED]: '已上菜'
-    }
-    return statusMap[status] || '未知状态'
+      [ORDER_ITEM_STATUS.PENDING]: "待制作",
+      [ORDER_ITEM_STATUS.PREPARING]: "制作中",
+      [ORDER_ITEM_STATUS.READY]: "已备好",
+      [ORDER_ITEM_STATUS.SERVED]: "已上菜",
+    };
+    return statusMap[status] || "未知状态";
   }
 
   // 删除订单中的菜品
@@ -281,25 +287,25 @@ export class OrderService {
     try {
       // 这里需要根据实际API实现
       // 可能需要先获取订单详情，然后删除对应的菜品项
-      const orderItems = await api.orderItems.listByOrder(orderId)
-      const itemToDelete = orderItems.find(item => item.dishId === dishId)
-      
+      const orderItems = await api.orderItems.listByOrder(orderId);
+      const itemToDelete = orderItems.find((item) => item.dishId === dishId);
+
       if (itemToDelete) {
-        await api.orderItems.delete(itemToDelete.id)
+        await api.orderItems.delete(itemToDelete.id);
         return {
           success: true,
-          message: '菜品删除成功'
-        }
+          message: "菜品删除成功",
+        };
       } else {
-        throw new Error('未找到对应的菜品')
+        throw new Error("未找到对应的菜品");
       }
     } catch (error) {
       return {
         success: false,
-        message: '菜品删除失败: ' + error.message
-      }
+        message: "菜品删除失败: " + error.message,
+      };
     }
   }
 }
 
-export default OrderService
+export default OrderService;

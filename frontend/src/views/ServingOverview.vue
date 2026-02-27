@@ -4,14 +4,20 @@
     <div class="control-bar">
       <div class="date-selector">
         <a-date-picker v-model:value="selectedDate" @change="onDateChange" />
-        <a-select v-model:value="mealPeriod" @change="onMealPeriodChange" style="width: 120px; margin-left: 10px;">
+        <a-select
+          v-model:value="mealPeriod"
+          @change="onMealPeriodChange"
+          style="width: 120px; margin-left: 10px"
+        >
           <a-select-option value="午餐">午餐</a-select-option>
           <a-select-option value="晚餐">晚餐</a-select-option>
         </a-select>
       </div>
-      
+
       <div class="action-buttons">
-        <a-button type="primary" @click="showCreateOrderModal">录入订单</a-button>
+        <a-button type="primary" @click="showCreateOrderModal"
+          >录入订单</a-button
+        >
         <a-button @click="urgeDish">催菜</a-button>
         <a-button @click="addDish">加菜</a-button>
         <a-button @click="delayDish">暂缓</a-button>
@@ -25,8 +31,8 @@
       <div class="overview-section">
         <h3>总览</h3>
         <div class="dish-cards-container">
-          <div 
-            v-for="dish in mergedDishes" 
+          <div
+            v-for="dish in mergedDishes"
             :key="`${dish.name}-${dish.priority}`"
             class="dish-card"
             :class="getCardClass(dish)"
@@ -34,9 +40,15 @@
             @dblclick="openRecipe(dish)"
             @contextmenu.prevent="showDishContextMenu(dish, $event)"
           >
-            <div class="dish-name">{{ truncateDishName(dish.name) }}×{{ dish.totalQuantity }}</div>
+            <div class="dish-name">
+              {{ truncateDishName(dish.name) }}×{{ dish.totalQuantity }}
+            </div>
             <div class="dish-details">
-              <div v-for="detail in dish.details" :key="detail.key" class="detail-line">
+              <div
+                v-for="detail in dish.details"
+                :key="detail.key"
+                class="detail-line"
+              >
                 {{ detail.text }}
               </div>
             </div>
@@ -48,17 +60,19 @@
       <div v-for="order in orders" :key="order.orderId" class="order-section">
         <div class="order-header" @click="selectOrder(order)">
           <span class="hall-number">{{ order.hallNumber }}</span>
-          <span class="order-info">{{ order.peopleCount }}人 {{ order.tableCount }}桌</span>
+          <span class="order-info"
+            >{{ order.peopleCount }}人 {{ order.tableCount }}桌</span
+          >
           <span class="order-time">{{ formatTime(order.createdAt) }}</span>
         </div>
-        
+
         <div v-if="selectedOrderId === order.orderId" class="order-details">
           <!-- 已出菜品 -->
           <div class="served-section">
             <h4>已出</h4>
             <div class="served-cards">
-              <div 
-                v-for="item in getServedItems(order)" 
+              <div
+                v-for="item in getServedItems(order)"
                 :key="item.itemId"
                 class="served-card"
                 @dblclick="openRecipe(item)"
@@ -73,8 +87,8 @@
           <div class="pending-section">
             <h4>待上</h4>
             <div class="pending-cards">
-              <div 
-                v-for="item in getPendingItems(order)" 
+              <div
+                v-for="item in getPendingItems(order)"
                 :key="item.itemId"
                 class="pending-card"
                 :class="getItemClass(item)"
@@ -83,7 +97,9 @@
               >
                 <div class="item-main">{{ item.dishName }}</div>
                 <div class="item-quantity">×{{ item.quantity }}</div>
-                <div v-if="item.remark" class="item-remark">{{ item.remark }}</div>
+                <div v-if="item.remark" class="item-remark">
+                  {{ item.remark }}
+                </div>
               </div>
             </div>
           </div>
@@ -98,8 +114,8 @@
     </div>
 
     <!-- 菜品操作上下文菜单 -->
-    <div 
-      v-show="contextMenu.visible" 
+    <div
+      v-show="contextMenu.visible"
       class="context-menu"
       :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
     >
@@ -110,9 +126,9 @@
     </div>
 
     <!-- 录入订单模态框 -->
-    <a-modal 
-      v-model:visible="createOrderVisible" 
-      title="录入订单" 
+    <a-modal
+      v-model:visible="createOrderVisible"
+      title="录入订单"
       width="800px"
       @ok="handleCreateOrder"
       @cancel="createOrderVisible = false"
@@ -123,27 +139,27 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { message } from 'ant-design-vue';
-import OrderEntryForm from '@/components/OrderEntryForm.vue';
-import { useServingStore } from '@/stores/serving';
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { message } from "ant-design-vue";
+import OrderEntryForm from "@/components/OrderEntryForm.vue";
+import { useServingStore } from "@/stores/serving";
 
 export default {
-  name: 'ServingOverview',
+  name: "ServingOverview",
   components: {
-    OrderEntryForm
+    OrderEntryForm,
   },
   setup() {
     const servingStore = useServingStore();
     const selectedDate = ref(new Date());
-    const mealPeriod = ref('午餐');
+    const mealPeriod = ref("午餐");
     const selectedOrderId = ref(null);
     const createOrderVisible = ref(false);
     const contextMenu = ref({
       visible: false,
       x: 0,
       y: 0,
-      dish: null
+      dish: null,
     });
 
     // 计算属性
@@ -151,10 +167,11 @@ export default {
     const mergedDishes = computed(() => {
       // 自动合并同名同优先级的菜品
       const dishMap = new Map();
-      
-      orders.value.forEach(order => {
-        order.items?.forEach(item => {
-          if (item.status !== 'served') { // 只处理未出的菜品
+
+      orders.value.forEach((order) => {
+        order.items?.forEach((item) => {
+          if (item.status !== "served") {
+            // 只处理未出的菜品
             const key = `${item.dishName}-${item.currentPriority}`;
             if (!dishMap.has(key)) {
               dishMap.set(key, {
@@ -162,25 +179,25 @@ export default {
                 priority: item.currentPriority,
                 totalQuantity: 0,
                 details: [],
-                items: []
+                items: [],
               });
             }
-            
+
             const dishGroup = dishMap.get(key);
             dishGroup.totalQuantity += item.quantity;
             dishGroup.items.push(item);
-            
+
             // 收集详细信息
             if (item.weight) {
               dishGroup.details.push({
                 key: `weight-${item.itemId}`,
-                text: `${item.weight}·${item.quantity}份`
+                text: `${item.weight}·${item.quantity}份`,
               });
             }
             if (item.remark) {
               dishGroup.details.push({
                 key: `remark-${item.itemId}`,
-                text: `${item.remark}·${item.quantity}份`
+                text: `${item.remark}·${item.quantity}份`,
               });
             }
           }
@@ -208,51 +225,62 @@ export default {
       try {
         await servingStore.loadOrders({
           date: selectedDate.value,
-          mealPeriod: mealPeriod.value
+          mealPeriod: mealPeriod.value,
         });
       } catch (error) {
-        message.error('加载订单失败: ' + error.message);
+        message.error("加载订单失败: " + error.message);
       }
     };
 
     const selectOrder = (order) => {
-      selectedOrderId.value = selectedOrderId.value === order.orderId ? null : order.orderId;
+      selectedOrderId.value =
+        selectedOrderId.value === order.orderId ? null : order.orderId;
     };
 
     const getServedItems = (order) => {
-      return order.items?.filter(item => item.status === 'served') || [];
+      return order.items?.filter((item) => item.status === "served") || [];
     };
 
     const getPendingItems = (order) => {
-      return order.items?.filter(item => item.status !== 'served') || [];
+      return order.items?.filter((item) => item.status !== "served") || [];
     };
 
     const getCardClass = (dish) => {
       // 根据优先级返回对应的CSS类
       switch (dish.priority) {
-        case 3: return 'card-red';    // 红色：催菜
-        case 2: return 'card-yellow'; // 黄色：等一下
-        case 1: return 'card-green';  // 绿色：不急
-        case 0: return 'card-gray';   // 灰色：未起菜
-        case -1: return 'card-gray';  // 灰色：已出
-        default: return 'card-gray';
+        case 3:
+          return "card-red"; // 红色：催菜
+        case 2:
+          return "card-yellow"; // 黄色：等一下
+        case 1:
+          return "card-green"; // 绿色：不急
+        case 0:
+          return "card-gray"; // 灰色：未起菜
+        case -1:
+          return "card-gray"; // 灰色：已出
+        default:
+          return "card-gray";
       }
     };
 
     const getItemClass = (item) => {
       // 根据状态和优先级返回对应的CSS类
-      if (item.status === 'served') return 'item-served';
-      if (item.status === 'pending') return 'item-pending';
-      if (item.status === 'prep') {
+      if (item.status === "served") return "item-served";
+      if (item.status === "pending") return "item-pending";
+      if (item.status === "prep") {
         switch (item.priority) {
-          case 3: return 'item-prep-high';
-          case 2: return 'item-prep-medium';
-          case 1: return 'item-prep-low';
-          default: return 'item-prep';
+          case 3:
+            return "item-prep-high";
+          case 2:
+            return "item-prep-medium";
+          case 1:
+            return "item-prep-low";
+          default:
+            return "item-prep";
         }
       }
-      if (item.status === 'ready') return 'item-ready';
-      return '';
+      if (item.status === "ready") return "item-ready";
+      return "";
     };
 
     const truncateDishName = (name) => {
@@ -265,7 +293,7 @@ export default {
 
     const handleDishClick = (dish) => {
       // 点击卡片出菜或完成切配与处理
-      console.log('处理菜品:', dish.name);
+      console.log("处理菜品:", dish.name);
     };
 
     const openRecipe = (item) => {
@@ -278,7 +306,7 @@ export default {
         visible: true,
         x: event.clientX,
         y: event.clientY,
-        dish: dish
+        dish: dish,
       };
     };
 
@@ -288,23 +316,25 @@ export default {
 
     const adjustQuantity = () => {
       // 调整数量逻辑
-      message.info('调整数量功能');
+      message.info("调整数量功能");
       hideContextMenu();
     };
 
     const adjustPriority = () => {
       // 调整优先级逻辑
-      message.info('调整优先级功能');
+      message.info("调整优先级功能");
       hideContextMenu();
     };
 
     const markAsReady = async () => {
       try {
-        await servingStore.completePreparation(contextMenu.value.dish.items[0].itemId);
-        message.success('标记完成成功');
+        await servingStore.completePreparation(
+          contextMenu.value.dish.items[0].itemId,
+        );
+        message.success("标记完成成功");
         await loadOrders();
       } catch (error) {
-        message.error('标记完成失败: ' + error.message);
+        message.error("标记完成失败: " + error.message);
       }
       hideContextMenu();
     };
@@ -312,10 +342,10 @@ export default {
     const serveDish = async () => {
       try {
         await servingStore.serveDish(contextMenu.value.dish.items[0].itemId);
-        message.success('上菜成功');
+        message.success("上菜成功");
         await loadOrders();
       } catch (error) {
-        message.error('上菜失败: ' + error.message);
+        message.error("上菜失败: " + error.message);
       }
       hideContextMenu();
     };
@@ -326,47 +356,47 @@ export default {
 
     const handleCreateOrder = () => {
       // 处理订单创建
-      message.success('订单创建成功');
+      message.success("订单创建成功");
       createOrderVisible.value = false;
       loadOrders();
     };
 
     const urgeDish = () => {
-      message.info('催菜功能');
+      message.info("催菜功能");
     };
 
     const addDish = () => {
-      message.info('加菜功能');
+      message.info("加菜功能");
     };
 
     const delayDish = () => {
-      message.info('暂缓功能');
+      message.info("暂缓功能");
     };
 
     const cancelDish = () => {
-      message.info('退菜功能');
+      message.info("退菜功能");
     };
 
     const addRemark = () => {
-      message.info('添加备注功能');
+      message.info("添加备注功能");
     };
 
     const editOrder = () => {
-      message.info('编辑订单信息功能');
+      message.info("编辑订单信息功能");
     };
 
     const formatTime = (timeString) => {
-      if (!timeString) return '';
+      if (!timeString) return "";
       const date = new Date(timeString);
-      return date.toLocaleTimeString('zh-CN', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      return date.toLocaleTimeString("zh-CN", {
+        hour: "2-digit",
+        minute: "2-digit",
       });
     };
 
     const handleClickOutside = (event) => {
       if (contextMenu.value.visible) {
-        const contextMenuEl = document.querySelector('.context-menu');
+        const contextMenuEl = document.querySelector(".context-menu");
         if (contextMenuEl && !contextMenuEl.contains(event.target)) {
           hideContextMenu();
         }
@@ -376,11 +406,11 @@ export default {
     // 生命周期
     onMounted(() => {
       loadOrders();
-      document.addEventListener('click', handleClickOutside);
+      document.addEventListener("click", handleClickOutside);
     });
 
     onUnmounted(() => {
-      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener("click", handleClickOutside);
     });
 
     return {
@@ -414,9 +444,9 @@ export default {
       cancelDish,
       addRemark,
       editOrder,
-      formatTime
+      formatTime,
     };
-  }
+  },
 };
 </script>
 
@@ -473,7 +503,7 @@ export default {
 
 .dish-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .card-red {
@@ -546,16 +576,19 @@ export default {
   padding: 20px;
 }
 
-.served-section, .pending-section {
+.served-section,
+.pending-section {
   margin-bottom: 20px;
 }
 
-.served-section h4, .pending-section h4 {
+.served-section h4,
+.pending-section h4 {
   margin-bottom: 10px;
   color: #333;
 }
 
-.served-cards, .pending-cards {
+.served-cards,
+.pending-cards {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -648,7 +681,7 @@ export default {
   background: white;
   border: 1px solid #ddd;
   border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 1000;
 }
 
@@ -666,12 +699,12 @@ export default {
   .dish-cards-container {
     grid-template-columns: 1fr;
   }
-  
+
   .control-bar {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .action-buttons {
     width: 100%;
     justify-content: center;
