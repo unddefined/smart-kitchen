@@ -27,7 +27,7 @@ WITH station_ids AS (
     FROM stations
     ORDER BY sort_order
 )
--- 插入凉菜类菜品
+-- 插入凉菜类菜品（凉菜工位）
 INSERT INTO dishes (name, station_id, category_id, shortcut_code, countable) 
 SELECT 
     dish_name,
@@ -48,7 +48,7 @@ CROSS JOIN dish_categories dc
 WHERE s.name = '凉菜' AND dc.name = dishes_data.category_name
 ON CONFLICT (name) DO NOTHING;
 
--- 插入前菜类菜品
+-- 插入前菜类菜品（热菜工位，优先级3）
 INSERT INTO dishes (name, station_id, category_id, shortcut_code, countable) 
 SELECT 
     dish_name,
@@ -75,7 +75,7 @@ CROSS JOIN dish_categories dc
 WHERE s.name = '热菜' AND dc.name = dishes_data.category_name
 ON CONFLICT (name) DO NOTHING;
 
--- 插入中菜类菜品
+-- 插入中菜类菜品（热菜工位，优先级2）
 INSERT INTO dishes (name, station_id, category_id, shortcut_code, countable) 
 SELECT 
     dish_name,
@@ -117,7 +117,7 @@ CROSS JOIN dish_categories dc
 WHERE s.name = '热菜' AND dc.name = dishes_data.category_name
 ON CONFLICT (name) DO NOTHING;
 
--- 插入点心类菜品
+-- 插入点心类菜品（点心工位，MVP阶段按中菜处理，优先级2）
 INSERT INTO dishes (name, station_id, category_id, shortcut_code, countable) 
 SELECT 
     dish_name,
@@ -138,7 +138,7 @@ CROSS JOIN dish_categories dc
 WHERE s.name = '点心' AND dc.name = dishes_data.category_name
 ON CONFLICT (name) DO NOTHING;
 
--- 插入蒸菜类菜品
+-- 插入蒸菜类菜品（蒸煮工位，MVP阶段按中菜处理，优先级2）
 INSERT INTO dishes (name, station_id, category_id, shortcut_code, countable) 
 SELECT 
     dish_name,
@@ -165,7 +165,7 @@ CROSS JOIN dish_categories dc
 WHERE s.name = '蒸煮' AND dc.name = dishes_data.category_name
 ON CONFLICT (name) DO NOTHING;
 
--- 插入后菜类菜品
+-- 插入后菜类菜品（热菜工位，优先级1）
 INSERT INTO dishes (name, station_id, category_id, shortcut_code, countable) 
 SELECT 
     dish_name,
@@ -188,7 +188,7 @@ CROSS JOIN dish_categories dc
 WHERE s.name = '热菜' AND dc.name = dishes_data.category_name
 ON CONFLICT (name) DO NOTHING;
 
--- 插入尾菜类菜品
+-- 插入尾菜类菜品（热菜工位，优先级1）
 INSERT INTO dishes (name, station_id, category_id, shortcut_code, countable) 
 SELECT 
     dish_name,
