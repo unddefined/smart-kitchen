@@ -2,14 +2,19 @@ name: Smart Kitchen CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+# 【新增】明确赋予 Actions 写入包的权限
+permissions:
+  contents: read
+  packages: write
 
 env:
   REGISTRY: ghcr.io
+  # IMAGE_NAME 可以保留，但建议在下面具体步骤中覆盖使用
   IMAGE_NAME: ${{ github.repository }}
-
 jobs:
   # 代码质量检查
   lint-and-test:
@@ -17,23 +22,23 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-          
+          node-version: "20"
+          cache: "npm"
+
       - name: Install dependencies
         run: |
           cd backend && npm ci
           cd ../frontend && npm ci
-          
+
       - name: Run linter
         run: |
           cd backend && npm run lint
           cd ../frontend && npm run lint
-          
+
       - name: Run tests
         run: |
           cd backend && npm run test
@@ -45,31 +50,31 @@ jobs:
     needs: lint-and-test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        
+
       - name: Log in to Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: Extract metadata for backend
         id: meta-backend
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/smart-kitchen-backend
           tags: |
             type=ref,event=branch
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
-            
+
       - name: Build and push backend image
         uses: docker/build-push-action@v5
         with:
@@ -80,17 +85,17 @@ jobs:
           labels: ${{ steps.meta-backend.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          
+
       - name: Extract metadata for frontend
         id: meta-frontend
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/smart-kitchen-frontend
           tags: |
             type=ref,event=branch
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
-            
+
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
         with:
@@ -107,11 +112,11 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Deploy to production server
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -120,29 +125,32 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: 22
           script: |
+            # 【新增】在服务器上登录 GHCR
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
             cd /root/smart-kitchen
-            
+
             # 拉取最新代码
             git pull origin main
-            
+
             # 更新环境变量
             cp .env.production .env
-            
+
             # 停止旧服务
             docker compose down
-            
+
             # 拉取新镜像
             docker compose pull
-            
+
             # 启动新服务
             docker compose up -d
-            
+
             # 运行数据库迁移
             docker compose exec backend npx prisma migrate deploy
-            
+
             # 重启后端服务
             docker compose restart backend
-            
+
             # 验证部署
             sleep 10
             curl -f http://localhost:3001/api/health || exit 1
@@ -153,7 +161,7 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop'
-    
+
     steps:
       - name: Deploy to staging server
         uses: appleboy/ssh-action@v1.0.3
@@ -164,28 +172,28 @@ jobs:
           port: 22
           script: |
             cd /root/smart-kitchen-staging
-            
+
             # 拉取最新代码
             git pull origin develop
-            
+
             # 更新环境变量
             cp .env.staging .env
-            
+
             # 停止旧服务
             docker compose down
-            
+
             # 拉取新镜像
             docker compose pull
-            
+
             # 启动新服务
             docker compose up -d
-            
+
             # 运行数据库迁移
             docker compose exec backend npx prisma migrate deploy
-            
+
             # 重启后端服务
             docker compose restart backend
-            
+
             # 验证部署
             sleep 10
             curl -f http://localhost:3001/api/health || exit 1
