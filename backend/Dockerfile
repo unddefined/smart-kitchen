@@ -9,6 +9,8 @@ COPY package*.json ./
 # 1. 安装依赖
 RUN npm ci 
 
+COPY prisma ./prisma
+
 # 2. 【新增】生成 Prisma 客户端 (必须在编译前执行)
 # 确保此时 schema.prisma 已经复制到容器中
 RUN npx prisma generate
