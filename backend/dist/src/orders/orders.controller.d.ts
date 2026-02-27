@@ -31,6 +31,7 @@ export declare class OrdersController {
         } & {
             id: number;
             createdAt: Date;
+            countable: boolean;
             status: string;
             remark: string | null;
             quantity: number;
@@ -69,6 +70,7 @@ export declare class OrdersController {
         } & {
             id: number;
             createdAt: Date;
+            countable: boolean;
             status: string;
             remark: string | null;
             quantity: number;
