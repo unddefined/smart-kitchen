@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// 用户表
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(50)
+  tel       String?  @db.VarChar(20)
+  avatar    String?
+  station   String?  @db.VarChar(50)
+  password  String?  @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("users")
+}
+
+// 工位表
+model Station {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  dishes    Dish[]
+  @@map("stations")
+}
+
+// 菜品分类表
+model DishCategory {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(50)
+  description String?
+  displayOrder Int     @default(0) @map("display_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  dishes      Dish[]
+  @@map("dish_categories")
+}
+
+// 菜品表
+model Dish {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique @db.VarChar(100)
+  stationId   Int          @map("station_id")
+  categoryId  Int          @map("category_id")
+  shortcutCode String?     @db.VarChar(20) @map("shortcut_code")
+  recipeId    Int?         @map("recipe_id")  // 添加菜谱关联字段
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  station     Station      @relation(fields: [stationId], references: [id])
+  category    DishCategory @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[]
+
+  @@map("dishes")
+}
+
+// 订单表
+model Order {
+  id          Int         @id @default(autoincrement())
+  hallNumber  String      @db.VarChar(20) @map("hall_number")
+  peopleCount Int         @map("people_count")
+  tableCount  Int         @default(1) @map("table_count")
+  status      String      @default("created") @db.VarChar(20)  // created → started → serving → done → cancelled
+  createdAt   DateTime    @default(now()) @map("created_at")
+  mealTime    String?     @db.VarChar(50) @map("meal_time")  // 年月日+午/晚
+  updatedAt   DateTime    @default(now()) @updatedAt @map("updated_at")
+
+  orderItems  OrderItem[]
+  @@map("orders")
+}
+
+// 订单菜品表
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  orderId   Int      @map("order_id")
+  dishId    Int      @map("dish_id")
+  quantity  Int      @default(1)
+  weight    String?  @db.VarChar(20)  // 如5两，1斤
+  status    String   @default("pending") @db.VarChar(20)  // pending → prep → ready → served
+  priority  Int      @default(0)  // 优先级：0-未起菜，1-不急，2-等一下，3-催菜，-1-已出
+  remark    String?  // 备注
+  countable Boolean  @default(false)  // 是否计数，比如托炉饼一份需按一桌的人数计数
+  servedAt  DateTime? @map("served_at")  // 上菜时间
+  createdAt DateTime @default(now()) @map("created_at")
+
+  order     Order    @relation(fields: [orderId], references: [id])
+  dish      Dish     @relation(fields: [dishId], references: [id])
+
+  @@map("order_items")
+}
+
+// 菜谱表
+model Recipe {
+  id            Int       @id @default(autoincrement())
+  name          String    @unique @db.VarChar(100)  // 菜品名称
+  description   String?   // 描述文字
+  ingredientList String?  @db.Text @map("ingredient_list")  // 用料
+  images        String[]  // 配图
+  steps         String?   @db.Text  // 做法
+  tags          String[]  // 标签
+  createdAt     DateTime  @default(now()) @map("created_at")
+  dish_id       Int?      @map("dish_id")   // 关联的菜品
+
+  @@map("recipes")
+}

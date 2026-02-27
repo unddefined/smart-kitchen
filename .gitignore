@@ -91,3 +91,4 @@ config/local.*
 [._]s[a-w][a-z]
 *.un~
 backend/dist/src/main.js.map
+frontend/dev-dist/*
