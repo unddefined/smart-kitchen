@@ -6,16 +6,17 @@
         <!-- 左侧：员工头像 + 工位 + 用户名 -->
         <div class="user-info">
           <div class="avatar-placeholder" @click="toggleSidebar">👤</div>
-          <div class="station-name">打荷</div>
-          <div class="username">张师傅</div>
+          <div class="station-name" style="margin-left: 2px">打荷</div>
+          <span style="font-size: large; font-weight: bold">·</span>
+          <div class="station-name">张师傅</div>
         </div>
 
         <!-- 右侧：日期选择 + 午/晚餐切换 -->
         <div class="date-section">
           <span class="date-display">{{ currentDate }}</span>
           <span>
-            <button :class="{ active: mealType === 'lunch' }" @click="mealType = 'lunch'" class="meal-btn">午餐</button>
-            <button :class="{ active: mealType === 'dinner' }" @click="mealType = 'dinner'" class="meal-btn">晚餐</button>
+            <button :class="{ active: mealType === 'lunch' }" @click="mealType = 'lunch'" class="meal-btn">午</button>
+            <button :class="{ active: mealType === 'dinner' }" @click="mealType = 'dinner'" class="meal-btn">晚</button>
           </span>
         </div>
       </div>
@@ -210,7 +211,11 @@ const mockServedDishes = ref([
 // 计算属性
 const currentDate = computed(() => {
   const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const currentYear = now.getFullYear();
+  const dateStr = `${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+  // 如果是当年，只显示月日；否则显示完整日期
+  return dateStr;
 });
 
 const activeOrderId = computed(() => {
@@ -309,14 +314,9 @@ const handleOrderSubmit = (orderData) => {
 }
 
 .station-name {
-  font-weight: 600;
+  font-weight: 300;
   color: #333;
   font-size: 16px;
-}
-
-.username {
-  color: #666;
-  font-size: 14px;
 }
 
 .date-section {
@@ -336,10 +336,10 @@ const handleOrderSubmit = (orderData) => {
 }
 
 .meal-btn {
-  padding: 6px 16px;
+  padding: 4px;
   border: 1px solid #ddd;
   background: white;
-  font-size: 13px;
+  font-size: 16px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -352,13 +352,14 @@ const handleOrderSubmit = (orderData) => {
 
 .function-buttons {
   display: flex;
-  justify-content: space-around;
+  width: 100%;
+  justify-content: space-between; /* 使用space-between实现铺满 */
   color: #000;
-  gap: 12px;
+  gap: 2px;
 }
 
 .func-btn {
-  padding: 3px;
+  padding: 6px 12px;
   border: none;
   border-radius: 8px;
   font-size: 16px;
@@ -367,7 +368,39 @@ const handleOrderSubmit = (orderData) => {
   cursor: pointer;
   transition: all 0.2s;
   text-align: center;
-  width:auto;
+  flex: 0 1 auto; /* 基础设置 */
+  white-space: nowrap;
+  min-width: fit-content;
+}
+
+/* 根据文字长度设置不同的flex-grow值 */
+.func-btn:nth-child(1) {
+  flex-grow: 1.2;
+} /* 起菜 - 短文字，增长系数稍大 */
+.func-btn:nth-child(2) {
+  flex-grow: 1.2;
+} /* 催菜 - 短文字，增长系数稍大 */
+.func-btn:nth-child(3) {
+  flex-grow: 1.2;
+} /* 加菜 - 短文字，增长系数稍大 */
+.func-btn:nth-child(4) {
+  flex-grow: 1.2;
+} /* 暂缓 - 短文字，增长系数稍大 */
+.func-btn:nth-child(5) {
+  flex-grow: 1.2;
+} /* 退菜 - 短文字，增长系数稍大 */
+.func-btn:nth-child(6) {
+  flex-grow: 1.6;
+} /* 录入订单 - 长文字，增长系数更大 */
+
+/* 第一个按钮左边距为0 */
+.func-btn:first-child {
+  margin-left: 0;
+}
+
+/* 最后一个按钮右边距为0 */
+.func-btn:last-child {
+  margin-right: 0;
 }
 
 /* 按钮颜色样式 */
@@ -398,22 +431,67 @@ const handleOrderSubmit = (orderData) => {
 
 /* 移动端优化：保持一行六个按钮 */
 @media (max-width: 768px) {
-  .function-buttons {
-    grid-template-columns: repeat(6, 1fr);
-    gap: 6px;
+  .func-btn {
+    padding: 8px 10px;
+    font-size: 14px;
+    margin: 0 3px;
   }
 
-  .func-btn {
-    padding: 8px 4px;
-    font-size: 12px;
-    background: #ddd;
+  /* 移动端调整flex-grow值 */
+  .func-btn:nth-child(1) {
+    flex-grow: 1.1;
+  }
+  .func-btn:nth-child(2) {
+    flex-grow: 1.1;
+  }
+  .func-btn:nth-child(3) {
+    flex-grow: 1.1;
+  }
+  .func-btn:nth-child(4) {
+    flex-grow: 1.1;
+  }
+  .func-btn:nth-child(5) {
+    flex-grow: 1.1;
+  }
+  .func-btn:nth-child(6) {
+    flex-grow: 1.6;
+  }
+
+  .func-btn:first-child {
+    margin-left: 0;
+  }
+
+  .func-btn:last-child {
+    margin-right: 0;
   }
 }
 
 @media (max-width: 480px) {
-  .function-buttons {
-    grid-template-columns: repeat(6, 1fr);
-    gap: 4px;
+  .func-btn {
+    padding: 4px;
+    font-size: 16px;
+    letter-spacing: 1px;
+    margin: 0 2px;
+  }
+
+  /* 更小屏幕进一步调整 */
+  .func-btn:nth-child(1) {
+    flex-grow: 1;
+  }
+  .func-btn:nth-child(2) {
+    flex-grow: 1;
+  }
+  .func-btn:nth-child(3) {
+    flex-grow: 1;
+  }
+  .func-btn:nth-child(4) {
+    flex-grow: 1;
+  }
+  .func-btn:nth-child(5) {
+    flex-grow: 1;
+  }
+  .func-btn:nth-child(6) {
+    flex-grow: 1.2;
   }
 }
 
@@ -598,24 +676,61 @@ const handleOrderSubmit = (orderData) => {
   }
 
   .header-content {
-    flex-direction: column;
-    gap: 12px;
-    align-items: stretch;
+    /* 保持水平布局，但调整元素尺寸 */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .user-info {
+    gap: 6px;
+    min-width: 0; /* 允许收缩 */
+  }
+
+  .avatar-placeholder {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+
+  .station-name {
+    font-size: 18px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 60px;
+  }
+
+  .username {
+    font-size: 18px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 60px;
   }
 
   .date-section {
-    text-align: center;
+    text-align: right;
+    min-width: 0; /* 允许收缩 */
   }
 
   .date-display {
-    display: block;
-    margin-right: 0;
-    margin-bottom: 8px;
+    font-size: 14px;
+    margin-bottom: 4px;
+    margin-right: 8px;
+    font-weight: bold;
   }
 
   .meal-toggle {
     display: flex;
-    justify-content: center;
+    gap: 4px;
+    justify-content: flex-end;
+  }
+
+  .meal-btn {
+    padding: 3px;
+    font-size: 16px;
   }
 }
 
@@ -624,22 +739,37 @@ const handleOrderSubmit = (orderData) => {
     padding: 10px;
   }
 
+  .header-content {
+    gap: 6px;
+  }
+
   .user-info {
-    gap: 8px;
+    gap: 4px;
   }
 
   .avatar-placeholder {
-    width: 36px;
-    height: 36px;
-    font-size: 18px;
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
   }
 
   .station-name {
-    font-size: 15px;
+    font-size: 16px;
+    max-width: 50px;
   }
 
   .username {
-    font-size: 13px;
+    font-size: 16px;
+    max-width: 50px;
+  }
+
+  .date-display {
+    font-size: 16px;
+  }
+
+  .meal-btn {
+    padding: 1px 5px;
+    font-size: 16px;
   }
 
   .sidebar {
@@ -655,18 +785,57 @@ const handleOrderSubmit = (orderData) => {
 
 /* 超窄屏幕特殊处理 */
 @media (max-width: 360px) {
-  .sidebar {
-    width: 50px;
+  .header-content {
+    gap: 4px;
+    font-size: 12px;
   }
 
-  .overview-tab,
-  .order-tab {
-    padding: 8px 6px;
-    font-size: 14px;
+  .user-info {
+    gap: 3px;
   }
 
-  .user-sidebar {
-    width: 260px;
+  .avatar-placeholder {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+
+  .station-name {
+    font-size: 12px;
+    max-width: 45px;
+  }
+
+  .username {
+    font-size: 10px;
+    max-width: 45px;
+  }
+
+  .date-display {
+    font-size: 12px;
+  }
+
+  .meal-btn {
+    padding: 2px 8px;
+    font-size: 10px;
+  }
+
+  .func-btn:nth-child(1) {
+    flex-grow: 0.9;
+  }
+  .func-btn:nth-child(2) {
+    flex-grow: 0.9;
+  }
+  .func-btn:nth-child(3) {
+    flex-grow: 0.9;
+  }
+  .func-btn:nth-child(4) {
+    flex-grow: 0.9;
+  }
+  .func-btn:nth-child(5) {
+    flex-grow: 0.9;
+  }
+  .func-btn:nth-child(6) {
+    flex-grow: 1.4;
   }
 }
 </style>

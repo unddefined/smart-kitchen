@@ -92,7 +92,6 @@ const switchToModule = (module) => {
 .main-content {
   flex: 1;
   overflow-y: auto;
-  margin-bottom: 60px; /* 为底部导航留出空间 */
 }
 
 /* 全局底部导航栏 - 烹调/库存/待办/历史 */
@@ -104,7 +103,7 @@ const switchToModule = (module) => {
   display: flex;
   background: white;
   border-top: 1px solid #e0e0e0;
-  padding: 8px 0;
+  padding-top: 8px;
   /* z-index: 100; */
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
 }
@@ -114,11 +113,11 @@ const switchToModule = (module) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 4px;
+  /* padding: 8px 4px; */
   background: none;
   border: none;
   color: #666;
-  font-size: 16px;
+  font-size: 20px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -127,18 +126,13 @@ const switchToModule = (module) => {
   color: #3b82f6;
 }
 
-.nav-icon {
-  font-size: 20px;
-  margin-bottom: 4px;
-}
-
 .nav-text {
-  font-size: 16px;
+  font-size: 18px;
 }
 
 /* 安全区域适配 */
 .safe-area-bottom {
-  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
 }
 
 /* 禁用文本选择，提升移动端体验 */
@@ -174,13 +168,13 @@ button,
 /* PWA安装提示样式 */
 .pwa-install-prompt {
   position: fixed;
-  bottom: 70px;
+  /* bottom: 70px; */
   left: 50%;
   transform: translateX(-50%);
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  padding: 16px;
+  /* padding: 16px; */
   max-width: 90%;
   z-index: 1000;
 }
@@ -203,14 +197,7 @@ button,
 /* 移动端特定优化 */
 @media (max-width: 480px) {
   body {
-    font-size: 16px; /* 防止iOS缩放 */
-  }
-
-  /* 优化触摸目标大小 */
-  button,
-  .touch-target {
-    min-height: 44px;
-    min-width: 44px;
+    font-size: 18px; /* 防止iOS缩放 */
   }
 
   /* 优化输入框 */

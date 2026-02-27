@@ -461,7 +461,6 @@ onUnmounted(() => {
   font-size: 18px;
   font-weight: 500;
   color: #333;
-  margin: 0 0 16px 0;
 }
 
 .collapse-indicator {
@@ -508,8 +507,8 @@ onUnmounted(() => {
   left: 50%;
   transform: translateX(-50%);
   color: rgb(0, 100, 146);
-  font-size: 24px;
-  font-weight: bold;
+  font-size: 21px;
+  font-weight: 300;
   z-index: 10;
   white-space: nowrap;
 }
@@ -544,7 +543,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: bold;
   color: #1f2937;
   line-height: 1.3;
@@ -572,7 +571,7 @@ onUnmounted(() => {
 
 /* 菜品详细标注 - 按照MVP文档优化显示 */
 .dish-details {
-  font-size: 18px; /* 稍微减小字体以容纳更多信息 */
+  font-size: 20px; /* 稍微减小字体以容纳更多信息 */
   color: #374151;
   line-height: 1.4; /* 增加行间距提高可读性 */
   font-weight: 500;

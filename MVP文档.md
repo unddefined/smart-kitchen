@@ -35,7 +35,7 @@
 - **菜品列表展示**: 清晰显示每单的菜品明细
 
 #### 2.1.3 工位基础管理
-- **工位分类**: 热菜、打荷、凉菜、蒸菜、点心、切配六大工位
+- **工位分类**: 切配、打荷、热菜、凉菜、蒸菜、点心、服务员
 
 >**当前阶段不做针对性设计，暂不做凉菜、蒸煮、点心**
 >
@@ -87,12 +87,15 @@ password		-- 登陆密码
 #### orders (订单表)
 ```sql
 id              -- 主键
-hall_number     -- 台号
+hall_number     -- 台号（默认为[未指定]）
 people_count    -- 人数  
 table_count     -- 桌数 
-status          -- 状态(created → started → serving → done → cancelled)
+status          -- 状态(created → started → serving → urged → done → cancelled)
 created_at      -- 创建时间
-meal_time       -- 用餐时间（年月日+午/晚）
+meal_time       -- 用餐时间（年月日时分）⭐ 建议使用TIMESTAMP类型
+meal_type       -- 用餐时间（午/晚/打包）
+start_time      -- 起菜时间（若为打包菜，start_time = meal_time）
+remark          -- 备注
 ```
 
 #### order_items (订单菜品表)
@@ -102,10 +105,9 @@ order_id        -- 订单ID
 dish_id         -- 菜品ID
 quantity        -- 数量
 weight          -- 重量（如5两，1斤）
-status          -- 状态(pending → prep → ready → served)
+status          -- 状态(pending → prep → ready → served → cancelled)
 priority        -- 优先级
 remark          -- 备注
-countable       -- 是否计数，比如托炉饼一份需按一桌的人数计数（如是，则自动注明数量）
 served_at       -- 上菜时间
 created_at      -- 创建时间
 ```
@@ -117,7 +119,9 @@ name            -- 菜品名称
 station_id      -- 工位ID
 category_id     -- 分类ID
 shortcut_code   -- 模糊搜索代号
+countable       -- 是否计数，比如托炉饼一份需按一桌的人数计数（如是，则自动注明数量）
 recipe_id       -- 对应菜谱
+is_active       -- 启用或禁用菜品
 ```
 
 #### dish_categories (菜品分类表)
@@ -163,9 +167,17 @@ GET    /api/stations        # 获取工位列表
 
 ## 4.出餐逻辑
 
-在总览视图中，同名同优先级菜品数量 = order_items.quantity × orders.table_count × 当前时段包含该菜品的订单总数
+在总览视图中，同名同优先级菜品数量 = order_items.quantity × orders.table_count + 其它订单的order_items.quantity × orders.table_count + ...
 
-订单未起菜时，该订单的所有菜品的优先级为0
+若order_items.dish.countable = true, 需要在details中显示（如托炉饼共30个，其中有12个2份，6个1份，需用两行文字全部显示）
+
+订单未起菜时，该订单的所有菜品的优先级为0。
+
+订单未开始时，status = 'created'；订单进入用餐时间后，status = 'started'；
+
+订单已起菜时，status = 'serving'；订单被暂停时，status = 'started'；
+
+若某订单被催菜，该订单的status = 'urged'，然后在order_items的remark中增加“[台号]催菜”；当status = 'urged'并在上了一道菜后，该订单的status = 'serving'，删除催菜备注。
 
 红色卡片：优先出(催菜)，优先级3；
 
@@ -177,7 +189,7 @@ GET    /api/stations        # 获取工位列表
 
 已出为-1；
 
-上菜顺序：凉菜 →（起菜后） 前菜 → 中菜、点心、蒸菜 → 后菜 → 尾菜；再次强调，MVP忽略凉菜、点心、蒸菜
+上菜顺序：started → 凉菜 → serving → 前菜 → 中菜、点心、蒸菜 → 后菜 → 尾菜  → done；
 
 起菜后默认优先级：前菜，3级，中菜，2级；后菜1级，尾菜1级；前面的菜上了之后，后面的菜自动+1；
 
@@ -201,9 +213,9 @@ GET    /api/stations        # 获取工位列表
 
 右侧：日期选择，午/晚餐切换
 
-再加一排按钮：起菜、催菜、加菜、暂缓、退菜、录入订单
+再加一排按钮：起菜、催菜、加菜、暂停、退菜、录入订单
 
-点击起菜/催菜/暂缓后，弹出一个表单容器（背景模糊），选择对应的台号（可多选），确认或取消；
+点击起菜/催菜/暂停后，弹出一个表单容器（背景模糊），选择对应的台号（可多选），执行起菜/催菜/暂停操作，确认或取消；
 
 **body**
 
@@ -216,7 +228,7 @@ GET    /api/stations        # 获取工位列表
 
 ### **订单录入页面**
 
-点击录入订单后，切换view；需要收集人数、桌数、台号、用餐时间（年月日+午/晚）、菜品表；
+点击录入订单后，切换view；需要收集人数、桌数、台号、用餐时间（年月日）、用餐类型（午/晚/打包）、菜品表；
 
 点击菜品按钮选择菜品，选中后再次点击弹出一个表单容器（背景模糊），增减份量（使用+/-按钮，小于0即删除并关闭弹窗）、添加重量和备注信息；菜品顺序为上菜顺序；
 
@@ -230,13 +242,13 @@ GET    /api/stations        # 获取工位列表
 
 该页面展示指定订单的所有信息。
 
-首先是订单信息表格：人数，桌数，厅号，下单人，电话，负责人，电话，起菜时间，上一道菜间隔时间
+首先是订单信息表格：人数，桌数，厅号，下单人，电话，负责人，电话，起菜时间（显示到时分；若为打包菜，显示文字改为[取餐时间]），上一道菜间隔时间，备注
 
 其中下单人，电话，负责人，电话暂不显示
 
 然后是[已出]菜品表格
 
-再然后是[待上]菜品表格
+再然后是[待上]菜品表格，按上菜顺序排序；
 
 最后是两个按钮：[添加备注]和[编辑订单信息]
 

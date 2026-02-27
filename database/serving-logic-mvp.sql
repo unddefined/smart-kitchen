@@ -66,7 +66,7 @@ SELECT
     dc.id as category_id,
     dc.name as category_name,
     dc.display_order,
-    -- MVP出餐顺序：前菜 → 中菜 → 后菜 → 尾菜
+    -- MVP出餐顺序：凉菜 → 前菜 → 中菜/点心/蒸菜 → 后菜 → 尾菜
     CASE dc.name
         WHEN '凉菜' THEN 1  -- 凉菜最先
         WHEN '前菜' THEN 2  -- 前菜其次
