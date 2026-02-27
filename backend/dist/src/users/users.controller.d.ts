@@ -4,48 +4,48 @@ export declare class UsersController {
     private readonly usersService;
     constructor(usersService: UsersService);
     create(createUserDto: CreateUserDto): Promise<{
-        station: string;
-        id: number;
         name: string;
         createdAt: Date;
-        tel: string;
-        avatar: string;
-        password: string;
+        id: number;
+        station: string | null;
+        tel: string | null;
+        avatar: string | null;
+        password: string | null;
     }>;
     findAll(): Promise<{
-        station: string;
-        id: number;
         name: string;
         createdAt: Date;
-        tel: string;
-        avatar: string;
-        password: string;
+        id: number;
+        station: string | null;
+        tel: string | null;
+        avatar: string | null;
+        password: string | null;
     }[]>;
     findOne(id: string): Promise<{
-        station: string;
-        id: number;
         name: string;
         createdAt: Date;
-        tel: string;
-        avatar: string;
-        password: string;
+        id: number;
+        station: string | null;
+        tel: string | null;
+        avatar: string | null;
+        password: string | null;
     }>;
     update(id: string, updateUserDto: Partial<CreateUserDto>): Promise<{
-        station: string;
-        id: number;
         name: string;
         createdAt: Date;
-        tel: string;
-        avatar: string;
-        password: string;
+        id: number;
+        station: string | null;
+        tel: string | null;
+        avatar: string | null;
+        password: string | null;
     }>;
     remove(id: string): Promise<{
-        station: string;
-        id: number;
         name: string;
         createdAt: Date;
-        tel: string;
-        avatar: string;
-        password: string;
+        id: number;
+        station: string | null;
+        tel: string | null;
+        avatar: string | null;
+        password: string | null;
     }>;
 }
