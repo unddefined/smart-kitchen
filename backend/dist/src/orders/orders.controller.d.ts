@@ -3,30 +3,34 @@ export declare class OrdersController {
     private readonly ordersService;
     constructor(ordersService: OrdersService);
     create(createOrderDto: any): Promise<{
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
         status: string;
-        mealTime: string | null;
+        mealTime: Date | null;
+        mealType: string | null;
+        startTime: Date | null;
+        remark: string | null;
         updatedAt: Date;
     }>;
     findAll(): Promise<({
         orderItems: ({
             dish: {
+                id: number;
                 name: string;
                 createdAt: Date;
-                id: number;
-                shortcutCode: string | null;
-                recipeId: number | null;
                 stationId: number;
                 categoryId: number;
+                shortcutCode: string | null;
+                recipeId: number | null;
+                countable: boolean;
+                isActive: boolean;
             };
         } & {
-            createdAt: Date;
             id: number;
-            countable: boolean;
+            createdAt: Date;
             status: string;
             remark: string | null;
             quantity: number;
@@ -37,30 +41,34 @@ export declare class OrdersController {
             dishId: number;
         })[];
     } & {
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
         status: string;
-        mealTime: string | null;
+        mealTime: Date | null;
+        mealType: string | null;
+        startTime: Date | null;
+        remark: string | null;
         updatedAt: Date;
     })[]>;
     findOne(id: number): Promise<{
         orderItems: ({
             dish: {
+                id: number;
                 name: string;
                 createdAt: Date;
-                id: number;
-                shortcutCode: string | null;
-                recipeId: number | null;
                 stationId: number;
                 categoryId: number;
+                shortcutCode: string | null;
+                recipeId: number | null;
+                countable: boolean;
+                isActive: boolean;
             };
         } & {
-            createdAt: Date;
             id: number;
-            countable: boolean;
+            createdAt: Date;
             status: string;
             remark: string | null;
             quantity: number;
@@ -71,33 +79,42 @@ export declare class OrdersController {
             dishId: number;
         })[];
     } & {
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
         status: string;
-        mealTime: string | null;
+        mealTime: Date | null;
+        mealType: string | null;
+        startTime: Date | null;
+        remark: string | null;
         updatedAt: Date;
     }>;
     update(id: number, updateOrderDto: any): Promise<{
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
         status: string;
-        mealTime: string | null;
+        mealTime: Date | null;
+        mealType: string | null;
+        startTime: Date | null;
+        remark: string | null;
         updatedAt: Date;
     }>;
     remove(id: number): Promise<{
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
         status: string;
-        mealTime: string | null;
+        mealTime: Date | null;
+        mealType: string | null;
+        startTime: Date | null;
+        remark: string | null;
         updatedAt: Date;
     }>;
 }
