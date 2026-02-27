@@ -9,57 +9,57 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MockDataService = void 0;
 const common_1 = require("@nestjs/common");
 let MockDataService = class MockDataService {
-    dishes = [
-        {
-            id: 1,
-            name: '红烧肉',
-            category: '中菜',
-            price: 38,
-            description: '经典家常菜，肥而不腻',
-            available: true,
-        },
-        {
-            id: 2,
-            name: '宫保鸡丁',
-            category: '中菜',
-            price: 28,
-            description: '川菜经典，酸甜适中',
-            available: true,
-        },
-        {
-            id: 3,
-            name: '麻婆豆腐',
-            category: '中菜',
-            price: 18,
-            description: '麻辣鲜香，嫩滑可口',
-            available: true,
-        },
-    ];
-    orders = [
-        {
-            id: 1,
-            hallNumber: 'A01',
-            peopleCount: 4,
-            tableCount: 1,
-            status: 'pending',
-            createdAt: new Date(),
-            items: [
-                { dishId: 1, quantity: 2, status: 'pending' },
-                { dishId: 2, quantity: 1, status: 'pending' },
-            ],
-        },
-        {
-            id: 2,
-            hallNumber: 'B02',
-            peopleCount: 6,
-            tableCount: 2,
-            status: 'preparing',
-            createdAt: new Date(Date.now() - 3600000),
-            items: [
-                { dishId: 3, quantity: 3, status: 'preparing' },
-            ],
-        },
-    ];
+    constructor() {
+        this.dishes = [
+            {
+                id: 1,
+                name: '红烧肉',
+                category: '中菜',
+                price: 38,
+                description: '经典家常菜，肥而不腻',
+                available: true,
+            },
+            {
+                id: 2,
+                name: '宫保鸡丁',
+                category: '中菜',
+                price: 28,
+                description: '川菜经典，酸甜适中',
+                available: true,
+            },
+            {
+                id: 3,
+                name: '麻婆豆腐',
+                category: '中菜',
+                price: 18,
+                description: '麻辣鲜香，嫩滑可口',
+                available: true,
+            },
+        ];
+        this.orders = [
+            {
+                id: 1,
+                hallNumber: 'A01',
+                peopleCount: 4,
+                tableCount: 1,
+                status: 'pending',
+                createdAt: new Date(),
+                items: [
+                    { dishId: 1, quantity: 2, status: 'pending' },
+                    { dishId: 2, quantity: 1, status: 'pending' },
+                ],
+            },
+            {
+                id: 2,
+                hallNumber: 'B02',
+                peopleCount: 6,
+                tableCount: 2,
+                status: 'preparing',
+                createdAt: new Date(Date.now() - 3600000),
+                items: [{ dishId: 3, quantity: 3, status: 'preparing' }],
+            },
+        ];
+    }
     getDishes() {
         return this.dishes;
     }

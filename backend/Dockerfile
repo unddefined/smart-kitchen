@@ -6,14 +6,21 @@ WORKDIR /app
 # 复制package文件
 COPY package*.json ./
 
-# 安装所有依赖（包括开发依赖，因为需要nest CLI进行构建）
-RUN npm ci && npm cache clean --force
+# 1. 安装依赖
+RUN npm ci 
 
-# 复制源代码
+# 2. 【新增】生成 Prisma 客户端 (必须在编译前执行)
+# 确保此时 schema.prisma 已经复制到容器中
+RUN npx prisma generate
+
+# 3. 复制源代码 (如果之前没复制全)确保这步在 generate 之前或者 generate 能访问到 schema
 COPY . .
 
-# 构建应用
+# 4. 编译 TypeScript
 RUN npm run build
+
+# 5. (可选) 清理缓存
+RUN npm cache clean --force
 
 # 生产阶段
 FROM node:25-alpine AS production

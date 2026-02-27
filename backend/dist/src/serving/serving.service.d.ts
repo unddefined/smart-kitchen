@@ -4,221 +4,221 @@ export declare class ServingService {
     private readonly logger;
     constructor(prisma: PrismaService);
     private calculateDishPriority;
-    getOrder(orderId: number): Promise<({
+    getOrder(orderId: number): Promise<{
         orderItems: ({
             dish: {
+                id: number;
                 name: string;
                 createdAt: Date;
-                id: number;
-                shortcutCode: string | null;
-                recipeId: number | null;
                 stationId: number;
                 categoryId: number;
+                shortcutCode: string;
+                recipeId: number;
             };
         } & {
-            createdAt: Date;
             id: number;
+            createdAt: Date;
             countable: boolean;
             status: string;
-            remark: string | null;
-            quantity: number;
-            weight: string | null;
-            priority: number;
-            servedAt: Date | null;
+            remark: string;
             orderId: number;
             dishId: number;
+            quantity: number;
+            weight: string;
+            priority: number;
+            servedAt: Date;
         })[];
     } & {
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
         status: string;
-        mealTime: string | null;
+        mealTime: string;
         updatedAt: Date;
-    }) | null>;
+    }>;
     getAllOrders(): Promise<({
         orderItems: ({
             dish: {
+                id: number;
                 name: string;
                 createdAt: Date;
-                id: number;
-                shortcutCode: string | null;
-                recipeId: number | null;
                 stationId: number;
                 categoryId: number;
+                shortcutCode: string;
+                recipeId: number;
             };
         } & {
-            createdAt: Date;
             id: number;
+            createdAt: Date;
             countable: boolean;
             status: string;
-            remark: string | null;
-            quantity: number;
-            weight: string | null;
-            priority: number;
-            servedAt: Date | null;
+            remark: string;
             orderId: number;
             dishId: number;
+            quantity: number;
+            weight: string;
+            priority: number;
+            servedAt: Date;
         })[];
     } & {
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
         status: string;
-        mealTime: string | null;
+        mealTime: string;
         updatedAt: Date;
     })[]>;
     updateOrderStatus(orderId: number, status: string): Promise<{
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
         status: string;
-        mealTime: string | null;
+        mealTime: string;
         updatedAt: Date;
     }>;
-    getOrderItem(itemId: number): Promise<({
+    getOrderItem(itemId: number): Promise<{
         dish: {
+            id: number;
             name: string;
             createdAt: Date;
-            id: number;
-            shortcutCode: string | null;
-            recipeId: number | null;
             stationId: number;
             categoryId: number;
+            shortcutCode: string;
+            recipeId: number;
         };
         order: {
-            createdAt: Date;
             id: number;
+            createdAt: Date;
             hallNumber: string;
             peopleCount: number;
             tableCount: number;
             status: string;
-            mealTime: string | null;
+            mealTime: string;
             updatedAt: Date;
         };
     } & {
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         countable: boolean;
         status: string;
-        remark: string | null;
-        quantity: number;
-        weight: string | null;
-        priority: number;
-        servedAt: Date | null;
+        remark: string;
         orderId: number;
         dishId: number;
-    }) | null>;
+        quantity: number;
+        weight: string;
+        priority: number;
+        servedAt: Date;
+    }>;
     updateOrderItemStatus(itemId: number, status: string): Promise<{
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         countable: boolean;
         status: string;
-        remark: string | null;
-        quantity: number;
-        weight: string | null;
-        priority: number;
-        servedAt: Date | null;
+        remark: string;
         orderId: number;
         dishId: number;
+        quantity: number;
+        weight: string;
+        priority: number;
+        servedAt: Date;
     }>;
     updateOrderItemPriority(itemId: number, priority: number): Promise<{
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         countable: boolean;
         status: string;
-        remark: string | null;
-        quantity: number;
-        weight: string | null;
-        priority: number;
-        servedAt: Date | null;
+        remark: string;
         orderId: number;
         dishId: number;
+        quantity: number;
+        weight: string;
+        priority: number;
+        servedAt: Date;
     }>;
     markAsServed(itemId: number): Promise<{
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         countable: boolean;
         status: string;
-        remark: string | null;
-        quantity: number;
-        weight: string | null;
-        priority: number;
-        servedAt: Date | null;
+        remark: string;
         orderId: number;
         dishId: number;
+        quantity: number;
+        weight: string;
+        priority: number;
+        servedAt: Date;
     }>;
     getPendingItems(): Promise<({
         dish: {
+            id: number;
             name: string;
             createdAt: Date;
-            id: number;
-            shortcutCode: string | null;
-            recipeId: number | null;
             stationId: number;
             categoryId: number;
+            shortcutCode: string;
+            recipeId: number;
         };
         order: {
-            createdAt: Date;
             id: number;
+            createdAt: Date;
             hallNumber: string;
             peopleCount: number;
             tableCount: number;
             status: string;
-            mealTime: string | null;
+            mealTime: string;
             updatedAt: Date;
         };
     } & {
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         countable: boolean;
         status: string;
-        remark: string | null;
-        quantity: number;
-        weight: string | null;
-        priority: number;
-        servedAt: Date | null;
+        remark: string;
         orderId: number;
         dishId: number;
+        quantity: number;
+        weight: string;
+        priority: number;
+        servedAt: Date;
     })[]>;
     getServedItems(): Promise<({
         dish: {
+            id: number;
             name: string;
             createdAt: Date;
-            id: number;
-            shortcutCode: string | null;
-            recipeId: number | null;
             stationId: number;
             categoryId: number;
+            shortcutCode: string;
+            recipeId: number;
         };
         order: {
-            createdAt: Date;
             id: number;
+            createdAt: Date;
             hallNumber: string;
             peopleCount: number;
             tableCount: number;
             status: string;
-            mealTime: string | null;
+            mealTime: string;
             updatedAt: Date;
         };
     } & {
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         countable: boolean;
         status: string;
-        remark: string | null;
-        quantity: number;
-        weight: string | null;
-        priority: number;
-        servedAt: Date | null;
+        remark: string;
         orderId: number;
         dishId: number;
+        quantity: number;
+        weight: string;
+        priority: number;
+        servedAt: Date;
     })[]>;
     getOrderServingStatus(orderId: number): Promise<{
         orderId: number;
@@ -256,7 +256,7 @@ export declare class ServingService {
         success: boolean;
         itemId: number;
         status: string;
-        servedAt: Date | null;
+        servedAt: Date;
         message: string;
     }>;
     autoAdjustOrderPriorities(orderId: number): Promise<{

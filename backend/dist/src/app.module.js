@@ -22,7 +22,13 @@ let AppModule = class AppModule {
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
-        imports: [prisma_module_1.PrismaModule, users_module_1.UsersModule, serving_module_1.ServingModule, dishes_module_1.DishesModule, orders_module_1.OrdersModule],
+        imports: [
+            prisma_module_1.PrismaModule,
+            users_module_1.UsersModule,
+            serving_module_1.ServingModule,
+            dishes_module_1.DishesModule,
+            orders_module_1.OrdersModule,
+        ],
         controllers: [app_controller_1.AppController, test_controller_1.TestController],
         providers: [app_service_1.AppService, mock_data_service_1.MockDataService],
     })

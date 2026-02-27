@@ -16,7 +16,6 @@ exports.OrdersController = void 0;
 const common_1 = require("@nestjs/common");
 const orders_service_1 = require("./orders.service");
 let OrdersController = class OrdersController {
-    ordersService;
     constructor(ordersService) {
         this.ordersService = ordersService;
     }

@@ -13,7 +13,6 @@ exports.AppController = void 0;
 const common_1 = require("@nestjs/common");
 const app_service_1 = require("./app.service");
 let AppController = class AppController {
-    appService;
     constructor(appService) {
         this.appService = appService;
     }
@@ -24,7 +23,7 @@ let AppController = class AppController {
         return {
             status: 'ok',
             timestamp: new Date().toISOString(),
-            service: 'smart-kitchen-backend'
+            service: 'smart-kitchen-backend',
         };
     }
 };

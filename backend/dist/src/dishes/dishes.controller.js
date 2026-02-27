@@ -16,7 +16,6 @@ exports.DishesController = void 0;
 const common_1 = require("@nestjs/common");
 const dishes_service_1 = require("./dishes.service");
 let DishesController = class DishesController {
-    dishesService;
     constructor(dishesService) {
         this.dishesService = dishesService;
     }
