@@ -4,54 +4,54 @@ export declare class UsersService {
     private prisma;
     constructor(prisma: PrismaService);
     create(createUserDto: CreateUserDto): Promise<{
+        id: number;
         name: string;
         createdAt: Date;
-        id: number;
         station: string | null;
         tel: string | null;
         avatar: string | null;
         password: string | null;
     }>;
     findAll(): Promise<{
+        id: number;
         name: string;
         createdAt: Date;
-        id: number;
         station: string | null;
         tel: string | null;
         avatar: string | null;
         password: string | null;
     }[]>;
     findOne(id: number): Promise<{
+        id: number;
         name: string;
         createdAt: Date;
-        id: number;
         station: string | null;
         tel: string | null;
         avatar: string | null;
         password: string | null;
     }>;
     findByTel(tel: string): Promise<{
+        id: number;
         name: string;
         createdAt: Date;
-        id: number;
         station: string | null;
         tel: string | null;
         avatar: string | null;
         password: string | null;
     }>;
     update(id: number, updateUserDto: Partial<CreateUserDto>): Promise<{
+        id: number;
         name: string;
         createdAt: Date;
-        id: number;
         station: string | null;
         tel: string | null;
         avatar: string | null;
         password: string | null;
     }>;
     remove(id: number): Promise<{
+        id: number;
         name: string;
         createdAt: Date;
-        id: number;
         station: string | null;
         tel: string | null;
         avatar: string | null;

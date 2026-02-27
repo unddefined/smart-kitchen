@@ -3,6 +3,13 @@ name: Smart Kitchen CI/CD Pipeline
 on:
   push:
     branches: [main, develop]
+    paths:
+      - 'backend/**'      # 后端代码变动
+      - 'frontend/**'     # 前端代码变动
+      - 'docker-compose.yml' # 配置变动
+      - '.github/workflows/deploy.yml' # 工作流本身变动
+      # 忽略文档变动
+      # - '!README.md' 
   pull_request:
     branches: [main]
 
