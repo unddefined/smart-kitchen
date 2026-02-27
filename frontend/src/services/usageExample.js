@@ -204,47 +204,54 @@ export const useKitchenStore = defineStore('kitchen', {
 // 格式化显示优先级
 export const formatPriority = (priority) => {
   const priorityMap = {
-    3: { label: '催菜', color: 'red', class: 'priority-urgent' },
-    2: { label: '等一下', color: 'yellow', class: 'priority-wait' },
-    1: { label: '不急', color: 'green', class: 'priority-normal' },
-    0: { label: '未起菜', color: 'gray', class: 'priority-pending' },
-    '-1': { label: '已出', color: 'gray', class: 'priority-served' }
-  }
-  
-  return priorityMap[priority] || { label: '未知', color: 'gray', class: 'priority-unknown' }
-}
+    3: { label: "催菜", color: "red", class: "priority-urgent" },
+    2: { label: "等一下", color: "yellow", class: "priority-wait" },
+    1: { label: "不急", color: "green", class: "priority-normal" },
+    0: { label: "未起菜", color: "gray", class: "priority-pending" },
+    "-1": { label: "已出", color: "gray", class: "priority-served" },
+  };
+
+  return (
+    priorityMap[priority] || {
+      label: "未知",
+      color: "gray",
+      class: "priority-unknown",
+    }
+  );
+};
 
 // 计算预计完成时间
 export const estimateCompletionTime = (items, preparationTimePerItem = 300) => {
   // 简单的时间估算逻辑
-  const urgentItems = items.filter(item => item.priority === 3).length
-  const normalItems = items.filter(item => item.priority <= 2).length
-  
+  const urgentItems = items.filter((item) => item.priority === 3).length;
+  const normalItems = items.filter((item) => item.priority <= 2).length;
+
   // 紧急菜品优先处理
-  const totalTime = (urgentItems * preparationTimePerItem * 0.8) + 
-                    (normalItems * preparationTimePerItem)
-  
-  return Math.ceil(totalTime / 60) // 返回分钟数
-}
+  const totalTime =
+    urgentItems * preparationTimePerItem * 0.8 +
+    normalItems * preparationTimePerItem;
+
+  return Math.ceil(totalTime / 60); // 返回分钟数
+};
 
 // 验证数据完整性的工具函数
 export const validateKitchenData = (data) => {
-  const errors = []
-  
+  const errors = [];
+
   if (!data.orders || !Array.isArray(data.orders)) {
-    errors.push('订单数据格式错误')
+    errors.push("订单数据格式错误");
   }
-  
+
   if (!data.dishes || !Array.isArray(data.dishes)) {
-    errors.push('菜品数据格式错误')
+    errors.push("菜品数据格式错误");
   }
-  
+
   if (!data.pendingItems || !Array.isArray(data.pendingItems)) {
-    errors.push('待处理菜品数据格式错误')
+    errors.push("待处理菜品数据格式错误");
   }
-  
+
   return {
     isValid: errors.length === 0,
-    errors
-  }
-}
+    errors,
+  };
+};

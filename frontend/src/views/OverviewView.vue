@@ -9,7 +9,12 @@
 
     <div class="overview-content">
       <!-- 已出菜品瀑布流 -->
-      <div class="served-section" :class="{ collapsed: isServedCollapsed }" @mouseenter="cancelCollapseTimer" @mouseleave="startCollapseTimer">
+      <div
+        class="served-section"
+        :class="{ collapsed: isServedCollapsed }"
+        @mouseenter="cancelCollapseTimer"
+        @mouseleave="startCollapseTimer"
+      >
         <div class="section-header" @click="toggleServedSection">
           <h3 class="subtitle">已出</h3>
           <span class="collapse-indicator">
@@ -17,7 +22,12 @@
           </span>
         </div>
         <div v-show="!isServedCollapsed" class="served-grid">
-          <div v-for="dish in servedDishes" :key="dish.id" class="served-card" @click="handleServedDishClick(dish)">
+          <div
+            v-for="dish in servedDishes"
+            :key="dish.id"
+            class="served-card"
+            @click="handleServedDishClick(dish)"
+          >
             <div class="served-main">
               <span class="dish-name">{{ truncateDishName(dish.name) }}</span>
               <span class="dish-count">×</span>
@@ -39,10 +49,15 @@
                 if (el) cardRefs[index] = el;
               }
             "
-            :class="['dish-card', `priority-${dish.priority}` + (dish.needsProcessing ? ' pending-processing' : '')]"
+            :class="[
+              'dish-card',
+              `priority-${dish.priority}` +
+                (dish.needsProcessing ? ' pending-processing' : ''),
+            ]"
             @click="handleDishClick(dish)"
             @dblclick="handleDishDoubleClick(dish)"
-            @longpress="showPriorityAdjustModal(dish)">
+            @longpress="showPriorityAdjustModal(dish)"
+          >
             <!-- 待切配/待处理提示 -->
             <div v-if="dish.needsProcessing" class="processing-overlay">
               <span class="processing-text">{{ dish.processType }}</span>
@@ -57,7 +72,11 @@
 
             <!-- 菜品详细标注 -->
             <div class="dish-details">
-              <div v-for="(detail, idx) in dish.displayDetails" :key="idx" class="detail-item">
+              <div
+                v-for="(detail, idx) in dish.displayDetails"
+                :key="idx"
+                class="detail-item"
+              >
                 {{ detail }}
               </div>
             </div>
@@ -77,10 +96,15 @@
                 if (el) unstartedCardRefs[index] = el;
               }
             "
-            :class="['dish-card', `priority-${dish.priority}` + (dish.needsProcessing ? ' pending-processing' : '')]"
+            :class="[
+              'dish-card',
+              `priority-${dish.priority}` +
+                (dish.needsProcessing ? ' pending-processing' : ''),
+            ]"
             @click="handleDishClick(dish)"
             @dblclick="handleDishDoubleClick(dish)"
-            @longpress="showPriorityAdjustModal(dish)">
+            @longpress="showPriorityAdjustModal(dish)"
+          >
             <!-- 待切配/待处理提示 -->
             <div v-if="dish.needsProcessing" class="processing-overlay">
               <span class="processing-text">{{ dish.processType }}</span>
@@ -95,7 +119,11 @@
 
             <!-- 菜品详细标注 -->
             <div class="dish-details">
-              <div v-for="(detail, idx) in dish.displayDetails" :key="idx" class="detail-item">
+              <div
+                v-for="(detail, idx) in dish.displayDetails"
+                :key="idx"
+                class="detail-item"
+              >
                 {{ detail }}
               </div>
             </div>
@@ -105,7 +133,11 @@
     </div>
 
     <!-- 优先级调整弹窗 -->
-    <div v-if="showPriorityModal" class="modal-overlay" @click="closePriorityModal">
+    <div
+      v-if="showPriorityModal"
+      class="modal-overlay"
+      @click="closePriorityModal"
+    >
       <div class="priority-modal" @click.stop>
         <div class="modal-header">
           <h3>调整出餐逻辑</h3>
@@ -114,14 +146,18 @@
         <div class="modal-content">
           <div class="dish-info">
             <strong>{{ currentDish?.name }}</strong>
-            <span>当前优先级: {{ getPriorityLabel(currentDish?.priority) }}</span>
+            <span
+              >当前优先级: {{ getPriorityLabel(currentDish?.priority) }}</span
+            >
           </div>
 
           <div class="adjust-options">
             <div class="quantity-adjust">
               <label>调整数量:</label>
               <div class="quantity-controls">
-                <button @click="decreaseQuantity" :disabled="tempQuantity <= 1">-</button>
+                <button @click="decreaseQuantity" :disabled="tempQuantity <= 1">
+                  -
+                </button>
                 <span class="quantity-display">{{ tempQuantity }}</span>
                 <button @click="increaseQuantity">+</button>
               </div>
@@ -133,8 +169,13 @@
                 <button
                   v-for="level in priorityOptions"
                   :key="level.value"
-                  :class="['priority-btn', `priority-${level.value}`, { active: tempPriority === level.value }]"
-                  @click="tempPriority = level.value">
+                  :class="[
+                    'priority-btn',
+                    `priority-${level.value}`,
+                    { active: tempPriority === level.value },
+                  ]"
+                  @click="tempPriority = level.value"
+                >
                   {{ level.label }}
                 </button>
               </div>
@@ -143,7 +184,9 @@
 
           <div class="modal-actions">
             <button class="cancel-btn" @click="closePriorityModal">取消</button>
-            <button class="confirm-btn" @click="confirmPriorityAdjust">确认</button>
+            <button class="confirm-btn" @click="confirmPriorityAdjust">
+              确认
+            </button>
           </div>
         </div>
       </div>
@@ -152,7 +195,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUpdated, nextTick, onUnmounted } from "vue";
+import {
+  ref,
+  computed,
+  onMounted,
+  onUpdated,
+  nextTick,
+  onUnmounted,
+} from "vue";
 
 const props = defineProps({
   pendingDishes: {
@@ -184,7 +234,9 @@ const mergedPendingDishes = computed(() => {
   console.log("原始待处理菜品:", props.pendingDishes);
 
   // 过滤掉优先级为0的菜品（这些会显示在未起区域）
-  const filteredDishes = props.pendingDishes.filter((dish) => dish.priority !== 0);
+  const filteredDishes = props.pendingDishes.filter(
+    (dish) => dish.priority !== 0,
+  );
 
   const dishMap = new Map();
 
@@ -281,7 +333,11 @@ const unstartedDishes = computed(() => {
     .filter((dish) => dish.priority === 0)
     .map((dish) => ({
       ...dish,
-      displayDetails: dish.details?.filter((detail) => detail && detail.trim() !== "" && !detail.includes("正常")) || [],
+      displayDetails:
+        dish.details?.filter(
+          (detail) =>
+            detail && detail.trim() !== "" && !detail.includes("正常"),
+        ) || [],
     }));
 });
 

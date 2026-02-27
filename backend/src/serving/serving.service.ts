@@ -13,7 +13,7 @@ export class ServingService {
   private calculateDishPriority(
     categoryName: string,
     isAddedLater: boolean = false,
-    basePriority: number = 0
+    basePriority: number = 0,
   ): number {
     // 如果是后来加菜的，优先级为3级（催菜级别）
     if (isAddedLater) {
@@ -32,10 +32,10 @@ export class ServingService {
       include: {
         orderItems: {
           include: {
-            dish: true
-          }
-        }
-      }
+            dish: true,
+          },
+        },
+      },
     });
     return order;
   }
@@ -46,13 +46,13 @@ export class ServingService {
       include: {
         orderItems: {
           include: {
-            dish: true
-          }
-        }
+            dish: true,
+          },
+        },
       },
       orderBy: {
-        createdAt: 'desc'
-      }
+        createdAt: 'desc',
+      },
     });
     return orders;
   }
@@ -61,7 +61,7 @@ export class ServingService {
   async updateOrderStatus(orderId: number, status: string) {
     const updatedOrder = await this.prisma.order.update({
       where: { id: orderId },
-      data: { status }
+      data: { status },
     });
     return updatedOrder;
   }
@@ -72,8 +72,8 @@ export class ServingService {
       where: { id: itemId },
       include: {
         order: true,
-        dish: true
-      }
+        dish: true,
+      },
     });
     return item;
   }
@@ -82,7 +82,7 @@ export class ServingService {
   async updateOrderItemStatus(itemId: number, status: string) {
     const updatedItem = await this.prisma.orderItem.update({
       where: { id: itemId },
-      data: { status }
+      data: { status },
     });
     return updatedItem;
   }
@@ -90,7 +90,7 @@ export class ServingService {
   // 更新订单项优先级
   async updateOrderItemPriority(itemId: number, priority: number) {
     const item = await this.prisma.orderItem.findUnique({
-      where: { id: itemId }
+      where: { id: itemId },
     });
 
     if (!item) {
@@ -99,7 +99,7 @@ export class ServingService {
 
     const updatedItem = await this.prisma.orderItem.update({
       where: { id: itemId },
-      data: { priority }
+      data: { priority },
     });
 
     return updatedItem;
@@ -108,7 +108,7 @@ export class ServingService {
   // 标记订单项为已出菜
   async markAsServed(itemId: number) {
     const item = await this.prisma.orderItem.findUnique({
-      where: { id: itemId }
+      where: { id: itemId },
     });
 
     if (!item) {
@@ -117,10 +117,10 @@ export class ServingService {
 
     const updatedItem = await this.prisma.orderItem.update({
       where: { id: itemId },
-      data: { 
+      data: {
         status: 'served',
-        servedAt: new Date()
-      }
+        servedAt: new Date(),
+      },
     });
 
     return updatedItem;
@@ -130,16 +130,13 @@ export class ServingService {
   async getPendingItems() {
     const items = await this.prisma.orderItem.findMany({
       where: {
-        status: 'pending'
+        status: 'pending',
       },
       include: {
         order: true,
-        dish: true
+        dish: true,
       },
-      orderBy: [
-        { priority: 'desc' },
-        { createdAt: 'asc' }
-      ]
+      orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
     });
     return items;
   }
@@ -148,15 +145,15 @@ export class ServingService {
   async getServedItems() {
     const items = await this.prisma.orderItem.findMany({
       where: {
-        status: 'served'
+        status: 'served',
       },
       include: {
         order: true,
-        dish: true
+        dish: true,
       },
       orderBy: {
-        servedAt: 'desc'
-      }
+        servedAt: 'desc',
+      },
     });
     return items;
   }
@@ -168,10 +165,10 @@ export class ServingService {
       include: {
         orderItems: {
           include: {
-            dish: true
-          }
-        }
-      }
+            dish: true,
+          },
+        },
+      },
     });
 
     if (!order) {
@@ -179,10 +176,18 @@ export class ServingService {
     }
 
     // 计算各种状态的菜品数量
-    const pendingCount = order.orderItems.filter(item => item.status === 'pending').length;
-    const preparingCount = order.orderItems.filter(item => item.status === 'preparing').length;
-    const readyCount = order.orderItems.filter(item => item.status === 'ready').length;
-    const servedCount = order.orderItems.filter(item => item.status === 'served').length;
+    const pendingCount = order.orderItems.filter(
+      (item) => item.status === 'pending',
+    ).length;
+    const preparingCount = order.orderItems.filter(
+      (item) => item.status === 'preparing',
+    ).length;
+    const readyCount = order.orderItems.filter(
+      (item) => item.status === 'ready',
+    ).length;
+    const servedCount = order.orderItems.filter(
+      (item) => item.status === 'served',
+    ).length;
 
     return {
       orderId: order.id,
@@ -193,16 +198,16 @@ export class ServingService {
         preparing: preparingCount,
         ready: readyCount,
         served: servedCount,
-        total: order.orderItems.length
+        total: order.orderItems.length,
       },
-      items: order.orderItems.map(item => ({
+      items: order.orderItems.map((item) => ({
         id: item.id,
         dishName: item.dish.name,
         quantity: item.quantity,
         status: item.status,
         priority: item.priority,
-        createdAt: item.createdAt
-      }))
+        createdAt: item.createdAt,
+      })),
     };
   }
 
@@ -210,7 +215,7 @@ export class ServingService {
   async updateItemPriority(itemId: number, priority: number, reason?: string) {
     const item = await this.prisma.orderItem.findUnique({
       where: { id: itemId },
-      include: { order: true, dish: true }
+      include: { order: true, dish: true },
     });
 
     if (!item) {
@@ -219,22 +224,25 @@ export class ServingService {
 
     const updatedItem = await this.prisma.orderItem.update({
       where: { id: itemId },
-      data: { priority }
+      data: { priority },
     });
 
     // 记录催菜日志
-    this.logger.log(`催菜: 订单${item.order.hallNumber}的${item.dish.name}优先级调整为${priority}`, {
-      orderId: item.orderId,
-      dishId: item.dishId,
-      priority,
-      reason
-    });
+    this.logger.log(
+      `催菜: 订单${item.order.hallNumber}的${item.dish.name}优先级调整为${priority}`,
+      {
+        orderId: item.orderId,
+        dishId: item.dishId,
+        priority,
+        reason,
+      },
+    );
 
     return {
       success: true,
       itemId: updatedItem.id,
       priority: updatedItem.priority,
-      message: `菜品${item.dish.name}优先级已更新`
+      message: `菜品${item.dish.name}优先级已更新`,
     };
   }
 
@@ -242,7 +250,7 @@ export class ServingService {
   async completeDishPreparation(itemId: number) {
     const item = await this.prisma.orderItem.findUnique({
       where: { id: itemId },
-      include: { order: true, dish: true }
+      include: { order: true, dish: true },
     });
 
     if (!item) {
@@ -251,19 +259,22 @@ export class ServingService {
 
     const updatedItem = await this.prisma.orderItem.update({
       where: { id: itemId },
-      data: { status: 'ready' }
+      data: { status: 'ready' },
     });
 
-    this.logger.log(`菜品制作完成: 订单${item.order.hallNumber}的${item.dish.name}`, {
-      orderId: item.orderId,
-      dishId: item.dishId
-    });
+    this.logger.log(
+      `菜品制作完成: 订单${item.order.hallNumber}的${item.dish.name}`,
+      {
+        orderId: item.orderId,
+        dishId: item.dishId,
+      },
+    );
 
     return {
       success: true,
       itemId: updatedItem.id,
       status: updatedItem.status,
-      message: `菜品${item.dish.name}制作完成`
+      message: `菜品${item.dish.name}制作完成`,
     };
   }
 
@@ -271,7 +282,7 @@ export class ServingService {
   async serveDish(itemId: number) {
     const item = await this.prisma.orderItem.findUnique({
       where: { id: itemId },
-      include: { order: true, dish: true }
+      include: { order: true, dish: true },
     });
 
     if (!item) {
@@ -280,23 +291,26 @@ export class ServingService {
 
     const updatedItem = await this.prisma.orderItem.update({
       where: { id: itemId },
-      data: { 
+      data: {
         status: 'served',
-        servedAt: new Date()
-      }
+        servedAt: new Date(),
+      },
     });
 
-    this.logger.log(`菜品已上菜: 订单${item.order.hallNumber}的${item.dish.name}`, {
-      orderId: item.orderId,
-      dishId: item.dishId
-    });
+    this.logger.log(
+      `菜品已上菜: 订单${item.order.hallNumber}的${item.dish.name}`,
+      {
+        orderId: item.orderId,
+        dishId: item.dishId,
+      },
+    );
 
     return {
       success: true,
       itemId: updatedItem.id,
       status: updatedItem.status,
       servedAt: updatedItem.servedAt,
-      message: `菜品${item.dish.name}已上菜`
+      message: `菜品${item.dish.name}已上菜`,
     };
   }
 
@@ -304,26 +318,31 @@ export class ServingService {
   async autoAdjustOrderPriorities(orderId: number) {
     const orderItems = await this.prisma.orderItem.findMany({
       where: { orderId },
-      orderBy: { createdAt: 'asc' }
+      orderBy: { createdAt: 'asc' },
     });
 
     // 实现优先级自动调整逻辑
     // 这里可以根据业务规则调整优先级
-    const adjustments: Array<{itemId: number; oldPriority: number; newPriority: number}> = [];
-    
+    const adjustments: Array<{
+      itemId: number;
+      oldPriority: number;
+      newPriority: number;
+    }> = [];
+
     for (let i = 0; i < orderItems.length; i++) {
       const item = orderItems[i];
       // 示例：后来加的菜优先级设为3
-      if (Date.now() - new Date(item.createdAt).getTime() > 10 * 60 * 1000) { // 10分钟后
+      if (Date.now() - new Date(item.createdAt).getTime() > 10 * 60 * 1000) {
+        // 10分钟后
         if (item.priority < 3) {
           await this.prisma.orderItem.update({
             where: { id: item.id },
-            data: { priority: 3 }
+            data: { priority: 3 },
           });
           adjustments.push({
             itemId: item.id,
             oldPriority: item.priority,
-            newPriority: 3
+            newPriority: 3,
           });
         }
       }
@@ -333,7 +352,7 @@ export class ServingService {
       success: true,
       orderId,
       adjustments,
-      message: `订单${orderId}优先级自动调整完成`
+      message: `订单${orderId}优先级自动调整完成`,
     };
   }
 
@@ -344,22 +363,22 @@ export class ServingService {
       where: {
         OR: [
           { priority: 3 }, // 催菜
-          { 
+          {
             AND: [
               { status: 'pending' },
-              { createdAt: { lte: new Date(Date.now() - 30 * 60 * 1000) } } // 30分钟未处理
-            ]
-          }
-        ]
+              { createdAt: { lte: new Date(Date.now() - 30 * 60 * 1000) } }, // 30分钟未处理
+            ],
+          },
+        ],
       },
       include: {
         order: true,
-        dish: true
+        dish: true,
       },
-      orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }]
+      orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
     });
 
-    return urgentItems.map(item => ({
+    return urgentItems.map((item) => ({
       id: item.id,
       orderId: item.orderId,
       dishName: item.dish.name,
@@ -367,7 +386,8 @@ export class ServingService {
       priority: item.priority,
       status: item.status,
       createdAt: item.createdAt,
-      isOverdue: Date.now() - new Date(item.createdAt).getTime() > 30 * 60 * 1000
+      isOverdue:
+        Date.now() - new Date(item.createdAt).getTime() > 30 * 60 * 1000,
     }));
   }
 
@@ -376,23 +396,23 @@ export class ServingService {
     const urgentItems = await this.prisma.orderItem.findMany({
       where: {
         priority: 3,
-        status: { not: 'served' }
+        status: { not: 'served' },
       },
       include: {
         order: true,
-        dish: true
+        dish: true,
       },
-      orderBy: { createdAt: 'asc' }
+      orderBy: { createdAt: 'asc' },
     });
 
-    return urgentItems.map(item => ({
+    return urgentItems.map((item) => ({
       id: item.id,
       orderId: item.orderId,
       dishName: item.dish.name,
       hallNumber: item.order.hallNumber,
       priority: item.priority,
       status: item.status,
-      createdAt: item.createdAt
+      createdAt: item.createdAt,
     }));
   }
 }

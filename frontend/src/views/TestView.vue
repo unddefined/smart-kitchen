@@ -4,26 +4,26 @@
     <p>如果能看到这个页面，说明Vue应用正常工作！</p>
     <div class="test-content">
       <p>当前时间: {{ currentTime }}</p>
-      <p>页面加载状态: {{ pageLoaded ? '已加载' : '加载中...' }}</p>
+      <p>页面加载状态: {{ pageLoaded ? "已加载" : "加载中..." }}</p>
       <button @click="updateTime">更新时间</button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted } from "vue";
 
-const currentTime = ref(new Date().toLocaleString())
-const pageLoaded = ref(false)
+const currentTime = ref(new Date().toLocaleString());
+const pageLoaded = ref(false);
 
 const updateTime = () => {
-  currentTime.value = new Date().toLocaleString()
-}
+  currentTime.value = new Date().toLocaleString();
+};
 
 onMounted(() => {
-  console.log('TestView component mounted')
-  pageLoaded.value = true
-})
+  console.log("TestView component mounted");
+  pageLoaded.value = true;
+});
 </script>
 
 <style scoped>

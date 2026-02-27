@@ -49,9 +49,7 @@ export class MockDataService {
       tableCount: 2,
       status: 'preparing',
       createdAt: new Date(Date.now() - 3600000),
-      items: [
-        { dishId: 3, quantity: 3, status: 'preparing' },
-      ],
+      items: [{ dishId: 3, quantity: 3, status: 'preparing' }],
     },
   ];
 

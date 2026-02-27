@@ -39,7 +39,11 @@
       <div class="served-section">
         <h3 class="section-subtitle">已出菜品</h3>
         <div class="dish-list">
-          <div v-for="dish in servedDishes" :key="dish.id" class="dish-item served">
+          <div
+            v-for="dish in servedDishes"
+            :key="dish.id"
+            class="dish-item served"
+          >
             <div class="dish-info">
               <span class="dish-name">{{ dish.name }}</span>
             </div>
@@ -51,7 +55,12 @@
       <div class="pending-section">
         <h3 class="section-subtitle">待上菜品</h3>
         <div class="dish-list">
-          <div v-for="dish in pendingDishes" :key="dish.id" :class="['dish-item']" @click="handleDishClick(dish)">
+          <div
+            v-for="dish in pendingDishes"
+            :key="dish.id"
+            :class="['dish-item']"
+            @click="handleDishClick(dish)"
+          >
             <div class="dish-info">
               <span class="dish-name">{{ dish.name }}</span>
             </div>

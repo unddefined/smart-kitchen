@@ -15,20 +15,42 @@
         <div class="date-section">
           <span class="date-display">{{ currentDate }}</span>
           <span>
-            <button :class="{ active: mealType === 'lunch' }" @click="mealType = 'lunch'" class="meal-btn">午</button>
-            <button :class="{ active: mealType === 'dinner' }" @click="mealType = 'dinner'" class="meal-btn">晚</button>
+            <button
+              :class="{ active: mealType === 'lunch' }"
+              @click="mealType = 'lunch'"
+              class="meal-btn"
+            >
+              午
+            </button>
+            <button
+              :class="{ active: mealType === 'dinner' }"
+              @click="mealType = 'dinner'"
+              class="meal-btn"
+            >
+              晚
+            </button>
           </span>
         </div>
       </div>
 
       <!-- 功能按钮区域：起菜、催菜、加菜、暂缓、退菜、录入订单 -->
       <div class="function-buttons">
-        <button class="func-btn secondary" @click="handleStartDish">起菜</button>
-        <button class="func-btn secondary" @click="handleUrgentDish">催菜</button>
+        <button class="func-btn secondary" @click="handleStartDish">
+          起菜
+        </button>
+        <button class="func-btn secondary" @click="handleUrgentDish">
+          催菜
+        </button>
         <button class="func-btn secondary" @click="handleAddDish">加菜</button>
-        <button class="func-btn secondary" @click="handleDelayDish">暂缓</button>
-        <button class="func-btn secondary" @click="handleReturnDish">退菜</button>
-        <button class="func-btn secondary" @click="showOrderModal = true">录入订单</button>
+        <button class="func-btn secondary" @click="handleDelayDish">
+          暂缓
+        </button>
+        <button class="func-btn secondary" @click="handleReturnDish">
+          退菜
+        </button>
+        <button class="func-btn secondary" @click="showOrderModal = true">
+          录入订单
+        </button>
       </div>
     </header>
 
@@ -37,7 +59,13 @@
       <!-- 左侧菜单组件：总览置顶 + 订单选择区选项卡 -->
       <aside class="sidebar">
         <!-- 总览选项卡 -->
-        <button :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'" class="tab-button overview-tab">总览</button>
+        <button
+          :class="{ active: activeTab === 'overview' }"
+          @click="activeTab = 'overview'"
+          class="tab-button overview-tab"
+        >
+          总览
+        </button>
 
         <!-- 订单选项卡区域 -->
         <div class="order-tabs">
@@ -50,7 +78,8 @@
               pending: order.isPending,
             }"
             @click="activeTab = `order-${order.id}`"
-            class="order-tab">
+            class="order-tab"
+          >
             {{ order.hallNumber }}
           </button>
         </div>
@@ -63,15 +92,23 @@
           v-if="activeTab === 'overview'"
           :pending-dishes="mockPendingDishes"
           :served-dishes="mockServedDishes"
-          @dish-action="handleDishAction" />
+          @dish-action="handleDishAction"
+        />
 
         <!-- 订单详情视图 -->
-        <OrderView v-else-if="activeTab.startsWith('order-')" :order-id="activeOrderId" @back="activeTab = 'overview'" />
+        <OrderView
+          v-else-if="activeTab.startsWith('order-')"
+          :order-id="activeOrderId"
+          @back="activeTab = 'overview'"
+        />
       </div>
     </main>
 
     <!-- 订单录入弹窗 -->
-    <OrderInputModal v-model:visible="showOrderModal" @submit="handleOrderSubmit" />
+    <OrderInputModal
+      v-model:visible="showOrderModal"
+      @submit="handleOrderSubmit"
+    />
 
     <!-- 侧边栏（员工信息详情） -->
     <div v-if="showSidebar" class="sidebar-overlay" @click="toggleSidebar">
