@@ -42,7 +42,7 @@ export declare class ServingController {
         success: boolean;
         itemId: number;
         status: string;
-        servedAt: Date | null;
+        servedAt: Date;
         message: string;
     }>;
     autoAdjustOrderPriorities(orderId: number): Promise<{

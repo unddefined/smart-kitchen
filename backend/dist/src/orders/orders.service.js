@@ -13,7 +13,6 @@ exports.OrdersService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 let OrdersService = class OrdersService {
-    prisma;
     constructor(prisma) {
         this.prisma = prisma;
     }
@@ -59,10 +58,7 @@ let OrdersService = class OrdersService {
     async update(id, updateOrderDto) {
         return await this.prisma.order.update({
             where: { id },
-            data: {
-                ...updateOrderDto,
-                updatedAt: new Date(),
-            },
+            data: Object.assign(Object.assign({}, updateOrderDto), { updatedAt: new Date() }),
         });
     }
     async remove(id) {

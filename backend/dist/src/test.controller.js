@@ -13,7 +13,6 @@ exports.TestController = void 0;
 const common_1 = require("@nestjs/common");
 const mock_data_service_1 = require("./mock-data.service");
 let TestController = class TestController {
-    mockDataService;
     constructor(mockDataService) {
         this.mockDataService = mockDataService;
     }

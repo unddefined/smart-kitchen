@@ -3,101 +3,101 @@ export declare class OrdersService {
     private prisma;
     constructor(prisma: PrismaService);
     create(createOrderDto: any): Promise<{
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
         status: string;
-        mealTime: string | null;
+        mealTime: string;
         updatedAt: Date;
     }>;
     findAll(): Promise<({
         orderItems: ({
             dish: {
+                id: number;
                 name: string;
                 createdAt: Date;
-                id: number;
-                shortcutCode: string | null;
-                recipeId: number | null;
                 stationId: number;
                 categoryId: number;
+                shortcutCode: string;
+                recipeId: number;
             };
         } & {
-            createdAt: Date;
             id: number;
+            createdAt: Date;
             countable: boolean;
             status: string;
-            remark: string | null;
-            quantity: number;
-            weight: string | null;
-            priority: number;
-            servedAt: Date | null;
+            remark: string;
             orderId: number;
             dishId: number;
+            quantity: number;
+            weight: string;
+            priority: number;
+            servedAt: Date;
         })[];
     } & {
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
         status: string;
-        mealTime: string | null;
+        mealTime: string;
         updatedAt: Date;
     })[]>;
-    findOne(id: number): Promise<({
+    findOne(id: number): Promise<{
         orderItems: ({
             dish: {
+                id: number;
                 name: string;
                 createdAt: Date;
-                id: number;
-                shortcutCode: string | null;
-                recipeId: number | null;
                 stationId: number;
                 categoryId: number;
+                shortcutCode: string;
+                recipeId: number;
             };
         } & {
-            createdAt: Date;
             id: number;
+            createdAt: Date;
             countable: boolean;
             status: string;
-            remark: string | null;
-            quantity: number;
-            weight: string | null;
-            priority: number;
-            servedAt: Date | null;
+            remark: string;
             orderId: number;
             dishId: number;
+            quantity: number;
+            weight: string;
+            priority: number;
+            servedAt: Date;
         })[];
     } & {
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
         status: string;
-        mealTime: string | null;
+        mealTime: string;
         updatedAt: Date;
-    }) | null>;
+    }>;
     update(id: number, updateOrderDto: any): Promise<{
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
         status: string;
-        mealTime: string | null;
+        mealTime: string;
         updatedAt: Date;
     }>;
     remove(id: number): Promise<{
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
         status: string;
-        mealTime: string | null;
+        mealTime: string;
         updatedAt: Date;
     }>;
 }

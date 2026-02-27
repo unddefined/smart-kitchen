@@ -14,10 +14,9 @@ exports.ServingService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 let ServingService = ServingService_1 = class ServingService {
-    prisma;
-    logger = new common_1.Logger(ServingService_1.name);
     constructor(prisma) {
         this.prisma = prisma;
+        this.logger = new common_1.Logger(ServingService_1.name);
     }
     calculateDishPriority(categoryName, isAddedLater = false, basePriority = 0) {
         if (isAddedLater) {
@@ -31,10 +30,10 @@ let ServingService = ServingService_1 = class ServingService {
             include: {
                 orderItems: {
                     include: {
-                        dish: true
-                    }
-                }
-            }
+                        dish: true,
+                    },
+                },
+            },
         });
         return order;
     }
@@ -43,20 +42,20 @@ let ServingService = ServingService_1 = class ServingService {
             include: {
                 orderItems: {
                     include: {
-                        dish: true
-                    }
-                }
+                        dish: true,
+                    },
+                },
             },
             orderBy: {
-                createdAt: 'desc'
-            }
+                createdAt: 'desc',
+            },
         });
         return orders;
     }
     async updateOrderStatus(orderId, status) {
         const updatedOrder = await this.prisma.order.update({
             where: { id: orderId },
-            data: { status }
+            data: { status },
         });
         return updatedOrder;
     }
@@ -65,34 +64,34 @@ let ServingService = ServingService_1 = class ServingService {
             where: { id: itemId },
             include: {
                 order: true,
-                dish: true
-            }
+                dish: true,
+            },
         });
         return item;
     }
     async updateOrderItemStatus(itemId, status) {
         const updatedItem = await this.prisma.orderItem.update({
             where: { id: itemId },
-            data: { status }
+            data: { status },
         });
         return updatedItem;
     }
     async updateOrderItemPriority(itemId, priority) {
         const item = await this.prisma.orderItem.findUnique({
-            where: { id: itemId }
+            where: { id: itemId },
         });
         if (!item) {
             throw new Error('订单项不存在');
         }
         const updatedItem = await this.prisma.orderItem.update({
             where: { id: itemId },
-            data: { priority }
+            data: { priority },
         });
         return updatedItem;
     }
     async markAsServed(itemId) {
         const item = await this.prisma.orderItem.findUnique({
-            where: { id: itemId }
+            where: { id: itemId },
         });
         if (!item) {
             throw new Error('订单项不存在');
@@ -101,39 +100,36 @@ let ServingService = ServingService_1 = class ServingService {
             where: { id: itemId },
             data: {
                 status: 'served',
-                servedAt: new Date()
-            }
+                servedAt: new Date(),
+            },
         });
         return updatedItem;
     }
     async getPendingItems() {
         const items = await this.prisma.orderItem.findMany({
             where: {
-                status: 'pending'
+                status: 'pending',
             },
             include: {
                 order: true,
-                dish: true
+                dish: true,
             },
-            orderBy: [
-                { priority: 'desc' },
-                { createdAt: 'asc' }
-            ]
+            orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
         });
         return items;
     }
     async getServedItems() {
         const items = await this.prisma.orderItem.findMany({
             where: {
-                status: 'served'
+                status: 'served',
             },
             include: {
                 order: true,
-                dish: true
+                dish: true,
             },
             orderBy: {
-                servedAt: 'desc'
-            }
+                servedAt: 'desc',
+            },
         });
         return items;
     }
@@ -143,18 +139,18 @@ let ServingService = ServingService_1 = class ServingService {
             include: {
                 orderItems: {
                     include: {
-                        dish: true
-                    }
-                }
-            }
+                        dish: true,
+                    },
+                },
+            },
         });
         if (!order) {
             throw new Error('订单不存在');
         }
-        const pendingCount = order.orderItems.filter(item => item.status === 'pending').length;
-        const preparingCount = order.orderItems.filter(item => item.status === 'preparing').length;
-        const readyCount = order.orderItems.filter(item => item.status === 'ready').length;
-        const servedCount = order.orderItems.filter(item => item.status === 'served').length;
+        const pendingCount = order.orderItems.filter((item) => item.status === 'pending').length;
+        const preparingCount = order.orderItems.filter((item) => item.status === 'preparing').length;
+        const readyCount = order.orderItems.filter((item) => item.status === 'ready').length;
+        const servedCount = order.orderItems.filter((item) => item.status === 'served').length;
         return {
             orderId: order.id,
             hallNumber: order.hallNumber,
@@ -164,70 +160,70 @@ let ServingService = ServingService_1 = class ServingService {
                 preparing: preparingCount,
                 ready: readyCount,
                 served: servedCount,
-                total: order.orderItems.length
+                total: order.orderItems.length,
             },
-            items: order.orderItems.map(item => ({
+            items: order.orderItems.map((item) => ({
                 id: item.id,
                 dishName: item.dish.name,
                 quantity: item.quantity,
                 status: item.status,
                 priority: item.priority,
-                createdAt: item.createdAt
-            }))
+                createdAt: item.createdAt,
+            })),
         };
     }
     async updateItemPriority(itemId, priority, reason) {
         const item = await this.prisma.orderItem.findUnique({
             where: { id: itemId },
-            include: { order: true, dish: true }
+            include: { order: true, dish: true },
         });
         if (!item) {
             throw new Error('订单菜品不存在');
         }
         const updatedItem = await this.prisma.orderItem.update({
             where: { id: itemId },
-            data: { priority }
+            data: { priority },
         });
         this.logger.log(`催菜: 订单${item.order.hallNumber}的${item.dish.name}优先级调整为${priority}`, {
             orderId: item.orderId,
             dishId: item.dishId,
             priority,
-            reason
+            reason,
         });
         return {
             success: true,
             itemId: updatedItem.id,
             priority: updatedItem.priority,
-            message: `菜品${item.dish.name}优先级已更新`
+            message: `菜品${item.dish.name}优先级已更新`,
         };
     }
     async completeDishPreparation(itemId) {
         const item = await this.prisma.orderItem.findUnique({
             where: { id: itemId },
-            include: { order: true, dish: true }
+            include: { order: true, dish: true },
         });
         if (!item) {
             throw new Error('订单菜品不存在');
         }
         const updatedItem = await this.prisma.orderItem.update({
             where: { id: itemId },
-            data: { status: 'ready' }
+            data: { status: 'ready' },
         });
         this.logger.log(`菜品制作完成: 订单${item.order.hallNumber}的${item.dish.name}`, {
             orderId: item.orderId,
-            dishId: item.dishId
+            dishId: item.dishId,
         });
         return {
             success: true,
             itemId: updatedItem.id,
             status: updatedItem.status,
-            message: `菜品${item.dish.name}制作完成`
+            message: `菜品${item.dish.name}制作完成`,
         };
     }
     async serveDish(itemId) {
         const item = await this.prisma.orderItem.findUnique({
             where: { id: itemId },
-            include: { order: true, dish: true }
+            include: { order: true, dish: true },
         });
         if (!item) {
             throw new Error('订单菜品不存在');
@@ -236,25 +232,25 @@ let ServingService = ServingService_1 = class ServingService {
             where: { id: itemId },
             data: {
                 status: 'served',
-                servedAt: new Date()
-            }
+                servedAt: new Date(),
+            },
         });
         this.logger.log(`菜品已上菜: 订单${item.order.hallNumber}的${item.dish.name}`, {
             orderId: item.orderId,
-            dishId: item.dishId
+            dishId: item.dishId,
         });
         return {
             success: true,
             itemId: updatedItem.id,
             status: updatedItem.status,
             servedAt: updatedItem.servedAt,
-            message: `菜品${item.dish.name}已上菜`
+            message: `菜品${item.dish.name}已上菜`,
         };
     }
     async autoAdjustOrderPriorities(orderId) {
         const orderItems = await this.prisma.orderItem.findMany({
             where: { orderId },
-            orderBy: { createdAt: 'asc' }
+            orderBy: { createdAt: 'asc' },
         });
         const adjustments = [];
         for (let i = 0; i < orderItems.length; i++) {
@@ -263,12 +259,12 @@ let ServingService = ServingService_1 = class ServingService {
                 if (item.priority < 3) {
                     await this.prisma.orderItem.update({
                         where: { id: item.id },
-                        data: { priority: 3 }
+                        data: { priority: 3 },
                     });
                     adjustments.push({
                         itemId: item.id,
                         oldPriority: item.priority,
-                        newPriority: 3
+                        newPriority: 3,
                     });
                 }
             }
@@ -277,7 +273,7 @@ let ServingService = ServingService_1 = class ServingService {
             success: true,
             orderId,
             adjustments,
-            message: `订单${orderId}优先级自动调整完成`
+            message: `订单${orderId}优先级自动调整完成`,
         };
     }
     async getServingAlerts() {
@@ -288,18 +284,18 @@ let ServingService = ServingService_1 = class ServingService {
                     {
                         AND: [
                             { status: 'pending' },
-                            { createdAt: { lte: new Date(Date.now() - 30 * 60 * 1000) } }
-                        ]
-                    }
-                ]
+                            { createdAt: { lte: new Date(Date.now() - 30 * 60 * 1000) } },
+                        ],
+                    },
+                ],
             },
             include: {
                 order: true,
-                dish: true
+                dish: true,
             },
-            orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }]
+            orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
         });
-        return urgentItems.map(item => ({
+        return urgentItems.map((item) => ({
             id: item.id,
             orderId: item.orderId,
             dishName: item.dish.name,
@@ -307,29 +303,29 @@ let ServingService = ServingService_1 = class ServingService {
             priority: item.priority,
             status: item.status,
             createdAt: item.createdAt,
-            isOverdue: Date.now() - new Date(item.createdAt).getTime() > 30 * 60 * 1000
+            isOverdue: Date.now() - new Date(item.createdAt).getTime() > 30 * 60 * 1000,
         }));
     }
     async detectUrgentDishes() {
         const urgentItems = await this.prisma.orderItem.findMany({
             where: {
                 priority: 3,
-                status: { not: 'served' }
+                status: { not: 'served' },
             },
             include: {
                 order: true,
-                dish: true
+                dish: true,
             },
-            orderBy: { createdAt: 'asc' }
+            orderBy: { createdAt: 'asc' },
         });
-        return urgentItems.map(item => ({
+        return urgentItems.map((item) => ({
             id: item.id,
             orderId: item.orderId,
             dishName: item.dish.name,
             hallNumber: item.order.hallNumber,
             priority: item.priority,
             status: item.status,
-            createdAt: item.createdAt
+            createdAt: item.createdAt,
         }));
     }
 };

@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 async function main() {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
     console.log('🌱 开始填充数据库...');
     await prisma.orderItem.deleteMany();
     await prisma.order.deleteMany();
@@ -99,15 +100,15 @@ async function main() {
         { name: '红汤油爆河虾', stationId: stationMap['热菜'], categoryId: categoryMap['前菜'], shortcutCode: 'HTYBHX', recipeId: null },
         { name: '椒盐基围虾', stationId: stationMap['热菜'], categoryId: categoryMap['前菜'], shortcutCode: 'JYJWX', recipeId: null },
         { name: '藤椒双脆', stationId: stationMap['热菜'], categoryId: categoryMap['中菜'], shortcutCode: 'TZSC', recipeId: null },
-        { name: '红烧肉', stationId: stationMap['热菜'], categoryId: categoryMap['中菜'], shortcutCode: 'HSR', recipeId: createdRecipes.find(r => r.name === '红烧肉')?.id },
-        { name: '托炉饼', stationId: stationMap['热菜'], categoryId: categoryMap['中菜'], shortcutCode: 'TLB', recipeId: createdRecipes.find(r => r.name === '托炉饼')?.id, countable: true },
+        { name: '红烧肉', stationId: stationMap['热菜'], categoryId: categoryMap['中菜'], shortcutCode: 'HSR', recipeId: (_a = createdRecipes.find(r => r.name === '红烧肉')) === null || _a === void 0 ? void 0 : _a.id },
+        { name: '托炉饼', stationId: stationMap['热菜'], categoryId: categoryMap['中菜'], shortcutCode: 'TLB', recipeId: (_b = createdRecipes.find(r => r.name === '托炉饼')) === null || _b === void 0 ? void 0 : _b.id, countable: true },
         { name: '椒盐排骨', stationId: stationMap['热菜'], categoryId: categoryMap['中菜'], shortcutCode: 'JYGP', recipeId: null, countable: true },
-        { name: '小笼馒头', stationId: stationMap['点心'], categoryId: categoryMap['点心'], shortcutCode: 'XLMT', recipeId: createdRecipes.find(r => r.name === '小笼馒头')?.id, countable: true },
+        { name: '小笼馒头', stationId: stationMap['点心'], categoryId: categoryMap['点心'], shortcutCode: 'XLMT', recipeId: (_c = createdRecipes.find(r => r.name === '小笼馒头')) === null || _c === void 0 ? void 0 : _c.id, countable: true },
         { name: '手工米糕', stationId: stationMap['点心'], categoryId: categoryMap['点心'], shortcutCode: 'SGMG', recipeId: null, countable: true },
-        { name: '清蒸大黄鱼', stationId: stationMap['蒸菜'], categoryId: categoryMap['蒸菜'], shortcutCode: 'QZDHY', recipeId: createdRecipes.find(r => r.name === '清蒸大黄鱼')?.id },
+        { name: '清蒸大黄鱼', stationId: stationMap['蒸菜'], categoryId: categoryMap['蒸菜'], shortcutCode: 'QZDHY', recipeId: (_d = createdRecipes.find(r => r.name === '清蒸大黄鱼')) === null || _d === void 0 ? void 0 : _d.id },
         { name: '蒜蓉小鲍鱼', stationId: stationMap['蒸菜'], categoryId: categoryMap['蒸菜'], shortcutCode: 'TRXBY', recipeId: null, countable: true },
         { name: '菠萝炒饭', stationId: stationMap['热菜'], categoryId: categoryMap['后菜'], shortcutCode: 'PLCF', recipeId: null },
-        { name: '时蔬', stationId: stationMap['热菜'], categoryId: categoryMap['尾菜'], shortcutCode: 'SS', recipeId: createdRecipes.find(r => r.name === '时蔬')?.id },
+        { name: '时蔬', stationId: stationMap['热菜'], categoryId: categoryMap['尾菜'], shortcutCode: 'SS', recipeId: (_e = createdRecipes.find(r => r.name === '时蔬')) === null || _e === void 0 ? void 0 : _e.id },
         { name: '蛋皮汤', stationId: stationMap['热菜'], categoryId: categoryMap['尾菜'], shortcutCode: 'DPT', recipeId: null }
     ];
     for (const dishData of dishes) {
@@ -219,12 +220,9 @@ async function main() {
     ];
     for (const itemData of orderItems) {
         await prisma.orderItem.create({
-            data: {
-                ...itemData,
-                countable: itemData.countable ?? (createdDishes.find(d => d.id === itemData.dishId)?.name.includes('托炉饼') ||
-                    createdDishes.find(d => d.id === itemData.dishId)?.name.includes('小笼馒头') ||
-                    createdDishes.find(d => d.id === itemData.dishId)?.name.includes('蒜蓉小鲍鱼') || false)
-            }
+            data: Object.assign(Object.assign({}, itemData), { countable: (_f = itemData.countable) !== null && _f !== void 0 ? _f : (((_g = createdDishes.find(d => d.id === itemData.dishId)) === null || _g === void 0 ? void 0 : _g.name.includes('托炉饼')) ||
+                    ((_h = createdDishes.find(d => d.id === itemData.dishId)) === null || _h === void 0 ? void 0 : _h.name.includes('小笼馒头')) ||
+                    ((_j = createdDishes.find(d => d.id === itemData.dishId)) === null || _j === void 0 ? void 0 : _j.name.includes('蒜蓉小鲍鱼')) || false) })
         });
     }
     console.log('✅ 数据库填充完成!');

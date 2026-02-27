@@ -17,10 +17,9 @@ exports.ServingController = void 0;
 const common_1 = require("@nestjs/common");
 const serving_service_1 = require("./serving.service");
 let ServingController = ServingController_1 = class ServingController {
-    servingService;
-    logger = new common_1.Logger(ServingController_1.name);
     constructor(servingService) {
         this.servingService = servingService;
+        this.logger = new common_1.Logger(ServingController_1.name);
     }
     async getOrderServingStatus(orderId) {
         this.logger.log(`获取订单 ${orderId} 出餐状态`);
@@ -61,16 +60,16 @@ let ServingController = ServingController_1 = class ServingController {
                 { category: '尾菜', priority: 1, color: 'green' },
             ],
             rules: {
-                'later_addition': '后来加菜优先级为3级',
-                'priority_boost': '前面菜品上完后后面菜品自动+1优先级',
-                'color_coding': {
-                    'red': '优先出(催菜)，优先级3',
-                    'yellow': '等一下，优先级2',
-                    'green': '不急，优先级1',
-                    'gray': '未起菜，优先级0',
-                    'negative_one': '已出，优先级-1'
-                }
-            }
+                later_addition: '后来加菜优先级为3级',
+                priority_boost: '前面菜品上完后后面菜品自动+1优先级',
+                color_coding: {
+                    red: '优先出(催菜)，优先级3',
+                    yellow: '等一下，优先级2',
+                    green: '不急，优先级1',
+                    gray: '未起菜，优先级0',
+                    negative_one: '已出，优先级-1',
+                },
+            },
         };
     }
 };
