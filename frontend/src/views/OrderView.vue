@@ -36,9 +36,7 @@
           </div>
           <div class="info-item">
             <span class="label">状态:</span>
-            <span class="value">{{
-              getOrderStatusText(orderDetail.status)
-            }}</span>
+            <span class="value">{{ getOrderStatusText(orderDetail.status) }}</span>
           </div>
           <div class="info-item">
             <span class="label">创建时间:</span>
@@ -59,42 +57,11 @@
         </div>
       </div>
 
-      <!-- 菜品统计 -->
-      <div v-if="orderStats" class="stats-section">
-        <h3 class="section-subtitle">菜品统计</h3>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-value">{{ orderStats.totalItems }}</div>
-            <div class="stat-label">总菜品数</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ orderStats.pendingCount }}</div>
-            <div class="stat-label">待制作</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ orderStats.preparingCount }}</div>
-            <div class="stat-label">制作中</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ orderStats.readyCount }}</div>
-            <div class="stat-label">已备好</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ orderStats.servedCount }}</div>
-            <div class="stat-label">已上菜</div>
-          </div>
-        </div>
-      </div>
-
       <!-- 已出菜品 -->
       <div class="served-section">
         <h3 class="section-subtitle">已出菜品</h3>
         <div class="dish-list">
-          <div
-            v-for="dish in servedDishes"
-            :key="dish.id"
-            class="dish-item served"
-          >
+          <div v-for="dish in servedDishes" :key="dish.id" class="dish-item served">
             <div class="dish-info">
               <span class="dish-name">{{ dish.dish?.name || "未知菜品" }}</span>
               <span class="dish-quantity">×{{ dish.quantity }}</span>
@@ -110,27 +77,17 @@
       <div class="pending-section">
         <h3 class="section-subtitle">待上菜品</h3>
         <div class="dish-list">
-          <div
-            v-for="dish in pendingDishes"
-            :key="dish.id"
-            :class="['dish-item', `priority-${dish.priority || 0}`]"
-            @click="handleDishClick(dish)"
-          >
+          <div v-for="dish in pendingDishes" :key="dish.id" :class="['dish-item', `priority-${dish.priority || 0}`]" @click="handleDishClick(dish)">
             <div class="dish-info">
-              <span class="dish-name">{{ dish.dish?.name || "未知菜品" }}</span>
-              <span class="dish-quantity">×{{ dish.quantity }}</span>
+              <span class="text-xl">
+                <span>{{ dish.dish?.name || "未知菜品" }}</span> <span class="">×{{ dish.quantity }}</span>
+              </span>
+              <span class="dish-status">{{ getOrderItemStatusText(dish.status) }}</span>
             </div>
             <div v-if="dish.remark" class="dish-remark">
               {{ dish.remark }}
             </div>
-            <div class="dish-meta">
-              <span class="dish-status">{{
-                getOrderItemStatusText(dish.status)
-              }}</span>
-              <span v-if="dish.priority" class="dish-priority">
-                优先级: {{ dish.priority }}
-              </span>
-            </div>
+            <div class="dish-meta"></div>
           </div>
         </div>
       </div>
@@ -496,36 +453,17 @@ watch(
 .dish-info {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  font-size: 18px;
   font-weight: 500;
   color: #333;
-  margin-bottom: 8px;
-}
-
-.dish-name {
-  flex: 1;
-}
-
-.dish-quantity {
-  font-weight: 600;
-  color: #666;
 }
 
 .dish-remark {
-  font-size: 14px;
+  font-size: 18px;
   color: #666;
-  margin-bottom: 8px;
+  margin-top: 8px;
   padding: 4px 8px;
   background: #f1f5f9;
   border-radius: 4px;
-}
-
-.dish-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: #666;
 }
 
 .dish-status {
@@ -572,16 +510,6 @@ watch(
   .info-grid {
     grid-template-columns: 1fr;
     gap: 12px;
-  }
-
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .dish-info {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
   }
 }
 </style>
