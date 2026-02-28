@@ -62,6 +62,24 @@ services:
     networks:
       - backend-network
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smart-kitchen-frontend-prod
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    networks:
+      - backend-network
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 networks:
   backend-network:
     driver: bridge
