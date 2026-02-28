@@ -59,6 +59,19 @@ jobs:
             fi
           fi
 
+      - name: Frontend build verification
+        run: |
+          echo "🔍 验证前端构建..."
+          cd frontend
+          npm run build
+          if [ -d "dist" ] && [ -f "dist/index.html" ]; then
+            echo "✅ 前端构建成功"
+            ls -la dist/
+          else
+            echo "❌ 前端构建失败"
+            exit 1
+          fi
+
       - name: Run linter
         run: |
           cd backend && npm run lint
@@ -68,7 +81,7 @@ jobs:
         run: |
           cd backend && npm run test
           # 前端测试（如果有的话）
-          # cd ../frontend && npm run test
+          # cd../frontend && npm run test
 
   # 构建Docker镜像
   build-and-push:
@@ -254,6 +267,51 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop'
     environment: staging
+    
+  # 自动化前端更新检查（定时任务）
+  auto-frontend-update:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: deploy-production
+    environment: production
+    concurrency: auto-update-check
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check frontend updates
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            echo "🔍 检查前端更新状态..."
+            
+            cd /root/smart-kitchen
+            
+            # 获取当前前端构建时间
+            CURRENT_BUILD_TIME=$(docker compose exec -T frontend stat -c %Y /usr/share/nginx/html/index.html 2>/dev/null || echo "0")
+            echo "当前构建时间戳: $CURRENT_BUILD_TIME"
+            
+            # 检查是否需要更新（如果超过24小时）
+            CURRENT_TIME=$(date +%s)
+            TIME_DIFF=$((CURRENT_TIME - CURRENT_BUILD_TIME))
+            HOURS_DIFF=$((TIME_DIFF / 3600))
+            
+            echo "距离上次构建: $HOURS_DIFF 小时"
+            
+            if [ $HOURS_DIFF -gt 24 ]; then
+              echo "⚠️ 前端构建超过24小时，触发自动更新..."
+              # 重新构建前端
+              docker compose build frontend
+              docker compose up -d frontend
+              echo "✅ 前端自动更新完成"
+            else
+              echo "✅ 前端构建时间正常，无需更新"
+            fi
 
     steps:
       - name: Deploy to staging server
