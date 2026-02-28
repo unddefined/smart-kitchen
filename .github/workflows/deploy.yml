@@ -41,6 +41,16 @@ jobs:
           cd backend && npm ci
           cd ../frontend && npm ci
 
+      - name: Security check - Verify seed script safety
+        run: |
+          echo "🔍 检查seed脚本安全性..."
+          if grep -r "deleteMany()\|truncate\|drop table" ./backend/prisma/seed.ts 2>/dev/null; then
+            echo "❌ 危险操作检测到！seed脚本包含破坏性操作"
+            exit 1
+          else
+            echo "✅ seed脚本安全检查通过"
+          fi
+
       - name: Run linter
         run: |
           cd backend && npm run lint
@@ -119,10 +129,22 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    environment: production
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Production Data Safety Check
+        run: |
+          echo "🛡️ 生产环境数据安全检查"
+          echo "当前分支: ${{ github.ref }}"
+          echo "触发者: ${{ github.actor }}"
+          
+          # 检查是否包含危险操作
+          if git diff --name-only HEAD~1 | grep -E "(seed\.ts|migration)" > /dev/null; then
+            echo "⚠️ 检测到可能影响数据的变更，需要额外审查"
+          fi
 
       - name: Deploy to production server
         uses: appleboy/ssh-action@v1.0.3
@@ -132,83 +154,98 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
+            echo "🚀 开始生产环境部署..."
+            
             # 0. 登录 GHCR
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             cd /root/smart-kitchen
 
-            # 1. 【增强】强制同步代码 (包括删除未追踪文件)
+            # 1. 数据保护检查 - 部署前快照
+            echo "📸 创建部署前数据快照..."
+            docker compose exec -T postgres pg_dump -U smart_kitchen smart_kitchen_prod --schema-only > /tmp/db_schema_snapshot_$(date +%Y%m%d_%H%M%S).sql 2>/dev/null || echo "⚠️ 数据库快照创建失败"
+
+            # 2. 检查当前数据状态
+            echo "📊 检查当前数据状态..."
+            CURRENT_DISH_COUNT=$(docker compose exec -T postgres psql -U smart_kitchen -d smart_kitchen_prod -t -c "SELECT COUNT(*) FROM dishes;" 2>/dev/null || echo "0")
+            echo "当前菜品数量: $CURRENT_DISH_COUNT"
+
+            # 3. 同步代码 (安全方式)
+            echo "📥 同步代码..."
             git fetch origin main
             git reset --hard origin/main
-            # 关键：删除所有未追踪的文件和目录 (解决 scripts/ 冲突问题)
-            git clean -fd 
-
-            # 2. 更新环境变量
+            
+            # 4. 更新环境变量
+            echo "⚙️ 更新环境配置..."
             cp .env.production .env
 
-            # 3. 停止并清理旧服务
+            # 5. 停止服务但保留数据卷
+            echo "⏹️ 停止服务..."
             docker compose down --remove-orphans
 
-            # 4. 拉取新镜像 (观察是否有权限错误)
-            echo "Pulling images..."
+            # 6. 拉取新镜像
+            echo "📦 拉取新镜像..."
             docker compose pull
 
-            # 5. 启动所有服务
-            echo "Starting services..."
+            # 7. 启动服务
+            echo "▶️ 启动服务..."
             docker compose up -d
 
-            # 6. 【调试】检查容器状态
-            echo "Checking container status..."
+            # 8. 等待服务启动
+            echo "⏳ 等待服务启动..."
+            sleep 10
+
+            # 9. 检查容器状态
+            echo "📋 检查容器状态..."
             docker compose ps
 
-            # 检查后端是否正在运行
-            BACKEND_STATUS=$(docker compose ps -q backend 2>/dev/null || docker compose ps -q smart-kitchen-backend-prod 2>/dev/null)
-            if [ -z "$BACKEND_STATUS" ]; then
-                echo "❌ Backend container is NOT running! Checking logs..."
-                # 尝试打印后端日志以便调试
-                docker compose logs backend || docker compose logs smart-kitchen-backend-prod
-                echo "❌ Deployment failed: Backend did not start."
-                exit 1
-            fi
-
-            # 7. 等待数据库就绪
-            echo "Waiting for database to be ready..."
+            # 10. 数据库就绪检查
+            echo "🔍 等待数据库就绪..."
             for i in {1..30}; do
-              if docker compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
-                echo "Database is ready!"
+              if docker compose exec -T postgres pg_isready -U smart_kitchen > /dev/null 2>&1; then
+                echo "✅ 数据库已就绪"
                 break
               fi
-              sleep 1
+              sleep 2
             done
 
-            # 8. 运行迁移 (自动检测服务名)
-            # 优先尝试 'backend'，如果失败则尝试 'smart-kitchen-backend-prod'
-            if docker compose ps -q backend > /dev/null 2>&1; then
-                SERVICE_NAME="backend"
-            elif docker compose ps -q smart-kitchen-backend-prod > /dev/null 2>&1; then
-                SERVICE_NAME="smart-kitchen-backend-prod"
+            # 11. 安全的数据库迁移 - 只运行结构变更，不执行seed
+            echo "🔄 执行数据库迁移..."
+            BACKEND_SERVICE=$(docker compose ps -q backend 2>/dev/null || docker compose ps -q smart-kitchen-backend-prod 2>/dev/null)
+            if [ -n "$BACKEND_SERVICE" ]; then
+              SERVICE_NAME=$(docker compose ps --format json | jq -r '.[] | select(.Service=="backend" or .Service=="smart-kitchen-backend-prod") | .Service' | head -1)
+              echo "在服务 $SERVICE_NAME 上运行迁移..."
+              docker compose exec -T $SERVICE_NAME npx prisma migrate deploy
             else
-                echo "❌ Cannot find backend service name!"
-                docker compose ps
-                exit 1
+              echo "❌ 未找到后端服务"
+              docker compose ps
+              exit 1
             fi
 
-            echo "Running migrations on service: $SERVICE_NAME"
-            docker compose exec -T $SERVICE_NAME npx prisma migrate deploy
+            # 12. 验证数据完整性
+            echo "✅ 验证部署后数据状态..."
+            NEW_DISH_COUNT=$(docker compose exec -T postgres psql -U smart_kitchen -d smart_kitchen_prod -t -c "SELECT COUNT(*) FROM dishes;" 2>/dev/null || echo "0")
+            echo "部署后菜品数量: $NEW_DISH_COUNT"
+            
+            if [ "$CURRENT_DISH_COUNT" != "0" ] && [ "$NEW_DISH_COUNT" != "$CURRENT_DISH_COUNT" ]; then
+              echo "⚠️ 警告: 菜品数量发生变化 ($CURRENT_DISH_COUNT -> $NEW_DISH_COUNT)"
+              # 不立即退出，但记录警告
+            fi
 
-            # 9. 验证健康检查
+            # 13. 健康检查
+            echo "🏥 执行健康检查..."
             sleep 5
-            echo "Verifying deployment..."
-            curl -f http://localhost:3001/api/health || (echo "Backend health check failed"; docker compose logs $SERVICE_NAME; exit 1)
-            curl -f http://localhost || (echo "Frontend health check failed"; docker compose logs frontend; exit 1)
+            curl -f http://localhost:3001/api/health || (echo "❌ 后端健康检查失败"; docker compose logs backend; exit 1)
+            curl -f http://localhost || (echo "❌ 前端健康检查失败"; docker compose logs frontend; exit 1)
                     
-            echo "✅ Deployment successful!"
+            echo "✅ 部署成功完成！"
 
   # 部署到开发环境
   deploy-staging:
     needs: build-and-push
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop'
+    environment: staging
 
     steps:
       - name: Deploy to staging server
@@ -219,6 +256,8 @@ jobs:
           key: ${{ secrets.STAGING_SERVER_SSH_KEY }}
           port: 22
           script: |
+            echo "🚀 开始开发环境部署..."
+            
             cd /root/smart-kitchen-staging
 
             # 拉取最新代码
@@ -239,10 +278,9 @@ jobs:
             # 运行数据库迁移
             docker compose exec backend npx prisma migrate deploy
 
-            # 重启后端服务
-            docker compose restart backend
-
             # 验证部署
             sleep 10
             curl -f http://localhost:3001/api/health || exit 1
             curl -f http://localhost || exit 1
+            
+            echo "✅ 开发环境部署完成！前端页面已更新到最新版本！"
