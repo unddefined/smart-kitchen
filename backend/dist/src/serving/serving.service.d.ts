@@ -23,12 +23,12 @@ export declare class ServingService {
             countable: boolean;
             status: string;
             remark: string | null;
+            orderId: number;
+            dishId: number;
             quantity: number;
             weight: string | null;
             priority: number;
             servedAt: Date | null;
-            orderId: number;
-            dishId: number;
         })[];
     } & {
         id: number;
@@ -62,12 +62,12 @@ export declare class ServingService {
             countable: boolean;
             status: string;
             remark: string | null;
+            orderId: number;
+            dishId: number;
             quantity: number;
             weight: string | null;
             priority: number;
             servedAt: Date | null;
-            orderId: number;
-            dishId: number;
         })[];
     } & {
         id: number;
@@ -126,12 +126,12 @@ export declare class ServingService {
         countable: boolean;
         status: string;
         remark: string | null;
+        orderId: number;
+        dishId: number;
         quantity: number;
         weight: string | null;
         priority: number;
         servedAt: Date | null;
-        orderId: number;
-        dishId: number;
     }>;
     updateOrderItemStatus(itemId: number, status: string): Promise<{
         id: number;
@@ -139,12 +139,12 @@ export declare class ServingService {
         countable: boolean;
         status: string;
         remark: string | null;
+        orderId: number;
+        dishId: number;
         quantity: number;
         weight: string | null;
         priority: number;
         servedAt: Date | null;
-        orderId: number;
-        dishId: number;
     }>;
     updateOrderItemPriority(itemId: number, priority: number): Promise<{
         id: number;
@@ -152,12 +152,12 @@ export declare class ServingService {
         countable: boolean;
         status: string;
         remark: string | null;
+        orderId: number;
+        dishId: number;
         quantity: number;
         weight: string | null;
         priority: number;
         servedAt: Date | null;
-        orderId: number;
-        dishId: number;
     }>;
     markAsServed(itemId: number): Promise<{
         id: number;
@@ -165,12 +165,12 @@ export declare class ServingService {
         countable: boolean;
         status: string;
         remark: string | null;
+        orderId: number;
+        dishId: number;
         quantity: number;
         weight: string | null;
         priority: number;
         servedAt: Date | null;
-        orderId: number;
-        dishId: number;
     }>;
     getPendingItems(): Promise<({
         dish: {
@@ -203,12 +203,12 @@ export declare class ServingService {
         countable: boolean;
         status: string;
         remark: string | null;
+        orderId: number;
+        dishId: number;
         quantity: number;
         weight: string | null;
         priority: number;
         servedAt: Date | null;
-        orderId: number;
-        dishId: number;
     })[]>;
     getServedItems(): Promise<({
         dish: {
@@ -241,12 +241,12 @@ export declare class ServingService {
         countable: boolean;
         status: string;
         remark: string | null;
+        orderId: number;
+        dishId: number;
         quantity: number;
         weight: string | null;
         priority: number;
         servedAt: Date | null;
-        orderId: number;
-        dishId: number;
     })[]>;
     getOrderServingStatus(orderId: number): Promise<{
         orderId: number;

@@ -1,8 +1,11 @@
 <template>
   <div id="app" class="mobile-app">
     <div class="app-container">
+      <!-- 测试导航（仅在开发环境显示） -->
+      <TestNavigation v-if="isDevelopment" />
+
       <!-- 主要内容区域 -->
-      <main class="main-content">
+      <main class="main-content" :class="{ 'with-test-nav': isDevelopment }">
         <router-view />
       </main>
       <!-- 模态框容器 - 用于Teleport目标 -->
@@ -46,9 +49,13 @@
 <script setup>
 import { ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import TestNavigation from "./components/TestNavigation.vue";
 
 const router = useRouter();
 const route = useRoute();
+
+// 开发环境检测
+const isDevelopment = import.meta.env.DEV;
 
 // 根据当前路由确定激活模块
 const activeModule = ref("cooking");
@@ -110,6 +117,10 @@ const switchToModule = (module) => {
 .main-content {
   flex: 1;
   overflow-y: auto;
+}
+
+.main-content.with-test-nav {
+  margin-top: 50px; /* 为测试导航留出空间 */
 }
 
 /* 全局底部导航栏 - 烹调/库存/待办/历史 */
@@ -223,6 +234,10 @@ button,
   textarea,
   select {
     font-size: 16px; /* 防止iOS自动缩放 */
+  }
+
+  .main-content.with-test-nav {
+    margin-top: 44px; /* 移动端较小的导航高度 */
   }
 }
 </style>

@@ -29,6 +29,19 @@ export class OrdersController {
     return this.ordersService.findOne(id);
   }
 
+  @Get(':id/items')
+  findOrderItems(@Param('id', ParseIntPipe) id: number) {
+    return this.ordersService.findOrderItems(id);
+  }
+
+  @Post(':id/items')
+  addOrderItem(
+    @Param('id', ParseIntPipe) orderId: number,
+    @Body() createOrderItemDto: any,
+  ) {
+    return this.ordersService.addOrderItem(orderId, createOrderItemDto);
+  }
+
   @Patch(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() updateOrderDto: any) {
     return this.ordersService.update(id, updateOrderDto);
