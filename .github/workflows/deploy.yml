@@ -44,11 +44,19 @@ jobs:
       - name: Security check - Verify seed script safety
         run: |
           echo "🔍 检查seed脚本安全性..."
-          if grep -r "deleteMany()\|truncate\|drop table" ./backend/prisma/seed.ts 2>/dev/null; then
-            echo "❌ 危险操作检测到！seed脚本包含破坏性操作"
+          # 检查未注释的危险操作（排除注释行）
+          if grep -v "^[[:space:]]*//" ./backend/prisma/seed.ts | grep -E "deleteMany\(\)|truncate|drop table" > /dev/null 2>&1; then
+            echo "❌ 危险操作检测到！seed脚本包含未注释的破坏性操作"
+            echo "详细信息："
+            grep -n -v "^[[:space:]]*//" ./backend/prisma/seed.ts | grep -E "deleteMany\(\)|truncate|drop table" || true
             exit 1
           else
             echo "✅ seed脚本安全检查通过"
+            # 显示已注释的危险操作作为提醒
+            COMMENTED_DANGEROUS=$(grep "^[[:space:]]*//" ./backend/prisma/seed.ts | grep -E "deleteMany\(\)|truncate|drop table" | wc -l)
+            if [ $COMMENTED_DANGEROUS -gt 0 ]; then
+              echo "ℹ️  检测到 $COMMENTED_DANGEROUS 行已注释的危险操作（这是安全的）"
+            fi
           fi
 
       - name: Run linter
