@@ -1,5 +1,22 @@
 <template>
   <div class="cooking-container">
+    <!-- 加载状态覆盖层 -->
+    <div v-if="loading" class="loading-overlay">
+      <div class="loading-spinner">
+        <div class="spinner"></div>
+        <p>正在加载订单数据...</p>
+      </div>
+    </div>
+
+    <!-- 错误状态覆盖层 -->
+    <div v-if="error && !loading" class="error-overlay">
+      <div class="error-content">
+        <div class="error-icon">⚠️</div>
+        <p>{{ error }}</p>
+        <button @click="loadOrders" class="retry-btn">重新加载</button>
+      </div>
+    </div>
+
     <!-- Header区域 -->
     <header class="cooking-header safe-area-top">
       <div class="header-content">
@@ -146,43 +163,24 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import OverviewView from "./OverviewView.vue";
 import OrderView from "./OrderView.vue";
 import OrderInputModal from "../components/OrderInputModal.vue";
+import { OrderService } from "@/services";
 
 // 响应式数据
 const mealType = ref("lunch");
 const activeTab = ref("overview");
 const showOrderModal = ref(false);
 const showSidebar = ref(false);
+const loading = ref(false);
+const error = ref(null);
 
-// 模拟订单数据
-const orders = ref([
-  {
-    id: 1,
-    hallNumber: "A01",
-    peopleCount: 4,
-    hasUrgentItems: true,
-    isPending: false,
-  },
-  {
-    id: 2,
-    hallNumber: "A02",
-    peopleCount: 2,
-    hasUrgentItems: false,
-    isPending: true,
-  },
-  {
-    id: 3,
-    hallNumber: "B01",
-    peopleCount: 6,
-    hasUrgentItems: false,
-    isPending: false,
-  },
-]);
+// 真实订单数据
+const orders = ref([]);
 
-// 模拟待处理菜品数据
+// 模拟待处理菜品数据（这部分暂时保留用于总览视图）
 const mockPendingDishes = ref([
   {
     id: 1,
@@ -257,15 +255,71 @@ const currentDate = computed(() => {
 
 const activeOrderId = computed(() => {
   if (activeTab.value.startsWith("order-")) {
-    return activeTab.value.split("-")[1];
+    const orderId = activeTab.value.split("-")[1];
+    return parseInt(orderId) || null;
   }
   return null;
+});
+
+// 订单相关计算属性
+const pendingCount = computed(() => {
+  return orders.value.filter(order => order.status === 'created').length;
+});
+
+const servingCount = computed(() => {
+  return orders.value.filter(order => order.status === 'serving').length;
+});
+
+const doneCount = computed(() => {
+  return orders.value.filter(order => order.status === 'done').length;
 });
 
 // 方法
 const toggleSidebar = () => {
   showSidebar.value = !showSidebar.value;
 };
+
+// 加载订单数据
+const loadOrders = async () => {
+  try {
+    loading.value = true;
+    error.value = null;
+    
+    const orderList = await OrderService.getOrders();
+    orders.value = orderList.map((order) => ({
+      id: order.id,
+      hallNumber: order.hallNumber,
+      peopleCount: order.peopleCount,
+      tableCount: order.tableCount,
+      status: order.status,
+      createdAt: order.createdAt,
+      hasUrgentItems: checkHasUrgentItems(order),
+      isPending: order.status === 'created'
+    }));
+  } catch (err) {
+    console.error("加载订单失败:", err);
+    error.value = "加载订单数据失败，请检查网络连接";
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 检查订单是否有催菜项
+const checkHasUrgentItems = (order) => {
+  // 这里可以根据实际业务逻辑判断是否有催菜项
+  // 暂时返回false，后续可以完善
+  return false;
+};
+
+// 刷新订单数据
+const refreshOrders = async () => {
+  await loadOrders();
+};
+
+// 组件挂载时加载数据
+onMounted(() => {
+  loadOrders();
+});
 
 const handleStartDish = () => {
   console.log("起菜功能");
@@ -297,10 +351,25 @@ const handleDishAction = (action, dish) => {
   // 处理菜品的各种操作
 };
 
-const handleOrderSubmit = (orderData) => {
-  console.log("订单提交:", orderData);
-  showOrderModal.value = false;
-  // 这里可以添加实际的订单提交逻辑
+const handleOrderSubmit = async (orderData) => {
+  try {
+    const result = await OrderService.createOrder(orderData);
+    if (result.success) {
+      showOrderModal.value = false;
+      // 重新加载订单列表
+      await loadOrders();
+    } else {
+      console.error("订单创建失败:", result.message);
+    }
+  } catch (error) {
+    console.error("订单提交错误:", error);
+  }
+};
+
+// 过滤订单（按状态）
+const filterOrders = (status) => {
+  if (!status) return orders.value;
+  return orders.value.filter(order => order.status === status);
 };
 </script>
 
@@ -310,6 +379,101 @@ const handleOrderSubmit = (orderData) => {
   display: flex;
   flex-direction: column;
   background-color: #f5f5f5;
+  position: relative;
+}
+
+/* 加载状态样式 */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+}
+
+.loading-spinner {
+  text-align: center;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e0e0e0;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-spinner p {
+  margin: 0;
+  color: #666;
+  font-size: 16px;
+}
+
+/* 错误状态样式 */
+.error-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+}
+
+.error-content {
+  text-align: center;
+  padding: 30px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-width: 300px;
+}
+
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.error-content p {
+  margin: 0 0 20px 0;
+  color: #666;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.retry-btn {
+  padding: 12px 24px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.retry-btn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
 }
 
 /* Header区域样式 */

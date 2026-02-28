@@ -1,6 +1,20 @@
 <template>
   <div class="order-container">
-    <div class="order-content">
+    <!-- 加载状态 -->
+    <div v-if="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>正在加载订单详情...</p>
+    </div>
+
+    <!-- 错误状态 -->
+    <div v-else-if="error" class="error-state">
+      <div class="error-icon">⚠️</div>
+      <p>{{ error }}</p>
+      <button @click="loadOrderDetail" class="retry-btn">重新加载</button>
+    </div>
+
+    <!-- 订单详情内容 -->
+    <div v-else-if="orderDetail" class="order-content">
       <!-- 订单信息表格 -->
       <div class="order-info-section">
         <h3 class="section-subtitle">订单信息</h3>
@@ -9,28 +23,65 @@
           <div class="info-row">
             <div class="info-item">
               <span class="label">人数:</span>
-              <span class="value">{{ order.peopleCount }}</span>
+              <span class="value">{{ orderDetail.peopleCount }}</span>
             </div>
             <div class="info-item">
               <span class="label">桌数:</span>
-              <span class="value">{{ order.tableCount }}</span>
+              <span class="value">{{ orderDetail.tableCount }}</span>
             </div>
           </div>
           <div class="info-item">
-            <span class="label">厅号:</span>
-            <span class="value">{{ order.hallNumber }}</span>
+            <span class="label">台号:</span>
+            <span class="value">{{ orderDetail.hallNumber }}</span>
           </div>
           <div class="info-item">
+            <span class="label">状态:</span>
+            <span class="value">{{
+              getOrderStatusText(orderDetail.status)
+            }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">创建时间:</span>
+            <span class="value">{{ formatDate(orderDetail.createdAt) }}</span>
+          </div>
+          <div v-if="orderDetail.mealTime" class="info-item">
+            <span class="label">用餐时间:</span>
+            <span class="value">{{ orderDetail.mealTime }}</span>
+          </div>
+          <div v-if="orderDetail.remark" class="info-item">
             <span class="label">备注:</span>
-            <span class="value">{{ order.remark }}</span>
+            <span class="value">{{ orderDetail.remark }}</span>
           </div>
-          <div class="info-item">
+          <div v-if="orderDetail.startTime" class="info-item">
             <span class="label">起菜时间:</span>
-            <span class="value">{{ order.startTime }}</span>
+            <span class="value">{{ orderDetail.startTime }}</span>
           </div>
-          <div class="info-item">
-            <span class="label">上一道菜间隔:</span>
-            <span class="value">{{ order.lastInterval }}秒</span>
+        </div>
+      </div>
+
+      <!-- 菜品统计 -->
+      <div v-if="orderStats" class="stats-section">
+        <h3 class="section-subtitle">菜品统计</h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value">{{ orderStats.totalItems }}</div>
+            <div class="stat-label">总菜品数</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ orderStats.pendingCount }}</div>
+            <div class="stat-label">待制作</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ orderStats.preparingCount }}</div>
+            <div class="stat-label">制作中</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ orderStats.readyCount }}</div>
+            <div class="stat-label">已备好</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ orderStats.servedCount }}</div>
+            <div class="stat-label">已上菜</div>
           </div>
         </div>
       </div>
@@ -45,7 +96,11 @@
             class="dish-item served"
           >
             <div class="dish-info">
-              <span class="dish-name">{{ dish.name }}</span>
+              <span class="dish-name">{{ dish.dish?.name || "未知菜品" }}</span>
+              <span class="dish-quantity">×{{ dish.quantity }}</span>
+            </div>
+            <div v-if="dish.remark" class="dish-remark">
+              {{ dish.remark }}
             </div>
           </div>
         </div>
@@ -58,11 +113,23 @@
           <div
             v-for="dish in pendingDishes"
             :key="dish.id"
-            :class="['dish-item']"
+            :class="['dish-item', `priority-${dish.priority || 0}`]"
             @click="handleDishClick(dish)"
           >
             <div class="dish-info">
-              <span class="dish-name">{{ dish.name }}</span>
+              <span class="dish-name">{{ dish.dish?.name || "未知菜品" }}</span>
+              <span class="dish-quantity">×{{ dish.quantity }}</span>
+            </div>
+            <div v-if="dish.remark" class="dish-remark">
+              {{ dish.remark }}
+            </div>
+            <div class="dish-meta">
+              <span class="dish-status">{{
+                getOrderItemStatusText(dish.status)
+              }}</span>
+              <span v-if="dish.priority" class="dish-priority">
+                优先级: {{ dish.priority }}
+              </span>
             </div>
           </div>
         </div>
@@ -74,11 +141,18 @@
         <button class="secondary-btn" @click="editOrder">编辑订单信息</button>
       </div>
     </div>
+
+    <!-- 空状态 -->
+    <div v-else class="empty-state">
+      <div class="empty-icon">📋</div>
+      <p>未找到订单详情</p>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
+import { OrderService } from "@/services";
 
 // Props
 const props = defineProps({
@@ -91,100 +165,201 @@ const props = defineProps({
 // Emits
 const emit = defineEmits(["back"]);
 
-// 模拟订单数据
-const order = ref({
-  id: props.orderId,
-  peopleCount: 4,
-  tableCount: 1,
-  hallNumber: "A01",
-  startTime: "18:30",
-  lastInterval: 180,
+// 响应式数据
+const orderDetail = ref(null);
+const loading = ref(false);
+const error = ref(null);
+
+// 计算属性
+const servedDishes = computed(() => {
+  if (!orderDetail.value?.items) return [];
+  return orderDetail.value.items.filter((item) => item.status === "served");
 });
 
-const servedDishes = ref([
-  {
-    id: 1,
-    name: "糖醋里脊",
-    quantity: 1,
-    status: "served",
-  },
-]);
+const pendingDishes = computed(() => {
+  if (!orderDetail.value?.items) return [];
+  return orderDetail.value.items.filter((item) => item.status !== "served");
+});
 
-const pendingDishes = ref([
-  {
-    id: 2,
-    name: "宫保鸡丁",
-    quantity: 2,
-    status: "pending",
-    priority: 3,
-  },
-  {
-    id: 3,
-    name: "麻婆豆腐",
-    quantity: 1,
-    status: "prep",
-    priority: 2,
-  },
-  {
-    id: 4,
-    name: "水煮鱼",
-    quantity: 1,
-    status: "ready",
-    priority: 1,
-  },
-]);
+const orderStats = computed(() => {
+  if (!orderDetail.value?.items) return null;
+  return OrderService.calculateOrderStats(orderDetail.value.items);
+});
 
 // 方法
+const loadOrderDetail = async () => {
+  try {
+    loading.value = true;
+    error.value = null;
+
+    // 确保orderId是数字类型
+    const orderId = parseInt(props.orderId);
+    if (isNaN(orderId)) {
+      throw new Error("无效的订单ID");
+    }
+
+    const detail = await OrderService.getOrderDetail(orderId);
+    if (detail) {
+      orderDetail.value = detail;
+    } else {
+      error.value = "未找到该订单";
+    }
+  } catch (err) {
+    console.error("加载订单详情失败:", err);
+    error.value = "加载订单详情失败: " + (err.message || "未知错误");
+  } finally {
+    loading.value = false;
+  }
+};
+
 const handleDishClick = (dish) => {
   console.log("点击菜品:", dish);
-};
-
-const startDish = (dish) => {
-  dish.status = "prep";
-  console.log("起菜:", dish.name);
-};
-
-const finishDish = (dish) => {
-  dish.status = "ready";
-  console.log("完成:", dish.name);
-};
-
-const serveDish = (dish) => {
-  dish.status = "served";
-  // 移动到已出菜品列表
-  const index = pendingDishes.value.findIndex((d) => d.id === dish.id);
-  if (index > -1) {
-    const servedDish = pendingDishes.value.splice(index, 1)[0];
-    servedDishes.value.push(servedDish);
-  }
-  console.log("上菜:", dish.name);
+  // 可以在这里添加菜品操作逻辑
 };
 
 const addRemark = () => {
   console.log("添加备注");
+  // 实现添加备注功能
 };
 
 const editOrder = () => {
   console.log("编辑订单信息");
+  // 实现编辑订单功能
 };
+
+const getOrderStatusText = (status) => {
+  return OrderService.getOrderStatusText(status);
+};
+
+const getOrderItemStatusText = (status) => {
+  return OrderService.getOrderItemStatusText(status);
+};
+
+const formatDate = (dateString) => {
+  if (!dateString) return "未知";
+  return new Date(dateString).toLocaleString("zh-CN");
+};
+
+// 监听orderId变化，重新加载数据
+watch(
+  () => props.orderId,
+  (newId) => {
+    if (newId) {
+      loadOrderDetail();
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped>
 .order-container {
   height: 100%;
   background: #f8f9fa;
+  padding: 12px;
+  overflow-y: auto;
 }
 
-.order-header {
+/* 加载状态样式 */
+.loading-state {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 16px 20px;
+  justify-content: center;
+  height: 100%;
+  padding: 20px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e0e0e0;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-state p {
+  margin: 0;
+  color: #666;
+  font-size: 16px;
+}
+
+/* 错误状态样式 */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 20px;
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.error-state p {
+  margin: 0 0 20px 0;
+  color: #666;
+  font-size: 16px;
+}
+
+.retry-btn {
+  padding: 12px 24px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.retry-btn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+/* 空状态样式 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 40px;
+  text-align: center;
   background: white;
-  border-bottom: 1px solid #e0e0e0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.empty-state p {
+  margin: 0;
+  color: #666;
+  font-size: 18px;
 }
 
 .order-content {
-  padding: 12px;
+  height: 100%;
 }
 
 .section-subtitle {
@@ -197,7 +372,7 @@ const editOrder = () => {
 .order-info-section {
   background: white;
   border-radius: 12px;
-  padding: 12px;
+  padding: 16px;
   margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -235,11 +410,45 @@ const editOrder = () => {
   font-size: 16px;
 }
 
+/* 统计部分样式 */
+.stats-section {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.stat-card {
+  text-align: center;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #3b82f6;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #666;
+}
+
 .served-section,
 .pending-section {
   background: white;
   border-radius: 12px;
-  padding: 12px;
+  padding: 16px;
   margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -247,17 +456,15 @@ const editOrder = () => {
 .dish-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .dish-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px;
+  padding: 12px;
   border-radius: 8px;
   border: 1px solid #ddd;
   transition: all 0.2s;
+  cursor: pointer;
 }
 
 .dish-item:hover {
@@ -280,20 +487,56 @@ const editOrder = () => {
   background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
 }
 
+.dish-item.priority-0,
+.dish-item.priority--1 {
+  border-color: #9ca3af;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+}
+
 .dish-info {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   font-size: 18px;
   font-weight: 500;
   color: #333;
+  margin-bottom: 8px;
 }
 
 .dish-name {
-  margin-right: 8px;
+  flex: 1;
 }
 
 .dish-quantity {
   font-weight: 600;
+  color: #666;
+}
+
+.dish-remark {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.dish-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #666;
+}
+
+.dish-status {
+  background: #e5e7eb;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.dish-priority {
+  color: #3b82f6;
+  font-weight: 500;
 }
 
 .action-buttons {
@@ -313,11 +556,10 @@ const editOrder = () => {
   font-size: 16px;
   cursor: pointer;
   transition: all 0.2s;
-  display: flex 0 1 auto;
+  display: flex;
+  flex: 1;
+  justify-content: center;
   white-space: nowrap;
-  flex-grow: 1;
-  letter-spacing: 1px;
-  min-width: fit-content;
 }
 
 .secondary-btn:hover {
@@ -330,6 +572,16 @@ const editOrder = () => {
   .info-grid {
     grid-template-columns: 1fr;
     gap: 12px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dish-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 }
 </style>

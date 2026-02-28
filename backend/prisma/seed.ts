@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import 'dotenv/config';
 
 // 按照Prisma 7.4.0+官方文档的方式实例化
-const connectionString = process.env.DATABASE_URL!;
+const connectionString = process.env.DATABASE_URL;
 const adapter = new PrismaPg({ connectionString });
 
 const prisma = new PrismaClient({ adapter });
@@ -33,9 +33,9 @@ async function main() {
   console.log('📋 检查并创建工位...');
   for (const stationData of stations) {
     const existing = await prisma.station.findFirst({
-      where: { name: stationData.name }
+      where: { name: stationData.name },
     });
-    
+
     if (existing) {
       stationMap[stationData.name] = existing.id;
       console.log(`  ℹ️  工位 "${stationData.name}" 已存在`);
@@ -63,9 +63,9 @@ async function main() {
   console.log('\n🏷️  检查并创建菜品分类...');
   for (const categoryData of categories) {
     const existing = await prisma.dishCategory.findFirst({
-      where: { name: categoryData.name }
+      where: { name: categoryData.name },
     });
-    
+
     if (existing) {
       categoryMap[categoryData.name] = existing.id;
       console.log(`  ℹ️  分类 "${categoryData.name}" 已存在`);
@@ -80,39 +80,79 @@ async function main() {
 
   // 根据菜品库创建菜品数据（仅创建不存在的）
   console.log('\n🍽️  根据菜品库创建菜品...');
-  
+
   const dishLibrary = [
     // 凉菜类
-    { name: '三文鱼拼鹅肝', category: '凉菜', station: '凉菜', countable: false },
+    {
+      name: '三文鱼拼鹅肝',
+      category: '凉菜',
+      station: '凉菜',
+      countable: false,
+    },
     { name: '美味八碟', category: '凉菜', station: '凉菜', countable: false },
-    
+
     // 前菜类
     { name: '藜麦元宝虾', category: '前菜', station: '热菜', countable: false },
     { name: '盐水河虾', category: '前菜', station: '热菜', countable: false },
-    { name: '红汤油爆河虾', category: '前菜', station: '热菜', countable: false },
+    {
+      name: '红汤油爆河虾',
+      category: '前菜',
+      station: '热菜',
+      countable: false,
+    },
     { name: '椒盐基围虾', category: '前菜', station: '热菜', countable: false },
     { name: '发财银鱼羹', category: '前菜', station: '热菜', countable: false },
     { name: '海皇鲍翅羹', category: '前菜', station: '热菜', countable: false },
     { name: '牛肉羹', category: '前菜', station: '热菜', countable: false },
     { name: '扎腻头', category: '前菜', station: '热菜', countable: false },
-    
+
     // 中菜类
     { name: '藤椒双脆', category: '中菜', station: '热菜', countable: false },
     { name: '红烧肉', category: '中菜', station: '热菜', countable: false },
     { name: '板栗烧鳝筒', category: '中菜', station: '热菜', countable: false },
-    { name: '黑椒菌香牛肉粒', category: '中菜', station: '热菜', countable: false },
+    {
+      name: '黑椒菌香牛肉粒',
+      category: '中菜',
+      station: '热菜',
+      countable: false,
+    },
     { name: '香菜腰花', category: '中菜', station: '热菜', countable: false },
-    { name: '野菜山药虾仁', category: '中菜', station: '热菜', countable: false },
+    {
+      name: '野菜山药虾仁',
+      category: '中菜',
+      station: '热菜',
+      countable: false,
+    },
     { name: '佛跳墙', category: '中菜', station: '热菜', countable: false },
-    { name: '葱烧玛卡菌海参蹄筋', category: '中菜', station: '热菜', countable: false },
+    {
+      name: '葱烧玛卡菌海参蹄筋',
+      category: '中菜',
+      station: '热菜',
+      countable: false,
+    },
     { name: '红烧河鱼', category: '中菜', station: '热菜', countable: false },
     { name: '椒盐猪手', category: '中菜', station: '热菜', countable: false },
-    { name: '葱姜炒珍宝蟹', category: '中菜', station: '热菜', countable: false },
+    {
+      name: '葱姜炒珍宝蟹',
+      category: '中菜',
+      station: '热菜',
+      countable: false,
+    },
     { name: '清炒虾仁', category: '中菜', station: '热菜', countable: false },
-    { name: '茶树菇炭烧肉', category: '中菜', station: '热菜', countable: false },
+    {
+      name: '茶树菇炭烧肉',
+      category: '中菜',
+      station: '热菜',
+      countable: false,
+    },
     { name: '黑椒牛仔骨', category: '中菜', station: '热菜', countable: false },
     { name: '椒盐排骨', category: '中菜', station: '热菜', countable: true },
-    { name: '红烧鳗鱼板栗', category: '中菜', station: '热菜', countable: false },
+    {
+      name: '红烧鳗鱼板栗',
+      category: '中菜',
+      station: '热菜',
+      countable: false,
+    },
     { name: '黎山汁虾球', category: '中菜', station: '热菜', countable: false },
     { name: '托炉饼', category: '中菜', station: '点心', countable: true },
     { name: '松鼠桂鱼', category: '中菜', station: '热菜', countable: false },
@@ -120,11 +160,11 @@ async function main() {
     { name: '干捞粉丝', category: '中菜', station: '热菜', countable: false },
     { name: '铁板豆腐', category: '中菜', station: '热菜', countable: true },
     { name: '沙拉牛排', category: '中菜', station: '热菜', countable: true },
-    
+
     // 点心类
     { name: '小笼馒头', category: '点心', station: '点心', countable: true },
     { name: '手工米糕', category: '点心', station: '点心', countable: true },
-    
+
     // 蒸菜类
     { name: '红蒸湘鱼', category: '蒸菜', station: '蒸菜', countable: false },
     { name: '蒜蓉小鲍鱼', category: '蒸菜', station: '蒸菜', countable: true },
@@ -134,17 +174,27 @@ async function main() {
     { name: '红蒸长寿鱼', category: '蒸菜', station: '蒸菜', countable: false },
     { name: '蒜蓉小青龙', category: '蒸菜', station: '蒸菜', countable: false },
     { name: '清蒸牛肋骨', category: '蒸菜', station: '蒸菜', countable: false },
-    
+
     // 后菜类
     { name: '菠萝炒饭', category: '后菜', station: '热菜', countable: false },
     { name: '雪菜冬笋', category: '后菜', station: '热菜', countable: false },
     { name: '荷塘月色', category: '后菜', station: '热菜', countable: false },
-    { name: '金蒜小葱山药', category: '后菜', station: '热菜', countable: false },
-    { name: '雪菜马蹄炒鲜蘑', category: '后菜', station: '热菜', countable: false },
-    
+    {
+      name: '金蒜小葱山药',
+      category: '后菜',
+      station: '热菜',
+      countable: false,
+    },
+    {
+      name: '雪菜马蹄炒鲜蘑',
+      category: '后菜',
+      station: '热菜',
+      countable: false,
+    },
+
     // 尾菜类
     { name: '时蔬', category: '尾菜', station: '热菜', countable: false },
-    { name: '蛋皮汤', category: '尾菜', station: '热菜', countable: false }
+    { name: '蛋皮汤', category: '尾菜', station: '热菜', countable: false },
   ];
 
   let createdDishes = 0;
@@ -152,15 +202,15 @@ async function main() {
 
   for (const dishData of dishLibrary) {
     const existing = await prisma.dish.findFirst({
-      where: { name: dishData.name }
+      where: { name: dishData.name },
     });
-    
+
     if (existing) {
       console.log(`  ℹ️  菜品 "${dishData.name}" 已存在`);
       skippedDishes++;
       continue;
     }
-    
+
     try {
       await prisma.dish.create({
         data: {
@@ -168,13 +218,18 @@ async function main() {
           categoryId: categoryMap[dishData.category],
           stationId: stationMap[dishData.station],
           countable: dishData.countable,
-          isActive: true
-        }
+          isActive: true,
+        },
       });
-      console.log(`  ✅ 创建菜品 "${dishData.name}" (${dishData.category} -> ${dishData.station}) ${dishData.countable ? '[计数]' : ''}`);
+      console.log(
+        `  ✅ 创建菜品 "${dishData.name}" (${dishData.category} -> ${dishData.station}) ${dishData.countable ? '[计数]' : ''}`,
+      );
       createdDishes++;
     } catch (error) {
-      console.log(`  ❌ 创建菜品 "${dishData.name}" 失败:`, (error as Error).message);
+      console.log(
+        `  ❌ 创建菜品 "${dishData.name}" 失败:`,
+        (error as Error).message,
+      );
       skippedDishes++;
     }
   }
@@ -199,7 +254,7 @@ async function main() {
         status: 'started',
         mealTime: new Date('2024-12-01T18:00:00'),
         mealType: '晚餐',
-      }
+      },
     ];
 
     for (const orderData of orders) {
@@ -215,7 +270,7 @@ async function main() {
     stations: await prisma.station.count(),
     categories: await prisma.dishCategory.count(),
     dishes: await prisma.dish.count(),
-    orders: await prisma.order.count()
+    orders: await prisma.order.count(),
   };
 
   console.log('\n📊 最终数据统计:');

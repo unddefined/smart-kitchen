@@ -45,6 +45,11 @@ const router = createRouter({
       name: "order-input-test",
       component: OrderInputTest,
     },
+    {
+      path: "/order-test",
+      name: "OrderDataTest",
+      component: OrderDataTest,
+    },
   ],
 });
 

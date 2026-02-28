@@ -93,7 +93,7 @@ table_count     -- 桌数
 status          -- 状态(created → started → serving → urged → done → cancelled)
 created_at      -- 创建时间
 meal_time       -- 用餐时间（年月日时分）⭐ 建议使用TIMESTAMP类型
-meal_type       -- 用餐时间（午/晚/打包）
+meal_type       -- 用餐类型（午/晚/打包）
 start_time      -- 起菜时间（若为打包菜，start_time = meal_time）
 remark          -- 备注
 ```
@@ -103,7 +103,7 @@ remark          -- 备注
 id              -- 主键
 order_id        -- 订单ID
 dish_id         -- 菜品ID
-quantity        -- 数量
+quantity        -- 数量（可有一位小数）
 weight          -- 重量（如5两，1斤）
 status          -- 状态(pending → prep → ready → served → cancelled)
 priority        -- 优先级
@@ -119,7 +119,7 @@ name            -- 菜品名称
 station_id      -- 工位ID
 category_id     -- 分类ID
 shortcut_code   -- 模糊搜索代号
-countable       -- 是否计数，比如托炉饼一份需按一桌的人数计数（如是，则自动注明数量）
+countable       -- 是否计数，比如托炉饼一份需按一桌的人数计数（如是，则数量=人数/桌数）
 recipe_id       -- 对应菜谱
 is_active       -- 启用或禁用菜品
 ```
@@ -167,7 +167,7 @@ GET    /api/stations        # 获取工位列表
 
 ## 4.出餐逻辑
 
-在总览视图中，同名同优先级菜品数量 = order_items.quantity × orders.table_count + 其它订单的order_items.quantity × orders.table_count + ...
+在总览视图中，同名同状态同优先级菜品数量 = order_items.quantity × orders.table_count + 其它订单的order_items.quantity × orders.table_count + ...
 
 若order_items.dish.countable = true, 需要在details中显示（如托炉饼共30个，其中有12个2份，6个1份，需用两行文字全部显示）
 
@@ -264,9 +264,11 @@ GET    /api/stations        # 获取工位列表
 
 已出菜品使用18px瀑布流卡片展示，优先级为-1，5秒内未操作自动折叠该视图；
 
-待上菜品的其余行显示对菜品的标注，如12个·2份，微辣·1份；若有份量，需显示所有的份量；若有备注，则只需显示对应的备注；
+待上菜品的其余行显示对菜品的标注，如12个·2份，微辣·1份；若有数量或重量，需显示所有的量；若有备注，则只需显示对应的备注；
 
 举例说明，托炉饼共30个，其中有12个2份，6个1份，需用两行文字全部显示；水芹×2份，其中一份需清淡，则仅在第二行显示清淡·1份；
+
+若同时remark中有分盘要求（如12 12 14），则显示为12个·2份，14个·1份，不使用数量显示
 
 若status为待切配(pending)或待处理(prep)，对应菜品卡片加6px蓝色描边，同时居上覆盖提示待切配或待处理字样；
 

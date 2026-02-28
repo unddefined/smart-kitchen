@@ -127,7 +127,7 @@
             </div>
 
             <!-- 菜品按钮网格 -->
-            <div v-else class="flex flex-wrap gap-2">
+            <div v-else class="flex flex-wrap gap-1">
               <button
                 v-for="dish in allDishes"
                 :key="dish.id"
