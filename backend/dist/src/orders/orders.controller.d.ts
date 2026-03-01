@@ -3,170 +3,183 @@ export declare class OrdersController {
     private readonly ordersService;
     constructor(ordersService: OrdersService);
     create(createOrderDto: any): Promise<{
+        id: number;
+        createdAt: Date;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
         status: string;
-        createdAt: Date;
         mealTime: Date | null;
         mealType: string | null;
         startTime: Date | null;
         remark: string | null;
         updatedAt: Date;
-        id: number;
     }>;
     findAll(): Promise<({
         orderItems: ({
             dish: {
-                createdAt: Date;
                 id: number;
                 name: string;
-                countable: boolean;
+                createdAt: Date;
                 stationId: number;
                 categoryId: number;
                 shortcutCode: string | null;
                 recipeId: number | null;
+                countable: boolean;
                 isActive: boolean;
             };
         } & {
-            status: string;
-            createdAt: Date;
-            remark: string | null;
             id: number;
+            createdAt: Date;
+            countable: boolean;
+            status: string;
+            remark: string | null;
             orderId: number;
             dishId: number;
             quantity: number;
             weight: string | null;
             priority: number;
             servedAt: Date | null;
-            countable: boolean;
         })[];
     } & {
+        id: number;
+        createdAt: Date;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
         status: string;
-        createdAt: Date;
         mealTime: Date | null;
         mealType: string | null;
         startTime: Date | null;
         remark: string | null;
         updatedAt: Date;
-        id: number;
     })[]>;
     findOne(id: number): Promise<{
         orderItems: ({
             dish: {
-                createdAt: Date;
                 id: number;
                 name: string;
-                countable: boolean;
+                createdAt: Date;
                 stationId: number;
                 categoryId: number;
                 shortcutCode: string | null;
                 recipeId: number | null;
+                countable: boolean;
                 isActive: boolean;
             };
         } & {
-            status: string;
-            createdAt: Date;
-            remark: string | null;
             id: number;
+            createdAt: Date;
+            countable: boolean;
+            status: string;
+            remark: string | null;
             orderId: number;
             dishId: number;
             quantity: number;
             weight: string | null;
             priority: number;
             servedAt: Date | null;
-            countable: boolean;
         })[];
     } & {
+        id: number;
+        createdAt: Date;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
         status: string;
-        createdAt: Date;
         mealTime: Date | null;
         mealType: string | null;
         startTime: Date | null;
         remark: string | null;
         updatedAt: Date;
-        id: number;
     }>;
     findOrderItems(id: number): Promise<({
         dish: {
-            createdAt: Date;
             id: number;
             name: string;
-            countable: boolean;
+            createdAt: Date;
             stationId: number;
             categoryId: number;
             shortcutCode: string | null;
             recipeId: number | null;
+            countable: boolean;
             isActive: boolean;
         };
     } & {
-        status: string;
-        createdAt: Date;
-        remark: string | null;
         id: number;
+        createdAt: Date;
+        countable: boolean;
+        status: string;
+        remark: string | null;
         orderId: number;
         dishId: number;
         quantity: number;
         weight: string | null;
         priority: number;
         servedAt: Date | null;
-        countable: boolean;
     })[]>;
     addOrderItem(orderId: number, createOrderItemDto: any): Promise<{
         dish: {
-            createdAt: Date;
             id: number;
             name: string;
-            countable: boolean;
+            createdAt: Date;
             stationId: number;
             categoryId: number;
             shortcutCode: string | null;
             recipeId: number | null;
+            countable: boolean;
             isActive: boolean;
         };
     } & {
-        status: string;
-        createdAt: Date;
-        remark: string | null;
         id: number;
+        createdAt: Date;
+        countable: boolean;
+        status: string;
+        remark: string | null;
         orderId: number;
         dishId: number;
         quantity: number;
         weight: string | null;
         priority: number;
         servedAt: Date | null;
-        countable: boolean;
     }>;
     update(id: number, updateOrderDto: any): Promise<{
+        id: number;
+        createdAt: Date;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
         status: string;
-        createdAt: Date;
         mealTime: Date | null;
         mealType: string | null;
         startTime: Date | null;
         remark: string | null;
         updatedAt: Date;
+    }>;
+    cancelOrder(id: number): Promise<{
         id: number;
+        createdAt: Date;
+        hallNumber: string;
+        peopleCount: number;
+        tableCount: number;
+        status: string;
+        mealTime: Date | null;
+        mealType: string | null;
+        startTime: Date | null;
+        remark: string | null;
+        updatedAt: Date;
     }>;
     remove(id: number): Promise<{
+        id: number;
+        createdAt: Date;
         hallNumber: string;
         peopleCount: number;
         tableCount: number;
         status: string;
-        createdAt: Date;
         mealTime: Date | null;
         mealType: string | null;
         startTime: Date | null;
         remark: string | null;
         updatedAt: Date;
-        id: number;
     }>;
 }

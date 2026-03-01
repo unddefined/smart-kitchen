@@ -55,12 +55,12 @@
 ```sql
 - id: SERIAL PRIMARY KEY
 - order_number: VARCHAR(50) NOT NULL UNIQUE  -- 订单编号
-- hall_number: VARCHAR(20) NOT NULL          -- 厅号/台号
+- hall_number: VARCHAR(20) NOT NULL          -- 台号
 - people_count: INTEGER NOT NULL CHECK (people_count > 0)  -- 用餐人数
 - table_count: INTEGER DEFAULT 1 CHECK (table_count > 0)   -- 桌数
 - status: VARCHAR(20) DEFAULT 'created' CHECK (status IN ('created', 'started', 'serving', 'urged', 'done', 'cancelled'))  -- 订单状态
 - meal_time: TIMESTAMP                     -- 用餐时间（年月日时分）⭐ 推荐使用TIMESTAMP类型
-- meal_type: VARCHAR(10) CHECK (meal_type IN ('午', '晚', '打包'))  -- 用餐类型
+- meal_type: VARCHAR(10) CHECK (meal_type IN ('午', '晚'))  -- 用餐类型
 - start_time: TIMESTAMP                    -- 起菜时间（若为打包菜，start_time = meal_time）
 - total_amount: DECIMAL(10,2) DEFAULT 0.00  -- 总金额
 - remark: TEXT                             -- 备注

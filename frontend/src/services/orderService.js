@@ -214,7 +214,7 @@ export class OrderService {
     }
 
     if (!orderData.peopleCount || orderData.peopleCount <= 0) {
-      errors.push("人数必须大于0");
+      errors.push("人数必须大于等于0");
     }
 
     if (orderData.tableCount && orderData.tableCount <= 0) {
@@ -263,8 +263,8 @@ export class OrderService {
   static getOrderStatusText(status) {
     const statusMap = {
       [ORDER_STATUS.CREATED]: "已创建",
-      [ORDER_STATUS.STARTED]: "已起菜",
-      [ORDER_STATUS.SERVING]: "制作中",
+      [ORDER_STATUS.STARTED]: "待起菜",
+      [ORDER_STATUS.SERVING]: "出餐中",
       [ORDER_STATUS.DONE]: "已完成",
       [ORDER_STATUS.CANCELLED]: "已取消",
     };
@@ -274,9 +274,9 @@ export class OrderService {
   // 获取菜品状态文本
   static getOrderItemStatusText(status) {
     const statusMap = {
-      [ORDER_ITEM_STATUS.PENDING]: "待制作",
-      [ORDER_ITEM_STATUS.PREPARING]: "制作中",
-      [ORDER_ITEM_STATUS.READY]: "已备好",
+      [ORDER_ITEM_STATUS.PENDING]: "待切配",
+      [ORDER_ITEM_STATUS.PREPARING]: "待处理",
+      [ORDER_ITEM_STATUS.READY]: "准备下锅",
       [ORDER_ITEM_STATUS.SERVED]: "已上菜",
     };
     return statusMap[status] || "未知状态";
@@ -306,6 +306,25 @@ export class OrderService {
       };
     }
   }
+
+  // 取消订单
+  static async cancelOrder(orderId) {
+    try {
+      const order = await api.orders.cancel(orderId);
+      
+      return {
+        success: true,
+        message: "订单取消成功",
+        data: order,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: "订单取消失败: " + error.message,
+      };
+    }
+  }
 }
 
-export default OrderService;
+// 导出服务实例
+export default new OrderService();

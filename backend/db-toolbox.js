@@ -135,7 +135,7 @@ class DatabaseToolbox {
                     host: '8.145.34.30',
                     port: 5432,
                     database: 'smart_kitchen_prod',
-                    user: 'smart_kitchen_user',
+                    user: 'smart_kitchen',
                     password: '13814349230cX'
                 } : {}
             );

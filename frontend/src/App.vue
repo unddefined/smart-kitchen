@@ -2,10 +2,10 @@
   <div id="app" class="mobile-app">
     <div class="app-container">
       <!-- 测试导航（仅在开发环境显示） -->
-      <TestNavigation v-if="isDevelopment" />
+      <TestNavigation v-if="false" />
 
       <!-- 主要内容区域 -->
-      <main class="main-content" :class="{ 'with-test-nav': isDevelopment }">
+      <main class="main-content" :class="{ 'with-test-nav': false }">
         <router-view />
       </main>
       <!-- 模态框容器 - 用于Teleport目标 -->
@@ -142,7 +142,6 @@ const switchToModule = (module) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* padding: 8px 4px; */
   background: none;
   border: none;
   color: #666;

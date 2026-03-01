@@ -1,72 +1,83 @@
 <template>
-  <div class="order-container">
+  <div class="flex flex-col h-full bg-gray-100 p-3 overflow-y-auto">
     <!-- 加载状态 -->
-    <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
-      <p>正在加载订单详情...</p>
+    <div v-if="loading" class="flex flex-col items-center justify-center h-full p-5">
+      <div class="w-10 h-10 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin mb-4"></div>
+      <p class="text-gray-600 text-base">正在加载订单详情...</p>
     </div>
 
     <!-- 错误状态 -->
-    <div v-else-if="error" class="error-state">
-      <div class="error-icon">⚠️</div>
-      <p>{{ error }}</p>
-      <button @click="loadOrderDetail" class="retry-btn">重新加载</button>
+    <div v-else-if="error" class="flex flex-col items-center justify-center h-full p-5 text-center">
+      <div class="text-5xl mb-4">⚠️</div>
+      <p class="text-gray-600 text-base mb-5">{{ error }}</p>
+      <button
+        @click="loadOrderDetail"
+        class="px-6 py-3 bg-blue-500 text-white rounded-lg text-base cursor-pointer transition-all duration-200 hover:bg-blue-600 hover:-translate-y-0.5">
+        重新加载
+      </button>
     </div>
 
     <!-- 订单详情内容 -->
-    <div v-else-if="orderDetail" class="order-content">
+    <div v-else-if="orderDetail" class="h-full">
       <!-- 订单信息表格 -->
-      <div class="order-info-section">
-        <h3 class="section-subtitle">订单信息</h3>
-        <div class="info-grid">
+      <div class="bg-white rounded-xl p-3 mb-5 shadow-md">
+        <h3 class="text-lg font-medium text-gray-800 mb-4">订单信息</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <!-- 将人数和桌数放在同一行 -->
-          <div class="info-row">
-            <div class="info-item">
-              <span class="label">人数:</span>
-              <span class="value">{{ orderDetail.peopleCount }}</span>
+          <div class="flex gap-4 w-full">
+            <div class="flex-1 min-w-0">
+              <div class="flex justify-between">
+                <span class="text-gray-600 text-base">人数:</span>
+                <span class="text-gray-800 font-medium text-base">{{ orderDetail.peopleCount }}</span>
+              </div>
             </div>
-            <div class="info-item">
-              <span class="label">桌数:</span>
-              <span class="value">{{ orderDetail.tableCount }}</span>
+            <div class="flex-1 min-w-0">
+              <div class="flex justify-between">
+                <span class="text-gray-600 text-base">桌数:</span>
+                <span class="text-gray-800 font-medium text-base">{{ orderDetail.tableCount }}</span>
+              </div>
             </div>
           </div>
-          <div class="info-item">
-            <span class="label">台号:</span>
-            <span class="value">{{ orderDetail.hallNumber }}</span>
+          <div class="flex justify-between">
+            <span class="text-gray-600 text-base">台号:</span>
+            <span class="text-gray-800 font-medium text-base">{{ orderDetail.hallNumber }}</span>
           </div>
-          <div class="info-item">
-            <span class="label">状态:</span>
-            <span class="value">{{ getOrderStatusText(orderDetail.status) }}</span>
+          <div class="flex justify-between">
+            <span class="text-gray-600 text-base">状态:</span>
+            <span class="text-gray-800 font-medium text-base">{{ getOrderStatusText(orderDetail.status) }}</span>
           </div>
-          <div class="info-item">
-            <span class="label">创建时间:</span>
-            <span class="value">{{ formatDate(orderDetail.createdAt) }}</span>
+          <div class="flex justify-between">
+            <span class="text-gray-600 text-base">创建时间:</span>
+            <span class="text-gray-800 font-medium text-base">{{ formatDate(orderDetail.createdAt) }}</span>
           </div>
-          <div v-if="orderDetail.mealTime" class="info-item">
-            <span class="label">用餐时间:</span>
-            <span class="value">{{ orderDetail.mealTime }}</span>
+          <div v-if="orderDetail.mealTime" class="flex justify-between">
+            <span class="text-gray-600 text-base">用餐时间:</span>
+            <span class="text-gray-800 font-medium text-base">{{ formatDate(orderDetail.mealTime) }}</span>
           </div>
-          <div v-if="orderDetail.remark" class="info-item">
-            <span class="label">备注:</span>
-            <span class="value">{{ orderDetail.remark }}</span>
+          <div v-if="orderDetail.remark" class="flex justify-between">
+            <span class="text-gray-600 text-base">备注:</span>
+            <span class="text-gray-800 font-medium text-base">{{ orderDetail.remark }}</span>
           </div>
-          <div v-if="orderDetail.startTime" class="info-item">
-            <span class="label">起菜时间:</span>
-            <span class="value">{{ orderDetail.startTime }}</span>
+          <div v-if="orderDetail.startTime" class="flex justify-between">
+            <span class="text-gray-600 text-base">起菜时间:</span>
+            <span class="text-gray-800 font-medium text-base">{{ orderDetail.startTime }}</span>
           </div>
         </div>
       </div>
 
       <!-- 已出菜品 -->
-      <div class="served-section">
-        <h3 class="section-subtitle">已出菜品</h3>
-        <div class="dish-list">
-          <div v-for="dish in servedDishes" :key="dish.id" class="dish-item served">
-            <div class="dish-info">
+      <div class="bg-white rounded-xl p-3 mb-5 shadow-md">
+        <h3 class="text-lg font-medium text-gray-800 mb-2">已出菜品</h3>
+        <div class="flex flex-col gap-3">
+          <div
+            v-for="dish in servedDishes"
+            :key="dish.id"
+            class="p-3 rounded-lg border border-gray-300 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer">
+            <div class="flex justify-between font-medium text-gray-800">
               <span class="dish-name">{{ dish.dish?.name || "未知菜品" }}</span>
               <span class="dish-quantity">×{{ dish.quantity }}</span>
             </div>
-            <div v-if="dish.remark" class="dish-remark">
+            <div v-if="dish.remark" class="text-lg text-gray-600 mt-2 p-2 bg-gray-100 rounded">
               {{ dish.remark }}
             </div>
           </div>
@@ -74,17 +85,25 @@
       </div>
 
       <!-- 待上菜品 -->
-      <div class="pending-section">
-        <h3 class="section-subtitle">待上菜品</h3>
-        <div class="dish-list">
-          <div v-for="dish in pendingDishes" :key="dish.id" :class="['dish-item', `priority-${dish.priority || 0}`]" @click="handleDishClick(dish)">
-            <div class="dish-info">
+      <div class="bg-white rounded-xl p-3 shadow-md">
+        <h3 class="text-lg font-medium text-gray-800 mb-2">待上菜品</h3>
+        <div class="flex flex-col gap-3">
+          <div
+            v-for="dish in pendingDishes"
+            :key="dish.id"
+            :class="[
+              'p-3 rounded-lg border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer',
+              getDishPriorityClass(dish.priority || 0),
+            ]"
+            @click="handleDishClick(dish)">
+            <div class="flex justify-between font-medium text-gray-800">
               <span class="text-xl">
-                <span>{{ dish.dish?.name || "未知菜品" }}</span> <span class="">×{{ dish.quantity }}</span>
+                <span>{{ dish.dish?.name || "未知菜品" }}</span>
+                <span>×{{ dish.quantity }}</span>
               </span>
-              <span class="dish-status">{{ getOrderItemStatusText(dish.status) }}</span>
+              <span class="bg-gray-200 px-2 py-0.5 rounded-full text-sm">{{ getOrderItemStatusText(dish.status) }}</span>
             </div>
-            <div v-if="dish.remark" class="dish-remark">
+            <div v-if="dish.remark" class="text-lg text-gray-600 mt-2 p-2 bg-gray-100 rounded">
               {{ dish.remark }}
             </div>
             <div class="dish-meta"></div>
@@ -93,16 +112,71 @@
       </div>
 
       <!-- 操作按钮 -->
-      <div class="action-buttons">
-        <button class="secondary-btn" @click="addRemark">添加备注</button>
-        <button class="secondary-btn" @click="editOrder">编辑订单信息</button>
+      <div class="flex gap-3 mt-5 justify-between w-full">
+        <button
+          class="flex-1 py-3 px-4 border border-gray-300 rounded-lg bg-white text-gray-800 text-base cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:border-gray-400 whitespace-nowrap">
+          添加备注
+        </button>
+        <button
+          class="flex-1 py-3 px-4 border border-gray-300 rounded-lg bg-white text-gray-800 text-base cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:border-gray-400 whitespace-nowrap">
+          编辑订单信息
+        </button>
+        <button
+          @click="showCancelConfirm"
+          :disabled="isCancelButtonDisabled"
+          :class="[
+            'flex-1 py-3 px-4 border rounded-lg text-base cursor-pointer transition-all duration-200 whitespace-nowrap',
+            isCancelButtonDisabled 
+              ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-400'
+          ]">
+          取消订单
+        </button>
       </div>
+      <div class="h-16"></div>
     </div>
 
     <!-- 空状态 -->
-    <div v-else class="empty-state">
-      <div class="empty-icon">📋</div>
-      <p>未找到订单详情</p>
+    <div v-else class="flex flex-col items-center justify-center h-full p-10 text-center bg-white rounded-xl shadow-md">
+      <div class="text-5xl mb-4">📋</div>
+      <p class="text-gray-600 text-lg">未找到订单详情</p>
+    </div>
+
+    <!-- 取消订单确认弹窗 -->
+    <div v-if="showCancelModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+        <div class="text-center mb-6">
+          <div class="text-5xl mb-4">⚠️</div>
+          <h3 class="text-xl font-bold text-gray-800 mb-2">确认取消订单</h3>
+          <p class="text-gray-600">
+            确定要取消订单 #{{ orderDetail?.id }} 吗？此操作不可撤销。
+          </p>
+          <div class="mt-4 p-3 bg-red-50 rounded-lg">
+            <p class="text-red-700 text-sm">
+              注意：已开始制作的菜品可能无法退款
+            </p>
+          </div>
+        </div>
+        
+        <div class="flex gap-3">
+          <button
+            @click="hideCancelConfirm"
+            class="flex-1 py-3 px-4 border border-gray-300 rounded-lg bg-white text-gray-800 text-base cursor-pointer transition-all duration-200 hover:bg-gray-50">
+            取消
+          </button>
+          <button
+            @click="confirmCancelOrder"
+            :disabled="isCancelling"
+            :class="[
+              'flex-1 py-3 px-4 rounded-lg text-white text-base cursor-pointer transition-all duration-200',
+              isCancelling 
+                ? 'bg-red-300 cursor-not-allowed' 
+                : 'bg-red-500 hover:bg-red-600 hover:-translate-y-0.5'
+            ]">
+            {{ isCancelling ? '取消中...' : '确认取消' }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -120,12 +194,33 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(["back"]);
+const emit = defineEmits(["back", "orderCancelled"]);
 
 // 响应式数据
 const orderDetail = ref(null);
 const loading = ref(false);
 const error = ref(null);
+const showCancelModal = ref(false);
+const isCancelling = ref(false);
+
+// 计算属性 - 判断取消按钮是否禁用
+const isCancelButtonDisabled = computed(() => {
+  if (!orderDetail.value) return true;
+  // 已完成或已取消的订单不能再次取消
+  return orderDetail.value.status === 'done' || orderDetail.value.status === 'cancelled';
+});
+
+// 获取菜品优先级对应的CSS类
+const getDishPriorityClass = (priority) => {
+  const classes = {
+    3: "border-red-500 bg-gradient-to-br from-red-50 to-red-100", // 红色 - 催菜
+    2: "border-yellow-500 bg-gradient-to-br from-yellow-50 to-yellow-100", // 黄色 - 等一下
+    1: "border-green-500 bg-gradient-to-br from-green-50 to-green-100", // 绿色 - 不急
+    0: "border-gray-400 bg-gradient-to-br from-gray-50 to-gray-100", // 灰色 - 未起
+    "-1": "border-gray-500 bg-gradient-to-br from-gray-50 to-gray-100 opacity-80", // 灰色 - 已出
+  };
+  return classes[priority] || "border-gray-300 bg-white";
+};
 
 // 计算属性
 const servedDishes = computed(() => {
@@ -174,16 +269,6 @@ const handleDishClick = (dish) => {
   // 可以在这里添加菜品操作逻辑
 };
 
-const addRemark = () => {
-  console.log("添加备注");
-  // 实现添加备注功能
-};
-
-const editOrder = () => {
-  console.log("编辑订单信息");
-  // 实现编辑订单功能
-};
-
 const getOrderStatusText = (status) => {
   return OrderService.getOrderStatusText(status);
 };
@@ -197,6 +282,55 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleString("zh-CN");
 };
 
+// 取消订单相关方法
+const showCancelConfirm = () => {
+  if (isCancelButtonDisabled.value) return;
+  showCancelModal.value = true;
+};
+
+const hideCancelConfirm = () => {
+  showCancelModal.value = false;
+};
+
+const confirmCancelOrder = async () => {
+  if (isCancelling.value) return;
+  
+  try {
+    isCancelling.value = true;
+    
+    // 确保orderId是数字类型
+    const orderId = parseInt(props.orderId);
+    if (isNaN(orderId)) {
+      throw new Error("无效的订单ID");
+    }
+
+    const result = await OrderService.cancelOrder(orderId);
+    
+    if (result.success) {
+      // 更新本地订单状态
+      if (orderDetail.value) {
+        orderDetail.value.status = 'cancelled';
+      }
+      
+      // 隐藏确认弹窗
+      hideCancelConfirm();
+      
+      // 通知父组件订单已取消
+      emit('orderCancelled', orderId);
+      
+      // 显示成功提示（这里可以添加全局提示组件）
+      alert('订单取消成功');
+    } else {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error('取消订单失败:', error);
+    alert('取消订单失败: ' + (error.message || '未知错误'));
+  } finally {
+    isCancelling.value = false;
+  }
+};
+
 // 监听orderId变化，重新加载数据
 watch(
   () => props.orderId,
@@ -208,308 +342,3 @@ watch(
   { immediate: true },
 );
 </script>
-
-<style scoped>
-.order-container {
-  height: 100%;
-  background: #f8f9fa;
-  padding: 12px;
-  overflow-y: auto;
-}
-
-/* 加载状态样式 */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: 20px;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #e0e0e0;
-  border-top: 4px solid #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 16px;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.loading-state p {
-  margin: 0;
-  color: #666;
-  font-size: 16px;
-}
-
-/* 错误状态样式 */
-.error-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: 20px;
-  text-align: center;
-}
-
-.error-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
-
-.error-state p {
-  margin: 0 0 20px 0;
-  color: #666;
-  font-size: 16px;
-}
-
-.retry-btn {
-  padding: 12px 24px;
-  background: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.retry-btn:hover {
-  background: #2563eb;
-  transform: translateY(-1px);
-}
-
-/* 空状态样式 */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: 40px;
-  text-align: center;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
-
-.empty-state p {
-  margin: 0;
-  color: #666;
-  font-size: 18px;
-}
-
-.order-content {
-  height: 100%;
-}
-
-.section-subtitle {
-  font-size: 18px;
-  font-weight: 500;
-  color: #333;
-  margin: 0 0 16px 0;
-}
-
-.order-info-section {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.info-row {
-  display: flex;
-  gap: 16px;
-  width: 100%;
-}
-
-.info-row .info-item {
-  flex: 1;
-  min-width: 0;
-}
-
-.info-item {
-  display: flex;
-  justify-content: space-between;
-}
-
-.label {
-  color: #666;
-  font-size: 16px;
-}
-
-.value {
-  color: #333;
-  font-weight: 500;
-  font-size: 16px;
-}
-
-/* 统计部分样式 */
-.stats-section {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
-}
-
-.stat-card {
-  text-align: center;
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 8px;
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: bold;
-  color: #3b82f6;
-  margin-bottom: 4px;
-}
-
-.stat-label {
-  font-size: 14px;
-  color: #666;
-}
-
-.served-section,
-.pending-section {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.dish-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.dish-item {
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  transition: all 0.2s;
-  cursor: pointer;
-}
-
-.dish-item:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.dish-item.priority-3 {
-  border-color: #ef4444;
-  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-}
-
-.dish-item.priority-2 {
-  border-color: #f59e0b;
-  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-}
-
-.dish-item.priority-1 {
-  border-color: #10b981;
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-}
-
-.dish-item.priority-0,
-.dish-item.priority--1 {
-  border-color: #9ca3af;
-  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-}
-
-.dish-info {
-  display: flex;
-  justify-content: space-between;
-  font-weight: 500;
-  color: #333;
-}
-
-.dish-remark {
-  font-size: 18px;
-  color: #666;
-  margin-top: 8px;
-  padding: 4px 8px;
-  background: #f1f5f9;
-  border-radius: 4px;
-}
-
-.dish-status {
-  background: #e5e7eb;
-  padding: 2px 8px;
-  border-radius: 12px;
-}
-
-.dish-priority {
-  color: #3b82f6;
-  font-weight: 500;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 12px;
-  margin-top: 20px;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.secondary-btn {
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: white;
-  color: #333;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  flex: 1;
-  justify-content: center;
-  white-space: nowrap;
-}
-
-.secondary-btn:hover {
-  background: #f5f5f5;
-  border-color: #999;
-}
-
-/* 响应式设计 */
-@media (max-width: 480px) {
-  .info-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-}
-</style>
