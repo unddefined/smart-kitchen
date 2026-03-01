@@ -334,15 +334,15 @@ jobs:
             CURRENT_BUILD_TIME=$(docker compose exec -T frontend stat -c %Y /usr/share/nginx/html/index.html 2>/dev/null || echo "0")
             echo "当前构建时间戳: $CURRENT_BUILD_TIME"
             
-            # 检查是否需要更新（如果超过24小时）
+            # 检查是否需要更新（如果超过8小时）
             CURRENT_TIME=$(date +%s)
             TIME_DIFF=$((CURRENT_TIME - CURRENT_BUILD_TIME))
             HOURS_DIFF=$((TIME_DIFF / 3600))
             
             echo "距离上次构建: $HOURS_DIFF 小时"
             
-            if [ $HOURS_DIFF -gt 24 ]; then
-              echo "⚠️ 前端构建超过24小时，触发自动更新..."
+            if [ $HOURS_DIFF -gt 8 ]; then
+              echo "⚠️ 前端构建超过8小时，触发自动更新..."
               # 重新构建前端
               docker compose build frontend
               docker compose up -d frontend
