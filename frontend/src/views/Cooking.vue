@@ -1,49 +1,57 @@
 <template>
-  <div class="cooking-container">
+  <div class="flex flex-col h-full bg-gray-100 relative">
     <!-- 加载状态覆盖层 -->
-    <div v-if="loading" class="loading-overlay">
-      <div class="loading-spinner">
-        <div class="spinner"></div>
-        <p>正在加载订单数据...</p>
+    <div v-if="loading" class="absolute inset-0 bg-white bg-opacity-90 flex justify-center items-center z-50">
+      <div class="text-center p-5 bg-white rounded-xl shadow-lg">
+        <div class="w-10 h-10 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+        <p class="text-gray-600 text-base">正在加载订单数据...</p>
       </div>
     </div>
 
     <!-- 错误状态覆盖层 -->
-    <div v-if="error && !loading" class="error-overlay">
-      <div class="error-content">
-        <div class="error-icon">⚠️</div>
-        <p>{{ error }}</p>
-        <button @click="loadOrders" class="retry-btn">重新加载</button>
+    <div v-if="error && !loading" class="absolute inset-0 bg-white bg-opacity-95 flex justify-center items-center z-50">
+      <div class="text-center p-7 bg-white rounded-xl shadow-lg max-w-xs">
+        <div class="text-5xl mb-4">⚠️</div>
+        <p class="text-gray-600 text-base leading-relaxed mb-5">{{ error }}</p>
+        <button
+          @click="loadOrders"
+          class="px-6 py-3 bg-blue-500 text-white rounded-lg text-base cursor-pointer transition-all duration-200 hover:bg-blue-600 hover:-translate-y-0.5">
+          重新加载
+        </button>
       </div>
     </div>
 
     <!-- Header区域 -->
-    <header class="cooking-header safe-area-top">
-      <div class="header-content">
+    <header class="bg-white border-b p-3 shadow-sm safe-area-top">
+      <div class="flex justify-between items-center mb-4">
         <!-- 左侧：员工头像 + 工位 + 用户名 -->
-        <div class="user-info">
-          <div class="avatar-placeholder" @click="toggleSidebar">👤</div>
-          <div class="station-name" style="margin-left: 2px">打荷</div>
-          <span style="font-size: large; font-weight: bold">·</span>
-          <div class="station-name">张师傅</div>
+        <div class="flex items-center gap-2 cursor-pointer" @click="toggleSidebar">
+          <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-xl transition-all duration-200 hover:scale-110">
+            👤
+          </div>
+          <div class="font-light text-gray-800 text-base ml-1">打荷</div>
+          <span class="text-lg font-bold">·</span>
+          <div class="font-normal text-gray-800 text-base">张师傅</div>
         </div>
 
         <!-- 右侧：日期选择 + 午/晚餐切换 -->
-        <div class="date-section">
-          <span class="date-display">{{ currentDate }}</span>
+        <div class="text-right flex">
+          <span class="text-gray-600 text-lg block mr-3">{{ currentDate }}</span>
           <span>
             <button
-              :class="{ active: mealType === 'lunch' }"
-              @click="mealType = 'lunch'"
-              class="meal-btn"
-            >
+              :class="[
+                'px-1 py-0.5 border border-gray-300 text-base cursor-pointer transition-all duration-200',
+                mealType === 'lunch' ? 'bg-blue-500 text-white border-blue-500' : '',
+              ]"
+              @click="mealType = 'lunch'">
               午
             </button>
             <button
-              :class="{ active: mealType === 'dinner' }"
-              @click="mealType = 'dinner'"
-              class="meal-btn"
-            >
+              :class="[
+                'px-1 py-0.5 border border-gray-300 text-base cursor-pointer transition-all duration-200',
+                mealType === 'dinner' ? 'bg-blue-500 text-white border-blue-500' : '',
+              ]"
+              @click="mealType = 'dinner'">
               晚
             </button>
           </span>
@@ -51,108 +59,114 @@
       </div>
 
       <!-- 功能按钮区域：起菜、催菜、加菜、暂缓、退菜、录入订单 -->
-      <div class="function-buttons">
-        <button class="func-btn secondary" @click="handleStartDish">
+      <div class="flex w-full justify-between text-black gap-1">
+        <button
+          class="py-1.5 px-3 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
+          @click="handleStartDish">
           起菜
         </button>
-        <button class="func-btn secondary" @click="handleUrgentDish">
+        <button
+          class="py-1.5 px-3 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
+          @click="handleUrgentDish">
           催菜
         </button>
-        <button class="func-btn secondary" @click="handleAddDish">加菜</button>
-        <button class="func-btn secondary" @click="handleDelayDish">
-          暂缓
+        <button
+          class="py-1.5 px-3 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
+          @click="handleAddDish">
+          加菜
         </button>
-        <button class="func-btn secondary" @click="handleReturnDish">
+        <button
+          class="py-1.5 px-3 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
+          @click="handlePauseDish">
+          暂停
+        </button>
+        <button
+          class="py-1.5 px-3 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
+          @click="handleReturnDish">
           退菜
         </button>
-        <button class="func-btn secondary" @click="showOrderModal = true">
+        <button
+          class="py-1.5 px-3 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.6] md:flex-grow-[1.6] sm:flex-grow-[1.2]"
+          @click="showOrderModal = true">
           录入订单
         </button>
       </div>
     </header>
 
     <!-- Body区域 -->
-    <main class="cooking-body">
+    <main class="flex flex-1 overflow-hidden">
       <!-- 左侧菜单组件：总览置顶 + 订单选择区选项卡 -->
-      <aside class="sidebar">
+      <aside class="w-20 bg-gray-300 overflow-y-auto">
         <!-- 总览选项卡 -->
         <button
-          :class="{ active: activeTab === 'overview' }"
-          @click="activeTab = 'overview'"
-          class="tab-button overview-tab"
-        >
+          :class="[
+            'w-full p-2 border-none cursor-pointer text-lg text-black font-semibold transition-all duration-200 text-left sticky top-0 z-10',
+            activeTab === 'overview' ? 'bg-gray-100' : '',
+          ]"
+          @click="activeTab = 'overview'">
           总览
         </button>
 
         <!-- 订单选项卡区域 -->
-        <div class="order-tabs">
+        <div class="flex flex-col flex-wrap">
           <button
             v-for="order in orders"
             :key="order.id"
-            :class="{
-              active: activeTab === `order-${order.id}`,
-              urgent: order.hasUrgentItems,
-              pending: order.isPending,
-            }"
-            @click="activeTab = `order-${order.id}`"
-            class="order-tab"
-          >
+            :class="[
+              'w-full p-2 border-none cursor-pointer text-lg transition-all duration-200 text-left ',
+              activeTab === `order-${order.id}` ? 'bg-gray-100 text-black' : '',
+              order.hasUrgentItems ? 'text-red-500 font-bold' : '',
+              order.isPending ? 'text-gray-400' : '',
+            ]"
+            @click="activeTab = `order-${order.id}`">
             {{ order.hallNumber }}
           </button>
         </div>
       </aside>
 
       <!-- 右侧内容区域 -->
-      <div class="content-area">
+      <div class="flex-1 overflow-y-auto bg-gray-100">
         <!-- 总览视图 -->
         <OverviewView
           v-if="activeTab === 'overview'"
           :pending-dishes="mockPendingDishes"
           :served-dishes="mockServedDishes"
-          @dish-action="handleDishAction"
-        />
+          @dish-action="handleDishAction" />
 
         <!-- 订单详情视图 -->
-        <OrderView
-          v-else-if="activeTab.startsWith('order-')"
-          :order-id="activeOrderId"
-          @back="activeTab = 'overview'"
-        />
+        <OrderView v-else-if="activeTab.startsWith('order-')" :order-id="activeOrderId" @back="activeTab = 'overview'" />
       </div>
     </main>
 
     <!-- 订单录入弹窗 -->
-    <OrderInputModal
-      v-model:visible="showOrderModal"
-      @submit="handleOrderSubmit"
-    />
+    <OrderInputModal v-model:visible="showOrderModal" @submit="handleOrderSubmit" />
 
     <!-- 侧边栏（员工信息详情） -->
-    <div v-if="showSidebar" class="sidebar-overlay" @click="toggleSidebar">
-      <div class="user-sidebar" @click.stop>
-        <div class="sidebar-header">
-          <h3>员工信息</h3>
-          <button class="close-btn" @click="toggleSidebar">×</button>
+    <div v-if="showSidebar" class="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-start" @click="toggleSidebar">
+      <div class="w-75 h-full bg-white shadow-lg" @click.stop>
+        <div class="flex justify-between items-center p-5 border-b border-gray-200">
+          <h3 class="text-gray-800 m-0">员工信息</h3>
+          <button class="bg-none border-none text-2xl cursor-pointer text-gray-400" @click="toggleSidebar">×</button>
         </div>
-        <div class="sidebar-content">
-          <div class="user-detail">
-            <div class="avatar-large">👤</div>
+        <div class="p-5">
+          <div class="flex gap-4 mb-6">
+            <div class="w-15 h-15 rounded-full bg-gray-300 flex items-center justify-center text-2xl">👤</div>
             <div class="user-basic-info">
-              <p><strong>姓名：</strong>张师傅</p>
-              <p><strong>工位：</strong>打荷</p>
-              <p><strong>手机号：</strong>138****8888</p>
+              <p class="my-2 text-gray-600"><strong>姓名：</strong>张师傅</p>
+              <p class="my-2 text-gray-600"><strong>工位：</strong>打荷</p>
+              <p class="my-2 text-gray-600"><strong>手机号：</strong>138****8888</p>
             </div>
           </div>
           <div class="work-stats">
-            <h4>今日工作统计</h4>
-            <div class="stats-grid">
-              <div class="stat-item">
-                <span class="stat-label">处理订单</span>
-                <span class="stat-value">24</span>
+            <h4 class="text-gray-800 my-0 mb-4">今日工作统计</h4>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="text-center p-3 bg-gray-100 rounded-lg">
+                <span class="block text-xs text-gray-600 mb-1">处理订单</span>
+                <span class="block text-xl font-bold text-blue-500">24</span>
               </div>
-              <div class="stat-item">
-                <span class="stat-label">完成菜品</span>
-                <span class="stat-value">86</span>
+              <div class="text-center p-3 bg-gray-100 rounded-lg">
+                <span class="block text-xs text-gray-600 mb-1">完成菜品</span>
+                <span class="block text-xl font-bold text-blue-500">86</span>
               </div>
             </div>
           </div>
@@ -263,15 +277,15 @@ const activeOrderId = computed(() => {
 
 // 订单相关计算属性
 const pendingCount = computed(() => {
-  return orders.value.filter(order => order.status === 'created').length;
+  return orders.value.filter((order) => order.status === "created").length;
 });
 
 const servingCount = computed(() => {
-  return orders.value.filter(order => order.status === 'serving').length;
+  return orders.value.filter((order) => order.status === "serving").length;
 });
 
 const doneCount = computed(() => {
-  return orders.value.filter(order => order.status === 'done').length;
+  return orders.value.filter((order) => order.status === "done").length;
 });
 
 // 方法
@@ -284,7 +298,7 @@ const loadOrders = async () => {
   try {
     loading.value = true;
     error.value = null;
-    
+
     const orderList = await OrderService.getOrders();
     orders.value = orderList.map((order) => ({
       id: order.id,
@@ -294,7 +308,7 @@ const loadOrders = async () => {
       status: order.status,
       createdAt: order.createdAt,
       hasUrgentItems: checkHasUrgentItems(order),
-      isPending: order.status === 'created'
+      isPending: order.status === "created",
     }));
   } catch (err) {
     console.error("加载订单失败:", err);
@@ -336,9 +350,9 @@ const handleAddDish = () => {
   // 实现加菜逻辑
 };
 
-const handleDelayDish = () => {
-  console.log("暂缓功能");
-  // 实现暂缓逻辑
+const handlePauseDish = () => {
+  console.log("暂停功能");
+  // 实现暂停逻辑
 };
 
 const handleReturnDish = () => {
@@ -369,674 +383,6 @@ const handleOrderSubmit = async (orderData) => {
 // 过滤订单（按状态）
 const filterOrders = (status) => {
   if (!status) return orders.value;
-  return orders.value.filter(order => order.status === status);
+  return orders.value.filter((order) => order.status === status);
 };
 </script>
-
-<style scoped>
-.cooking-container {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background-color: #f5f5f5;
-  position: relative;
-}
-
-/* 加载状态样式 */
-.loading-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.9);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 3000;
-}
-
-.loading-spinner {
-  text-align: center;
-  padding: 20px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #e0e0e0;
-  border-top: 4px solid #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 16px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.loading-spinner p {
-  margin: 0;
-  color: #666;
-  font-size: 16px;
-}
-
-/* 错误状态样式 */
-.error-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.95);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 3000;
-}
-
-.error-content {
-  text-align: center;
-  padding: 30px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  max-width: 300px;
-}
-
-.error-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
-
-.error-content p {
-  margin: 0 0 20px 0;
-  color: #666;
-  font-size: 16px;
-  line-height: 1.5;
-}
-
-.retry-btn {
-  padding: 12px 24px;
-  background: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.retry-btn:hover {
-  background: #2563eb;
-  transform: translateY(-1px);
-}
-
-/* Header区域样式 */
-.cooking-header {
-  background: white;
-  border-bottom: 1px solid #e0e0e0;
-  padding: 16px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-}
-
-.avatar-placeholder {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #e0e0e0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  transition: all 0.2s;
-}
-
-.avatar-placeholder:hover {
-  transform: scale(1.1);
-}
-
-.station-name {
-  font-weight: 300;
-  color: #333;
-  font-size: 16px;
-}
-
-.date-section {
-  text-align: right;
-}
-
-.date-display {
-  font-size: 18px;
-  color: #666;
-  margin-bottom: 8px;
-  margin-right: 18px;
-}
-
-.meal-toggle {
-  /* display: flex; */
-  gap: 8px;
-}
-
-.meal-btn {
-  padding: 4px;
-  border: 1px solid #ddd;
-  background: white;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.meal-btn.active {
-  background: #3b82f6;
-  color: white;
-  border-color: #3b82f6;
-}
-
-.function-buttons {
-  display: flex;
-  width: 100%;
-  justify-content: space-between; /* 使用space-between实现铺满 */
-  color: #000;
-  gap: 2px;
-}
-
-.func-btn {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
-  color: #000;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: center;
-  flex: 0 1 auto; /* 基础设置 */
-  white-space: nowrap;
-  min-width: fit-content;
-}
-
-/* 根据文字长度设置不同的flex-grow值 */
-.func-btn:nth-child(1) {
-  flex-grow: 1.2;
-} /* 起菜 - 短文字，增长系数稍大 */
-.func-btn:nth-child(2) {
-  flex-grow: 1.2;
-} /* 催菜 - 短文字，增长系数稍大 */
-.func-btn:nth-child(3) {
-  flex-grow: 1.2;
-} /* 加菜 - 短文字，增长系数稍大 */
-.func-btn:nth-child(4) {
-  flex-grow: 1.2;
-} /* 暂缓 - 短文字，增长系数稍大 */
-.func-btn:nth-child(5) {
-  flex-grow: 1.2;
-} /* 退菜 - 短文字，增长系数稍大 */
-.func-btn:nth-child(6) {
-  flex-grow: 1.6;
-} /* 录入订单 - 长文字，增长系数更大 */
-
-/* 第一个按钮左边距为0 */
-.func-btn:first-child {
-  margin-left: 0;
-}
-
-/* 最后一个按钮右边距为0 */
-.func-btn:last-child {
-  margin-right: 0;
-}
-
-/* 按钮颜色样式 */
-.func-btn.primary {
-  background: #60a5fa;
-  color: white;
-}
-.func-btn.warning {
-  background: #fbbf24;
-  color: white;
-}
-.func-btn.success {
-  background: #34d399;
-  color: white;
-}
-.func-btn.info {
-  background: #a78bfa;
-  color: white;
-}
-.func-btn.danger {
-  background: #f87171;
-  color: white;
-}
-.func-btn.secondary {
-  background: #d5d5d5;
-  color: rgb(0, 0, 0);
-}
-
-/* 移动端优化：保持一行六个按钮 */
-@media (max-width: 768px) {
-  .func-btn {
-    padding: 8px 10px;
-    font-size: 14px;
-    margin: 0 3px;
-  }
-
-  /* 移动端调整flex-grow值 */
-  .func-btn:nth-child(1) {
-    flex-grow: 1.1;
-  }
-  .func-btn:nth-child(2) {
-    flex-grow: 1.1;
-  }
-  .func-btn:nth-child(3) {
-    flex-grow: 1.1;
-  }
-  .func-btn:nth-child(4) {
-    flex-grow: 1.1;
-  }
-  .func-btn:nth-child(5) {
-    flex-grow: 1.1;
-  }
-  .func-btn:nth-child(6) {
-    flex-grow: 1.6;
-  }
-
-  .func-btn:first-child {
-    margin-left: 0;
-  }
-
-  .func-btn:last-child {
-    margin-right: 0;
-  }
-}
-
-@media (max-width: 480px) {
-  .func-btn {
-    padding: 4px;
-    font-size: 16px;
-    letter-spacing: 1px;
-    margin: 0 2px;
-  }
-
-  /* 更小屏幕进一步调整 */
-  .func-btn:nth-child(1) {
-    flex-grow: 1;
-  }
-  .func-btn:nth-child(2) {
-    flex-grow: 1;
-  }
-  .func-btn:nth-child(3) {
-    flex-grow: 1;
-  }
-  .func-btn:nth-child(4) {
-    flex-grow: 1;
-  }
-  .func-btn:nth-child(5) {
-    flex-grow: 1;
-  }
-  .func-btn:nth-child(6) {
-    flex-grow: 1.2;
-  }
-}
-
-/* Body区域样式 */
-.cooking-body {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-
-.sidebar {
-  width: 100px;
-  background: rgb(230, 230, 230);
-  overflow-y: auto;
-}
-
-.menu-tabs {
-  padding: 16px 12px;
-}
-
-.overview-tab {
-  width: 100%;
-  padding: 14px 16px;
-  border: none;
-  background: rgb(231, 230, 230);
-  cursor: pointer;
-  font-size: 18px;
-  color: #000000;
-  font-weight: 600;
-  transition: all 0.2s;
-  text-align: left;
-}
-
-.overview-tab.active {
-  background: #f8f9fa;
-}
-
-.order-tabs {
-  display: flex;
-  flex-direction: column;
-}
-
-.order-tab {
-  width: 100%;
-  padding: 12px 16px;
-  border: none;
-  background: rgb(230, 230, 230);
-  cursor: pointer;
-  font-size: 18px;
-  transition: all 0.2s;
-  text-align: left;
-}
-
-.order-tab.active {
-  background: #f8f9fa;
-  color: rgb(0, 0, 0);
-}
-
-.order-tab.urgent {
-  color: #ef4444;
-  font-weight: bold;
-}
-
-.order-tab.pending {
-  color: #9ca3af;
-}
-
-.content-area {
-  flex: 1;
-  overflow-y: auto;
-  background: #f8f9fa;
-}
-
-/* 侧边栏样式 */
-.sidebar-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 2000;
-  display: flex;
-  justify-content: flex-start;
-}
-
-.user-sidebar {
-  width: 300px;
-  height: 100%;
-  background: white;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
-}
-
-.sidebar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #eee;
-}
-
-.sidebar-header h3 {
-  margin: 0;
-  color: #333;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #999;
-}
-
-.sidebar-content {
-  padding: 20px;
-}
-
-.user-detail {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.avatar-large {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: #e0e0e0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-}
-
-.user-basic-info p {
-  margin: 8px 0;
-  color: #666;
-}
-
-.work-stats h4 {
-  margin: 0 0 16px 0;
-  color: #333;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.stat-item {
-  text-align: center;
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 8px;
-}
-
-.stat-label {
-  display: block;
-  font-size: 13px;
-  color: #666;
-  margin-bottom: 4px;
-}
-
-.stat-value {
-  display: block;
-  font-size: 20px;
-  font-weight: bold;
-  color: #3b82f6;
-}
-
-/* 安全区域适配 */
-.safe-area-top {
-  padding-top: max(16px, env(safe-area-inset-top));
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .cooking-header {
-    padding: 12px;
-  }
-
-  .header-content {
-    /* 保持水平布局，但调整元素尺寸 */
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .user-info {
-    gap: 6px;
-    min-width: 0; /* 允许收缩 */
-  }
-
-  .avatar-placeholder {
-    width: 32px;
-    height: 32px;
-    font-size: 16px;
-  }
-
-  .station-name {
-    font-size: 18px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 60px;
-  }
-
-  .username {
-    font-size: 18px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 60px;
-  }
-
-  .date-section {
-    text-align: right;
-    min-width: 0; /* 允许收缩 */
-  }
-
-  .date-display {
-    font-size: 14px;
-    margin-bottom: 4px;
-    margin-right: 8px;
-    font-weight: bold;
-  }
-
-  .meal-toggle {
-    display: flex;
-    gap: 4px;
-    justify-content: flex-end;
-  }
-
-  .meal-btn {
-    padding: 3px;
-    font-size: 16px;
-  }
-}
-
-@media (max-width: 480px) {
-  .cooking-header {
-    padding: 10px;
-  }
-
-  .header-content {
-    gap: 6px;
-  }
-
-  .user-info {
-    gap: 4px;
-  }
-
-  .avatar-placeholder {
-    width: 28px;
-    height: 28px;
-    font-size: 14px;
-  }
-
-  .station-name {
-    font-size: 16px;
-    max-width: 50px;
-  }
-
-  .username {
-    font-size: 16px;
-    max-width: 50px;
-  }
-
-  .date-display {
-    font-size: 16px;
-  }
-
-  .meal-btn {
-    padding: 1px 5px;
-    font-size: 16px;
-  }
-
-  .sidebar {
-    width: 60px;
-  }
-
-  .overview-tab,
-  .order-tab {
-    padding: 10px 8px;
-    font-size: 16px;
-  }
-}
-
-/* 超窄屏幕特殊处理 */
-@media (max-width: 360px) {
-  .header-content {
-    gap: 4px;
-    font-size: 12px;
-  }
-
-  .user-info {
-    gap: 3px;
-  }
-
-  .avatar-placeholder {
-    width: 24px;
-    height: 24px;
-    font-size: 12px;
-  }
-
-  .station-name {
-    font-size: 12px;
-    max-width: 45px;
-  }
-
-  .username {
-    font-size: 10px;
-    max-width: 45px;
-  }
-
-  .date-display {
-    font-size: 12px;
-  }
-
-  .meal-btn {
-    padding: 2px 8px;
-    font-size: 10px;
-  }
-
-  .func-btn:nth-child(1) {
-    flex-grow: 0.9;
-  }
-  .func-btn:nth-child(2) {
-    flex-grow: 0.9;
-  }
-  .func-btn:nth-child(3) {
-    flex-grow: 0.9;
-  }
-  .func-btn:nth-child(4) {
-    flex-grow: 0.9;
-  }
-  .func-btn:nth-child(5) {
-    flex-grow: 0.9;
-  }
-  .func-btn:nth-child(6) {
-    flex-grow: 1.4;
-  }
-}
-</style>

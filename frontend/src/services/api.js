@@ -51,6 +51,12 @@ export const api = {
         body: JSON.stringify({ status }),
       }),
 
+    // 取消订单
+    cancel: (id) =>
+      request(`/api/orders/${id}/cancel`, {
+        method: "PATCH",
+      }),
+
     // 删除订单
     delete: (id) =>
       request(`/api/orders/${id}`, {

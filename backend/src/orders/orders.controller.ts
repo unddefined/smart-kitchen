@@ -47,6 +47,11 @@ export class OrdersController {
     return this.ordersService.update(id, updateOrderDto);
   }
 
+  @Patch(':id/cancel')
+  cancelOrder(@Param('id', ParseIntPipe) id: number) {
+    return this.ordersService.cancelOrder(id);
+  }
+
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.ordersService.remove(id);

@@ -96,6 +96,30 @@ export class OrdersService {
     });
   }
 
+  async cancelOrder(id: number) {
+    // 首先验证订单是否存在
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+    });
+
+    if (!order) {
+      throw new Error('订单不存在');
+    }
+
+    // 检查订单状态，不能取消已完成的订单
+    if (order.status === 'done' || order.status === 'cancelled') {
+      throw new Error('无法取消已完成或已取消的订单');
+    }
+
+    return await this.prisma.order.update({
+      where: { id },
+      data: {
+        status: 'cancelled',
+        updatedAt: new Date(),
+      },
+    });
+  }
+
   async remove(id: number) {
     return await this.prisma.order.delete({ where: { id } });
   }
