@@ -24,9 +24,33 @@ export class DishesService {
     });
   }
 
+  async findByCategory(categoryId: number) {
+    return this.prisma.dish.findMany({
+      where: { categoryId },
+      include: {
+        station: true,
+        category: true,
+      },
+    });
+  }
+
+  async findByStation(stationId: number) {
+    return this.prisma.dish.findMany({
+      where: { stationId },
+      include: {
+        station: true,
+        category: true,
+      },
+    });
+  }
+
   async create(data: any) {
     return this.prisma.dish.create({
       data,
+      include: {
+        station: true,
+        category: true,
+      },
     });
   }
 
@@ -34,12 +58,31 @@ export class DishesService {
     return this.prisma.dish.update({
       where: { id },
       data,
+      include: {
+        station: true,
+        category: true,
+      },
     });
   }
 
   async remove(id: number) {
     return this.prisma.dish.delete({
       where: { id },
+    });
+  }
+
+  async searchByName(name: string) {
+    return this.prisma.dish.findMany({
+      where: {
+        name: {
+          contains: name,
+          mode: 'insensitive',
+        },
+      },
+      include: {
+        station: true,
+        category: true,
+      },
     });
   }
 }

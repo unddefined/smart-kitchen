@@ -31,7 +31,6 @@ export declare class OrdersService {
         } & {
             id: number;
             createdAt: Date;
-            countable: boolean;
             status: string;
             remark: string | null;
             orderId: number;
@@ -70,7 +69,6 @@ export declare class OrdersService {
         } & {
             id: number;
             createdAt: Date;
-            countable: boolean;
             status: string;
             remark: string | null;
             orderId: number;
@@ -108,7 +106,6 @@ export declare class OrdersService {
     } & {
         id: number;
         createdAt: Date;
-        countable: boolean;
         status: string;
         remark: string | null;
         orderId: number;
@@ -133,7 +130,6 @@ export declare class OrdersService {
     } & {
         id: number;
         createdAt: Date;
-        countable: boolean;
         status: string;
         remark: string | null;
         orderId: number;

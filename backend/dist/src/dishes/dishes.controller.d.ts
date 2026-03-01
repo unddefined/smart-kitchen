@@ -3,6 +3,19 @@ export declare class DishesController {
     private readonly dishesService;
     constructor(dishesService: DishesService);
     create(createDishDto: any): Promise<{
+        station: {
+            id: number;
+            name: string;
+            createdAt: Date;
+        };
+        category: {
+            id: number;
+            name: string;
+            description: string | null;
+            displayOrder: number;
+            createdAt: Date;
+        };
+    } & {
         id: number;
         name: string;
         createdAt: Date;
@@ -62,6 +75,19 @@ export declare class DishesController {
         isActive: boolean;
     }>;
     update(id: string, updateDishDto: any): Promise<{
+        station: {
+            id: number;
+            name: string;
+            createdAt: Date;
+        };
+        category: {
+            id: number;
+            name: string;
+            description: string | null;
+            displayOrder: number;
+            createdAt: Date;
+        };
+    } & {
         id: number;
         name: string;
         createdAt: Date;

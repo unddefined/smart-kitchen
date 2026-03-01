@@ -7,6 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  // url 配置已移除，按照 Prisma 7.4.0+ 规范通过环境变量传递
 }
 
 // 用户表
