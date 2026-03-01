@@ -12,15 +12,5 @@ export {
   STATIONS,
 } from "./api.js";
 
-// 默认导出，方便直接导入OrderService等服务
-import { OrderService } from "./orderService.js";  // 导入类
-import DishService from "./dishService.js";
-import ServingService from "./servingService.js";
-import api from "./api.js";
-
-export default {
-  OrderService,
-  DishService,
-  ServingService,
-  api,
-};
+// 注意：为了避免导入方式混淆，此处不提供默认导出
+// 推荐使用命名导入：import { OrderService } from "@/services"
