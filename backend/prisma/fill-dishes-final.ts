@@ -1,9 +1,14 @@
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
+import 'dotenv/config';
 
-const prisma = new PrismaClient();
+// 按照Prisma 7.4.0+规范配置PrismaClient
+const connectionString = process.env.DATABASE_URL!;
+const adapter = new PrismaPg({ connectionString });
+const prisma = new PrismaClient({ adapter });
 
-async function fillDishesFromMenu() {
-  console.log('🌱 开始根据菜品库填充数据库...');
+async function fillDishesFinal() {
+  console.log('🌱 开始最终菜品数据填充...');
   
   try {
     // 检查现有数据
@@ -202,7 +207,7 @@ async function fillDishesFromMenu() {
   }
 }
 
-fillDishesFromMenu()
+fillDishesFinal()
   .catch((e) => {
     console.error(e);
     process.exit(1);

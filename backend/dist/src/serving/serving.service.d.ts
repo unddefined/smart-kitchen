@@ -20,7 +20,6 @@ export declare class ServingService {
         } & {
             id: number;
             createdAt: Date;
-            countable: boolean;
             status: string;
             remark: string | null;
             orderId: number;
@@ -59,7 +58,6 @@ export declare class ServingService {
         } & {
             id: number;
             createdAt: Date;
-            countable: boolean;
             status: string;
             remark: string | null;
             orderId: number;
@@ -123,7 +121,6 @@ export declare class ServingService {
     } & {
         id: number;
         createdAt: Date;
-        countable: boolean;
         status: string;
         remark: string | null;
         orderId: number;
@@ -136,7 +133,6 @@ export declare class ServingService {
     updateOrderItemStatus(itemId: number, status: string): Promise<{
         id: number;
         createdAt: Date;
-        countable: boolean;
         status: string;
         remark: string | null;
         orderId: number;
@@ -149,7 +145,6 @@ export declare class ServingService {
     updateOrderItemPriority(itemId: number, priority: number): Promise<{
         id: number;
         createdAt: Date;
-        countable: boolean;
         status: string;
         remark: string | null;
         orderId: number;
@@ -162,7 +157,6 @@ export declare class ServingService {
     markAsServed(itemId: number): Promise<{
         id: number;
         createdAt: Date;
-        countable: boolean;
         status: string;
         remark: string | null;
         orderId: number;
@@ -200,7 +194,6 @@ export declare class ServingService {
     } & {
         id: number;
         createdAt: Date;
-        countable: boolean;
         status: string;
         remark: string | null;
         orderId: number;
@@ -238,7 +231,6 @@ export declare class ServingService {
     } & {
         id: number;
         createdAt: Date;
-        countable: boolean;
         status: string;
         remark: string | null;
         orderId: number;
