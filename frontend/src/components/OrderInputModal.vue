@@ -136,8 +136,13 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">份量</label>
+            <label class="block text-xs font-medium text-gray-700 mb-2">份量</label>
             <div class="flex items-center space-x-3">
+              <button
+                @click="resetQuantity"
+                class="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm font-medium transition-colors">
+                清零
+              </button>
               <button @click="decreaseQuantity" class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
@@ -151,11 +156,16 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                 </svg>
               </button>
+              <button
+                @click="addHalfQuantity"
+                class="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm font-medium transition-colors">
+                +0.5
+              </button>
             </div>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">重量</label>
+            <label class="block text-xs font-medium text-gray-700 mb-2">重量</label>
             <input
               v-model="currentDish.weight"
               type="text"
@@ -164,7 +174,7 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">备注</label>
+            <label class="block text-xs font-medium text-gray-700 mb-2">备注</label>
             <textarea
               v-model="currentDish.remark"
               rows="3"
@@ -368,6 +378,15 @@ const decreaseQuantity = () => {
 
 const increaseQuantity = () => {
   currentDish.value.quantity++;
+};
+
+// 新增的方法
+const addHalfQuantity = () => {
+  currentDish.value.quantity = parseFloat((currentDish.value.quantity + 0.5).toFixed(1));
+};
+
+const resetQuantity = () => {
+  currentDish.value.quantity = 0;
 };
 
 const closeDishDetailModal = () => {
