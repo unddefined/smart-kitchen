@@ -63,8 +63,6 @@ services:
   frontend:
     image: ghcr.io/unddefined/smart-kitchen-frontend:latest
     container_name: smart-kitchen-frontend-prod
-    ports:
-      - "80:80"
     restart: unless-stopped
     networks:
       - backend-network
