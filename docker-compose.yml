@@ -61,7 +61,7 @@ services:
       - backend-network
 
   frontend:
-    image: ghcr.io/unddefined/smart-kitchen-frontend:latest
+    image: ghcr.io/undundefined/smart-kitchen-frontend:latest
     container_name: smart-kitchen-frontend-prod
     ports:
       - "3000:80"
@@ -69,3 +69,10 @@ services:
     networks:
       - backend-network
     depends_on:
+      - backend
+
+volumes:
+  postgres_data_prod:
+
+networks:
+  backend-network:
