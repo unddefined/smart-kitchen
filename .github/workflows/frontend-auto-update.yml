@@ -1,0 +1,139 @@
+name: Frontend Auto Update
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'frontend/package.json'
+      - 'frontend/package-lock.json'
+      - 'frontend/Dockerfile'
+  schedule:
+    # 每6小时检查一次
+    - cron: '0 */6 * * *'
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  check-and-update-frontend:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for frontend changes
+        id: check-changes
+        run: |
+          # 检查是否有前端相关变更
+          if git diff --name-only HEAD~1 | grep -E "^frontend/" > /dev/null 2>&1; then
+            echo "frontend_changed=true" >> $GITHUB_OUTPUT
+            echo "发现前端代码变更"
+          else
+            echo "frontend_changed=false" >> $GITHUB_OUTPUT
+            echo "无前端代码变更"
+          fi
+          
+          # 获取上次部署时间
+          LAST_DEPLOY_TIME=$(git log --since="24 hours ago" --oneline -- frontend/ | wc -l)
+          echo "recent_changes=$LAST_DEPLOY_TIME" >> $GITHUB_OUTPUT
+          echo "过去24小时内前端变更次数: $LAST_DEPLOY_TIME"
+
+      - name: Build and Push Frontend Image
+        if: steps.check-changes.outputs.frontend_changed == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            set -e
+            
+            echo "🚀 开始前端自动更新部署..."
+            echo "触发原因: ${{ github.event_name }}"
+            echo "部署时间: $(date)"
+            
+            # 登录容器注册表
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            cd /root/smart-kitchen
+
+            # 1. 同步最新代码
+            echo "📥 同步最新代码..."
+            git fetch origin main
+            git reset --hard origin/main
+            git clean -fd
+
+            # 2. 重建前端镜像
+            echo "🏗️ 重新构建前端镜像..."
+            cd frontend
+            docker build -t ghcr.io/${{ github.repository_owner }}/smart-kitchen-frontend:latest .
+            
+            # 3. 推送新镜像
+            echo "📦 推送新镜像..."
+            docker push ghcr.io/${{ github.repository_owner }}/smart-kitchen-frontend:latest
+
+            # 4. 返回项目根目录
+            cd ..
+
+            # 5. 停止前端服务
+            echo "⏹️ 停止前端服务..."
+            docker compose stop frontend
+
+            # 6. 拉取新镜像
+            echo "📥 拉取新镜像..."
+            docker compose pull frontend
+
+            # 7. 启动前端服务
+            echo "▶️ 启动前端服务..."
+            docker compose up -d frontend
+
+            # 8. 等待服务启动
+            echo "⏳ 等待服务启动..."
+            sleep 10
+
+            # 9. 验证部署
+            echo "🔍 验证前端部署..."
+            if docker compose exec -T frontend stat /usr/share/nginx/html/index.html > /dev/null 2>&1; then
+              BUILD_TIME=$(docker compose exec -T frontend stat -c %Y /usr/share/nginx/html/index.html)
+              echo "✅ 前端部署成功"
+              echo "构建时间戳: $BUILD_TIME"
+            else
+              echo "❌ 前端部署验证失败"
+              docker compose logs frontend --tail 20
+              exit 1
+            fi
+
+            # 10. 健康检查
+            echo "🏥 健康检查..."
+            sleep 5
+            if curl -f http://localhost > /dev/null 2>&1; then
+              echo "✅ 前端服务健康检查通过"
+            else
+              echo "❌ 前端服务健康检查失败"
+              docker compose logs frontend --tail 20
+              exit 1
+            fi
+            
+            echo "✅ 前端自动更新部署完成！"
+
+      - name: Send Update Notification
+        if: success()
+        uses: appleboy/telegram-action@v1.0.0
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          message: |
+            🔄 Smart Kitchen 前端自动更新
+            
+            触发原因: ${{ github.event_name }}
+            时间: $(date)
+            变更检测: ${{ steps.check-changes.outputs.frontend_changed == 'true' && '✅ 检测到变更' || 'ℹ️ 定期检查' }}
+            
+            前端服务已更新到最新版本！
+            
+            访问地址: http://${{ secrets.SSH_HOST }}

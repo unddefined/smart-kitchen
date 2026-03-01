@@ -112,7 +112,7 @@
       </div>
 
       <!-- 操作按钮 -->
-      <div class="flex gap-2 mt-5 justify-between w-full">
+      <div class="flex gap-1 mt-5 justify-between w-full">
         <button
           class="flex-1 py-2 px-3 border border-gray-300 rounded-lg bg-white text-gray-800 text-base cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:border-gray-400 whitespace-nowrap">
           添加备注
