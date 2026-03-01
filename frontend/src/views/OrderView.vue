@@ -112,20 +112,20 @@
       </div>
 
       <!-- 操作按钮 -->
-      <div class="flex gap-3 mt-5 justify-between w-full">
+      <div class="flex gap-2 mt-5 justify-between w-full">
         <button
-          class="flex-1 py-3 px-4 border border-gray-300 rounded-lg bg-white text-gray-800 text-base cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:border-gray-400 whitespace-nowrap">
+          class="flex-1 py-2 px-3 border border-gray-300 rounded-lg bg-white text-gray-800 text-base cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:border-gray-400 whitespace-nowrap">
           添加备注
         </button>
         <button
-          class="flex-1 py-3 px-4 border border-gray-300 rounded-lg bg-white text-gray-800 text-base cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:border-gray-400 whitespace-nowrap">
+          class="flex-1 py-2 px-3 border border-gray-300 rounded-lg bg-white text-gray-800 text-base cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:border-gray-400 whitespace-nowrap">
           编辑订单信息
         </button>
         <button
           @click="showCancelConfirm"
           :disabled="isCancelButtonDisabled"
           :class="[
-            'flex-1 py-3 px-4 border rounded-lg text-base cursor-pointer transition-all duration-200 whitespace-nowrap',
+            'flex-1 py-2 px-3 border rounded-lg text-base cursor-pointer transition-all duration-200 whitespace-nowrap',
             isCancelButtonDisabled 
               ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed'
               : 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-400'
@@ -183,7 +183,7 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
-import OrderService from "@/services";
+import { OrderService } from "@/services";
 
 // Props
 const props = defineProps({

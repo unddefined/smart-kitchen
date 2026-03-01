@@ -107,7 +107,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import OrderService from '@/services';
+import { OrderService } from '@/services';
 
 const orders = ref([]);
 const loading = ref(false);

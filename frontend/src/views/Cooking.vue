@@ -61,32 +61,32 @@
       <!-- 功能按钮区域：起菜、催菜、加菜、暂缓、退菜、录入订单 -->
       <div class="flex w-full justify-between text-black gap-1">
         <button
-          class="py-1.5 px-3 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
+          class="py-1.5 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
           @click="handleStartDish">
           起菜
         </button>
         <button
-          class="py-1.5 px-3 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
+          class="py-1.5 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
           @click="handleUrgentDish">
           催菜
         </button>
         <button
-          class="py-1.5 px-3 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
+          class="py-1.5 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
           @click="handleAddDish">
           加菜
         </button>
         <button
-          class="py-1.5 px-3 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
+          class="py-1.5 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
           @click="handlePauseDish">
           暂停
         </button>
         <button
-          class="py-1.5 px-3 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
+          class="py-1.5 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
           @click="handleReturnDish">
           退菜
         </button>
         <button
-          class="py-1.5 px-3 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.6] md:flex-grow-[1.6] sm:flex-grow-[1.2]"
+          class="py-1.5 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.6] md:flex-grow-[1.6] sm:flex-grow-[1.2]"
           @click="showOrderModal = true">
           录入订单
         </button>
@@ -181,7 +181,7 @@ import { ref, computed, onMounted } from "vue";
 import OverviewView from "./OverviewView.vue";
 import OrderView from "./OrderView.vue";
 import OrderInputModal from "../components/OrderInputModal.vue";
-import OrderService from "@/services";
+import { OrderService } from "@/services";
 
 // 响应式数据
 const mealType = ref("lunch");

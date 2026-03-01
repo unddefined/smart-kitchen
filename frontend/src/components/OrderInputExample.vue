@@ -186,7 +186,7 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import OrderService from '@/services'
+import { OrderService } from '@/services'
 import OrderInputModal from './OrderInputModal.vue'
 
 // 状态
