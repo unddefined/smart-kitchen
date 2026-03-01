@@ -25,7 +25,7 @@ export declare class ServingService {
             remark: string | null;
             orderId: number;
             dishId: number;
-            quantity: number;
+            quantity: import("@prisma/client-runtime-utils").Decimal;
             weight: string | null;
             priority: number;
             servedAt: Date | null;
@@ -64,7 +64,7 @@ export declare class ServingService {
             remark: string | null;
             orderId: number;
             dishId: number;
-            quantity: number;
+            quantity: import("@prisma/client-runtime-utils").Decimal;
             weight: string | null;
             priority: number;
             servedAt: Date | null;
@@ -128,7 +128,7 @@ export declare class ServingService {
         remark: string | null;
         orderId: number;
         dishId: number;
-        quantity: number;
+        quantity: import("@prisma/client-runtime-utils").Decimal;
         weight: string | null;
         priority: number;
         servedAt: Date | null;
@@ -140,7 +140,7 @@ export declare class ServingService {
         remark: string | null;
         orderId: number;
         dishId: number;
-        quantity: number;
+        quantity: import("@prisma/client-runtime-utils").Decimal;
         weight: string | null;
         priority: number;
         servedAt: Date | null;
@@ -152,7 +152,7 @@ export declare class ServingService {
         remark: string | null;
         orderId: number;
         dishId: number;
-        quantity: number;
+        quantity: import("@prisma/client-runtime-utils").Decimal;
         weight: string | null;
         priority: number;
         servedAt: Date | null;
@@ -164,7 +164,7 @@ export declare class ServingService {
         remark: string | null;
         orderId: number;
         dishId: number;
-        quantity: number;
+        quantity: import("@prisma/client-runtime-utils").Decimal;
         weight: string | null;
         priority: number;
         servedAt: Date | null;
@@ -202,7 +202,7 @@ export declare class ServingService {
         remark: string | null;
         orderId: number;
         dishId: number;
-        quantity: number;
+        quantity: import("@prisma/client-runtime-utils").Decimal;
         weight: string | null;
         priority: number;
         servedAt: Date | null;
@@ -240,7 +240,7 @@ export declare class ServingService {
         remark: string | null;
         orderId: number;
         dishId: number;
-        quantity: number;
+        quantity: import("@prisma/client-runtime-utils").Decimal;
         weight: string | null;
         priority: number;
         servedAt: Date | null;
@@ -303,6 +303,7 @@ export declare class ServingService {
         status: string;
         createdAt: Date;
         isOverdue: boolean;
+        quantity: number;
     }[]>;
     detectUrgentDishes(): Promise<{
         id: number;
@@ -312,5 +313,6 @@ export declare class ServingService {
         priority: number;
         status: string;
         createdAt: Date;
+        quantity: number;
     }[]>;
 }

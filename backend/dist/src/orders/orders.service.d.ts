@@ -36,7 +36,7 @@ export declare class OrdersService {
             remark: string | null;
             orderId: number;
             dishId: number;
-            quantity: number;
+            quantity: import("@prisma/client-runtime-utils").Decimal;
             weight: string | null;
             priority: number;
             servedAt: Date | null;
@@ -75,7 +75,7 @@ export declare class OrdersService {
             remark: string | null;
             orderId: number;
             dishId: number;
-            quantity: number;
+            quantity: import("@prisma/client-runtime-utils").Decimal;
             weight: string | null;
             priority: number;
             servedAt: Date | null;
@@ -113,7 +113,7 @@ export declare class OrdersService {
         remark: string | null;
         orderId: number;
         dishId: number;
-        quantity: number;
+        quantity: import("@prisma/client-runtime-utils").Decimal;
         weight: string | null;
         priority: number;
         servedAt: Date | null;
@@ -138,7 +138,7 @@ export declare class OrdersService {
         remark: string | null;
         orderId: number;
         dishId: number;
-        quantity: number;
+        quantity: import("@prisma/client-runtime-utils").Decimal;
         weight: string | null;
         priority: number;
         servedAt: Date | null;
