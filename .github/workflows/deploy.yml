@@ -30,6 +30,17 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # ================================
+      # 【新增】设置 Docker Buildx (关键步骤)
+      # ================================
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          # 创建一个名为 'github-actions' 的构建器实例
+          # 它会自动使用 docker-container 驱动，支持 gha 缓存
+          driver: docker-container
+          buildkitd-flags: --debug
+
+      # ================================
       # 后端构建
       # ================================
       - name: Extract metadata for backend
