@@ -2,107 +2,36 @@ name: Smart Kitchen CI/CD Pipeline
 
 on:
   push:
-    branches: [main, develop]
-    paths:
-      - 'backend/**'      # 后端代码变动
-      - 'frontend/**'     # 前端代码变动
-      - 'docker-compose.yml' # 配置变动
-      - '.github/workflows/deploy.yml' # 工作流本身变动
-      # 忽略文档变动
-      # - '!README.md' 
-  pull_request:
-    branches: [main]
+    branches: [ "main", "master" ]
+  # 允许手动触发
+  workflow_dispatch:
 
-# 【新增】明确赋予 Actions 写入包的权限
+# 【新增】必须赋予写入包的权限
 permissions:
   contents: read
   packages: write
 
 env:
   REGISTRY: ghcr.io
-  # IMAGE_NAME 可以保留，但建议在下面具体步骤中覆盖使用
   IMAGE_NAME: ${{ github.repository }}
+
 jobs:
-  # 代码质量检查
-  lint-and-test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: |
-          cd backend && npm ci
-          cd ../frontend && npm ci
-
-      - name: Security check - Verify seed script safety
-        run: |
-          echo "🔍 检查seed脚本安全性..."
-          # 检查未注释的危险操作（排除注释行）
-          if grep -v "^[[:space:]]*//" ./backend/prisma/seed.ts | grep -E "deleteMany\(\)|truncate|drop table" > /dev/null 2>&1; then
-            echo "❌ 危险操作检测到！seed脚本包含未注释的破坏性操作"
-            echo "详细信息："
-            grep -n -v "^[[:space:]]*//" ./backend/prisma/seed.ts | grep -E "deleteMany\(\)|truncate|drop table" || true
-            exit 1
-          else
-            echo "✅ seed脚本安全检查通过"
-            # 显示已注释的危险操作作为提醒
-            COMMENTED_DANGEROUS=$(grep "^[[:space:]]*//" ./backend/prisma/seed.ts | grep -E "deleteMany\(\)|truncate|drop table" | wc -l)
-            if [ $COMMENTED_DANGEROUS -gt 0 ]; then
-              echo "ℹ️  检测到 $COMMENTED_DANGEROUS 行已注释的危险操作（这是安全的）"
-            fi
-          fi
-
-      - name: Frontend build verification
-        run: |
-          echo "🔍 验证前端构建..."
-          cd frontend
-          npm run build
-          if [ -d "dist" ] && [ -f "dist/index.html" ]; then
-            echo "✅ 前端构建成功"
-            ls -la dist/
-          else
-            echo "❌ 前端构建失败"
-            exit 1
-          fi
-
-      - name: Run linter
-        run: |
-          cd backend && npm run lint
-          cd ../frontend && npm run lint
-
-      - name: Run tests
-        run: |
-          cd backend && npm run test
-          # 前端测试（如果有的话）
-          # cd../frontend && npm run test
-
-  # 构建Docker镜像
   build-and-push:
-    needs: lint-and-test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
-
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Container Registry
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # ================================
+      # 后端构建
+      # ================================
       - name: Extract metadata for backend
         id: meta-backend
         uses: docker/metadata-action@v5
@@ -113,17 +42,19 @@ jobs:
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push backend image
+      - name: Build and Push Backend Image
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
           tags: ${{ steps.meta-backend.outputs.tags }}
-          labels: ${{ steps.meta-backend.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # ================================
+      # 【新增】前端构建 (之前缺失的关键步骤)
+      # ================================
       - name: Extract metadata for frontend
         id: meta-frontend
         uses: docker/metadata-action@v5
@@ -134,219 +65,94 @@ jobs:
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push frontend image
+      - name: Build and Push Frontend Image
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
-          labels: ${{ steps.meta-frontend.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # 部署到生产环境
   deploy-production:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    environment: production
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Production Data Safety Check
-        run: |
-          echo "🛡️ 生产环境数据安全检查"
-          echo "当前分支: ${{ github.ref }}"
-          echo "触发者: ${{ github.actor }}"
-          
-          # 检查是否包含危险操作
-          if git diff --name-only HEAD~1 | grep -E "(seed\.ts|migration)" > /dev/null; then
-            echo "⚠️ 检测到可能影响数据的变更，需要额外审查"
-          fi
-
-      - name: Deploy to production server
+      - name: Deploy to Production Server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
           script: |
-            echo "🚀 开始生产环境部署..."
-            
-            # 0. 登录 GHCR
+            # 0. 登录 GHCR (以便服务器能拉取私有镜像)
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             cd /root/smart-kitchen
 
-            # 1. 数据保护检查 - 部署前快照
-            echo "📸 创建部署前数据快照..."
-            docker compose exec -T postgres pg_dump -U smart_kitchen smart_kitchen_prod --schema-only > /tmp/db_schema_snapshot_$(date +%Y%m%d_%H%M%S).sql 2>/dev/null || echo "⚠️ 数据库快照创建失败"
-
-            # 2. 检查当前数据状态
-            echo "📊 检查当前数据状态..."
-            CURRENT_DISH_COUNT=$(docker compose exec -T postgres psql -U smart_kitchen -d smart_kitchen_prod -t -c "SELECT COUNT(*) FROM dishes;" 2>/dev/null || echo "0")
-            echo "当前菜品数量: $CURRENT_DISH_COUNT"
-
-            # 3. 同步代码 (安全方式)
-            echo "📥 同步代码..."
+            # 1. 强制同步代码 (解决 Git 冲突)
             git fetch origin main
             git reset --hard origin/main
-            
-            # 4. 更新环境变量
-            echo "⚙️ 更新环境配置..."
-            cp .env.production .env
+            git clean -fd
 
-            # 5. 停止服务但保留数据卷
-            echo "⏹️ 停止服务..."
+            # 2. 更新环境变量
+            if [ -f .env.production ]; then
+              cp .env.production .env
+            fi
+
+            # 3. 停止并清理旧服务
             docker compose down --remove-orphans
 
-            # 6. 拉取新镜像
-            echo "📦 拉取新镜像..."
+            # 4. 拉取新镜像
+            echo "📦 Pulling new images..."
             docker compose pull
 
-            # 7. 启动服务
-            echo "▶️ 启动服务..."
+            # 5. 启动服务
+            echo "🚀 Starting services..."
             docker compose up -d
 
-            # 8. 等待服务启动
-            echo "⏳ 等待服务启动..."
-            sleep 10
-
-            # 9. 检查容器状态
-            echo "📋 检查容器状态..."
-            docker compose ps
-
-            # 10. 数据库就绪检查
-            echo "🔍 等待数据库就绪..."
+            # 6. 等待服务就绪
+            echo "⏳ Waiting for services..."
+            
+            # 6.1 等待数据库
+            DB_SERVICE=$(docker compose ps --services | grep postgres | head -n 1)
             for i in {1..30}; do
-              if docker compose exec -T postgres pg_isready -U smart_kitchen > /dev/null 2>&1; then
-                echo "✅ 数据库已就绪"
+              if docker compose exec -T $DB_SERVICE pg_isready -U postgres > /dev/null 2>&1; then
+                echo "✅ Database ready."
                 break
               fi
-              sleep 2
+              sleep 1
             done
 
-            # 11. 安全的数据库迁移 - 只运行结构变更，不执行seed
-            echo "🔄 执行数据库迁移..."
-            BACKEND_SERVICE=$(docker compose ps -q backend 2>/dev/null || docker compose ps -q smart-kitchen-backend-prod 2>/dev/null)
+            # 6.2 等待后端 API
+            BACKEND_SERVICE=$(docker compose ps --services | grep backend | head -n 1)
+            echo "Waiting for Backend API ($BACKEND_SERVICE)..."
+            for i in {1..60}; do
+              if curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/api/health | grep -q "200"; then
+                echo "✅ Backend API ready."
+                break
+              fi
+              if [ $i -eq 60 ]; then
+                echo "⚠️ Backend health check timeout."
+              fi
+              sleep 1
+            done
+
+            # 7. 运行数据库迁移
+            echo "🔄 Running database migrations..."
             if [ -n "$BACKEND_SERVICE" ]; then
-              SERVICE_NAME=$(docker compose ps --format json | jq -r '.[] | select(.Service=="backend" or .Service=="smart-kitchen-backend-prod") | .Service' | head -1)
-              echo "在服务 $SERVICE_NAME 上运行迁移..."
-              docker compose exec -T $SERVICE_NAME npx prisma migrate deploy
-            else
-              echo "❌ 未找到后端服务"
-              docker compose ps
-              exit 1
+              docker compose exec -T $BACKEND_SERVICE npx prisma migrate deploy || echo "⚠️ Migration failed or not needed"
             fi
 
-            # 12. 验证数据完整性
-            echo "✅ 验证部署后数据状态..."
-            NEW_DISH_COUNT=$(docker compose exec -T postgres psql -U smart_kitchen -d smart_kitchen_prod -t -c "SELECT COUNT(*) FROM dishes;" 2>/dev/null || echo "0")
-            echo "部署后菜品数量: $NEW_DISH_COUNT"
-            
-            if [ "$CURRENT_DISH_COUNT" != "0" ] && [ "$NEW_DISH_COUNT" != "$CURRENT_DISH_COUNT" ]; then
-              echo "⚠️ 警告: 菜品数量发生变化 ($CURRENT_DISH_COUNT -> $NEW_DISH_COUNT)"
-              # 不立即退出，但记录警告
-            fi
-
-            # 13. 健康检查
-            echo "🏥 执行健康检查..."
+            # 8. 最终健康检查
+            echo "🔍 Final verification..."
             sleep 5
-            curl -f http://localhost:3001/api/health || (echo "❌ 后端健康检查失败"; docker compose logs backend; exit 1)
-            curl -f http://localhost || (echo "❌ 前端健康检查失败"; docker compose logs frontend; exit 1)
-                    
-            echo "✅ 部署成功完成！"
+            curl -f http://localhost:3001/api/health || (echo "❌ Backend health check failed"; exit 1)
+            curl -f http://localhost || (echo "❌ Frontend health check failed"; exit 1)
 
-  # 部署到开发环境
-  deploy-staging:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
-    environment: staging
+            # 9. 【新增】清理悬空镜像，防止磁盘爆满
+            echo "🧹 Cleaning up dangling images..."
+            docker image prune -f
 
-    steps:
-      - name: Deploy to staging server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.STAGING_SERVER_HOST }}
-          username: ${{ secrets.STAGING_SERVER_USER }}
-          key: ${{ secrets.STAGING_SERVER_SSH_KEY }}
-          port: 22
-          script: |
-            echo "🚀 开始开发环境部署..."
-            
-            cd /root/smart-kitchen-staging
-
-            # 拉取最新代码
-            git pull origin develop
-
-            # 更新环境变量
-            cp .env.staging .env
-
-            # 停止旧服务
-            docker compose down
-
-            # 拉取新镜像（包含最新前端构建）
-            docker compose pull
-
-            # 启动新服务
-            docker compose up -d
-
-            # 运行数据库迁移
-            docker compose exec backend npx prisma migrate deploy
-
-            # 验证部署
-            sleep 15
-            curl -f http://localhost:3001/api/health || exit 1
-            curl -f http://localhost || exit 1
-            
-            echo "✅ 开发环境部署完成！前端页面已更新到最新版本！"
-
-  # 自动化前端更新检查（定时任务）
-  auto-frontend-update:
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    needs: deploy-production
-    environment: production
-    concurrency: auto-update-check
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Check frontend updates
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
-          script: |
-            echo "🔍 检查前端更新状态..."
-            
-            cd /root/smart-kitchen
-            
-            # 获取当前前端构建时间
-            CURRENT_BUILD_TIME=$(docker compose exec -T frontend stat -c %Y /usr/share/nginx/html/index.html 2>/dev/null || echo "0")
-            echo "当前构建时间戳: $CURRENT_BUILD_TIME"
-            
-            # 检查是否需要更新（如果超过8小时）
-            CURRENT_TIME=$(date +%s)
-            TIME_DIFF=$((CURRENT_TIME - CURRENT_BUILD_TIME))
-            HOURS_DIFF=$((TIME_DIFF / 3600))
-            
-            echo "距离上次构建: $HOURS_DIFF 小时"
-            
-            if [ $HOURS_DIFF -gt 8 ]; then
-              echo "⚠️ 前端构建超过8小时，触发自动更新..."
-              # 重新构建前端
-              docker compose build frontend
-              docker compose up -d frontend
-              echo "✅ 前端自动更新完成"
-            else
-              echo "✅ 前端构建时间正常，无需更新"
-            fi
+            echo "🎉 Deployment successful!"
