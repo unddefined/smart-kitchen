@@ -85,4 +85,33 @@ export class DishesService {
       },
     });
   }
+
+  /**
+   * 根据预处理需求筛选菜品
+   */
+  async findByPrepRequirement(needPrep: boolean) {
+    return this.prisma.dish.findMany({
+      where: { needPrep },
+      include: {
+        station: true,
+        category: true,
+      },
+    });
+  }
+
+  /**
+   * 批量更新菜品的预处理需求
+   */
+  async batchUpdatePrepRequirement(dishIds: number[], needPrep: boolean) {
+    return this.prisma.dish.updateMany({
+      where: {
+        id: {
+          in: dishIds,
+        },
+      },
+      data: {
+        needPrep,
+      },
+    });
+  }
 }

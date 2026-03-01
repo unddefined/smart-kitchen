@@ -43,6 +43,7 @@
 - shortcut_code: VARCHAR(20)           -- 快捷编码
 - recipe: TEXT                         -- 关联菜谱
 - countable: BOOLEAN DEFAULT FALSE     -- 是否计数（TRUE:按用餐人数计数，FALSE:固定份量）
+- need_prep: BOOLEAN DEFAULT FALSE     -- 是否需要预处理（如裹粉、蒸、预炸），如否则跳过status.prep
 - price: DECIMAL(10,2) DEFAULT 0.00    -- 价格
 - is_active: BOOLEAN DEFAULT TRUE      -- 是否启用
 - created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
