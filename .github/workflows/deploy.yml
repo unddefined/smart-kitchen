@@ -64,7 +64,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       # ================================
-      # 【新增】前端构建 (之前缺失的关键步骤)
+      # 【重要】前端构建 - 确保nginx配置被正确打包
       # ================================
       - name: Extract metadata for frontend
         id: meta-frontend
@@ -85,6 +85,10 @@ jobs:
           tags: ${{ steps.meta-frontend.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          
+          # 【关键】添加构建参数确保配置文件被正确包含
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
 
   deploy-production:
     needs: build-and-push
@@ -115,9 +119,9 @@ jobs:
             # 3. 停止并清理旧服务
             docker compose down --remove-orphans
 
-            # 4. 拉取新镜像
-            echo "📦 Pulling new images..."
-            docker compose pull
+            # 4. 【重要】强制重新拉取最新镜像
+            echo "📦 Force pulling latest images..."
+            docker compose pull --policy always
 
             # 5. 启动服务
             echo "🚀 Starting services..."
@@ -162,7 +166,19 @@ jobs:
             curl -f http://localhost:3001/api/health || (echo "❌ Backend health check failed"; exit 1)
             curl -f http://localhost || (echo "❌ Frontend health check failed"; exit 1)
 
-            # 9. 【新增】清理悬空镜像，防止磁盘爆满
+            # 9. 【新增】验证nginx配置是否正确加载
+            echo "📋 Checking nginx configuration..."
+            FRONTEND_CONTAINER=$(docker compose ps --services | grep frontend | head -n 1)
+            if [ -n "$FRONTEND_CONTAINER" ]; then
+              docker compose exec -T $FRONTEND_CONTAINER nginx -t
+              echo "✅ Nginx configuration test passed"
+              
+              # 显示当前加载的配置
+              echo "📄 Current nginx configuration:"
+              docker compose exec -T $FRONTEND_CONTAINER cat /etc/nginx/conf.d/default.conf | head -20
+            fi
+
+            # 10. 清理悬空镜像，防止磁盘爆满
             echo "🧹 Cleaning up dangling images..."
             docker image prune -f
 
