@@ -12,13 +12,14 @@ export declare class DishesService {
         category: {
             id: number;
             name: string;
-            createdAt: Date;
             description: string | null;
             displayOrder: number;
+            createdAt: Date;
         };
     } & {
         id: number;
         name: string;
+        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -26,7 +27,6 @@ export declare class DishesService {
         countable: boolean;
         needPrep: boolean;
         isActive: boolean;
-        createdAt: Date;
     })[]>;
     findOne(id: number): Promise<{
         station: {
@@ -37,13 +37,14 @@ export declare class DishesService {
         category: {
             id: number;
             name: string;
-            createdAt: Date;
             description: string | null;
             displayOrder: number;
+            createdAt: Date;
         };
     } & {
         id: number;
         name: string;
+        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -51,7 +52,6 @@ export declare class DishesService {
         countable: boolean;
         needPrep: boolean;
         isActive: boolean;
-        createdAt: Date;
     }>;
     findByCategory(categoryId: number): Promise<({
         station: {
@@ -62,13 +62,14 @@ export declare class DishesService {
         category: {
             id: number;
             name: string;
-            createdAt: Date;
             description: string | null;
             displayOrder: number;
+            createdAt: Date;
         };
     } & {
         id: number;
         name: string;
+        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -76,7 +77,6 @@ export declare class DishesService {
         countable: boolean;
         needPrep: boolean;
         isActive: boolean;
-        createdAt: Date;
     })[]>;
     findByStation(stationId: number): Promise<({
         station: {
@@ -87,13 +87,14 @@ export declare class DishesService {
         category: {
             id: number;
             name: string;
-            createdAt: Date;
             description: string | null;
             displayOrder: number;
+            createdAt: Date;
         };
     } & {
         id: number;
         name: string;
+        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -101,7 +102,6 @@ export declare class DishesService {
         countable: boolean;
         needPrep: boolean;
         isActive: boolean;
-        createdAt: Date;
     })[]>;
     create(data: any): Promise<{
         station: {
@@ -112,13 +112,14 @@ export declare class DishesService {
         category: {
             id: number;
             name: string;
-            createdAt: Date;
             description: string | null;
             displayOrder: number;
+            createdAt: Date;
         };
     } & {
         id: number;
         name: string;
+        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -126,7 +127,6 @@ export declare class DishesService {
         countable: boolean;
         needPrep: boolean;
         isActive: boolean;
-        createdAt: Date;
     }>;
     update(id: number, data: any): Promise<{
         station: {
@@ -137,13 +137,14 @@ export declare class DishesService {
         category: {
             id: number;
             name: string;
-            createdAt: Date;
             description: string | null;
             displayOrder: number;
+            createdAt: Date;
         };
     } & {
         id: number;
         name: string;
+        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -151,11 +152,11 @@ export declare class DishesService {
         countable: boolean;
         needPrep: boolean;
         isActive: boolean;
-        createdAt: Date;
     }>;
     remove(id: number): Promise<{
         id: number;
         name: string;
+        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -163,7 +164,6 @@ export declare class DishesService {
         countable: boolean;
         needPrep: boolean;
         isActive: boolean;
-        createdAt: Date;
     }>;
     searchByName(name: string): Promise<({
         station: {
@@ -174,13 +174,14 @@ export declare class DishesService {
         category: {
             id: number;
             name: string;
-            createdAt: Date;
             description: string | null;
             displayOrder: number;
+            createdAt: Date;
         };
     } & {
         id: number;
         name: string;
+        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -188,7 +189,6 @@ export declare class DishesService {
         countable: boolean;
         needPrep: boolean;
         isActive: boolean;
-        createdAt: Date;
     })[]>;
     findByPrepRequirement(needPrep: boolean): Promise<({
         station: {
@@ -199,13 +199,14 @@ export declare class DishesService {
         category: {
             id: number;
             name: string;
-            createdAt: Date;
             description: string | null;
             displayOrder: number;
+            createdAt: Date;
         };
     } & {
         id: number;
         name: string;
+        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -213,15 +214,14 @@ export declare class DishesService {
         countable: boolean;
         needPrep: boolean;
         isActive: boolean;
-        createdAt: Date;
     })[]>;
     batchUpdatePrepRequirement(dishIds: number[], needPrep: boolean): Promise<import(".prisma/client").Prisma.BatchPayload>;
     getCategoriesInServingOrder(): Promise<{
         id: number;
         name: string;
-        createdAt: Date;
         description: string | null;
         displayOrder: number;
+        createdAt: Date;
     }[]>;
     getDishesGroupedByCategory(): Promise<any[]>;
 }

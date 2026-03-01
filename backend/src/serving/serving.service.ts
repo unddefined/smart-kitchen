@@ -203,7 +203,7 @@ export class ServingService {
       items: order.orderItems.map((item) => ({
         id: item.id,
         dishName: item.dish.name,
-        quantity: item.quantity,
+        quantity: Number(item.quantity), // 转换为number类型以便前端处理
         status: item.status,
         priority: item.priority,
         createdAt: item.createdAt,
@@ -388,6 +388,7 @@ export class ServingService {
       createdAt: item.createdAt,
       isOverdue:
         Date.now() - new Date(item.createdAt).getTime() > 30 * 60 * 1000,
+      quantity: Number(item.quantity) // 转换为number类型
     }));
   }
 
@@ -413,6 +414,7 @@ export class ServingService {
       priority: item.priority,
       status: item.status,
       createdAt: item.createdAt,
+      quantity: Number(item.quantity) // 转换为number类型
     }));
   }
 }

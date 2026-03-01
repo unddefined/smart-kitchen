@@ -69,11 +69,23 @@ export class OrdersService {
       throw new Error('订单不存在');
     }
 
+    // 处理quantity字段，支持一位小数
+    let quantity = 1.0;
+    if (createOrderItemDto.quantity !== undefined) {
+      quantity = parseFloat(createOrderItemDto.quantity.toString());
+      // 限制在合理范围内
+      if (quantity < 0.1 || quantity > 99.9) {
+        throw new Error('数量必须在0.1到99.9之间');
+      }
+      // 保留一位小数
+      quantity = Math.round(quantity * 10) / 10;
+    }
+
     return await this.prisma.orderItem.create({
       data: {
         orderId,
         dishId: createOrderItemDto.dishId,
-        quantity: createOrderItemDto.quantity || 1,
+        quantity: quantity,
         weight: createOrderItemDto.weight || null,
         status: createOrderItemDto.status || 'pending',
         priority: createOrderItemDto.priority || 0,

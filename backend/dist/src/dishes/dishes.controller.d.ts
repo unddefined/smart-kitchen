@@ -4,21 +4,21 @@ export declare class DishesController {
     constructor(dishesService: DishesService);
     findAll(): Promise<({
         station: {
-            createdAt: Date;
             id: number;
             name: string;
+            createdAt: Date;
         };
         category: {
-            createdAt: Date;
             id: number;
             name: string;
             description: string | null;
             displayOrder: number;
+            createdAt: Date;
         };
     } & {
-        createdAt: Date;
         id: number;
         name: string;
+        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -29,21 +29,21 @@ export declare class DishesController {
     })[]>;
     findOne(id: string): Promise<{
         station: {
-            createdAt: Date;
             id: number;
             name: string;
+            createdAt: Date;
         };
         category: {
-            createdAt: Date;
             id: number;
             name: string;
             description: string | null;
             displayOrder: number;
+            createdAt: Date;
         };
     } & {
-        createdAt: Date;
         id: number;
         name: string;
+        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -54,21 +54,21 @@ export declare class DishesController {
     }>;
     findByCategory(categoryId: string): Promise<({
         station: {
-            createdAt: Date;
             id: number;
             name: string;
+            createdAt: Date;
         };
         category: {
-            createdAt: Date;
             id: number;
             name: string;
             description: string | null;
             displayOrder: number;
+            createdAt: Date;
         };
     } & {
-        createdAt: Date;
         id: number;
         name: string;
+        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -79,21 +79,21 @@ export declare class DishesController {
     })[]>;
     findByStation(stationId: string): Promise<({
         station: {
-            createdAt: Date;
             id: number;
             name: string;
+            createdAt: Date;
         };
         category: {
-            createdAt: Date;
             id: number;
             name: string;
             description: string | null;
             displayOrder: number;
+            createdAt: Date;
         };
     } & {
-        createdAt: Date;
         id: number;
         name: string;
+        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -104,21 +104,21 @@ export declare class DishesController {
     })[]>;
     searchByName(name: string): Promise<({
         station: {
-            createdAt: Date;
             id: number;
             name: string;
+            createdAt: Date;
         };
         category: {
-            createdAt: Date;
             id: number;
             name: string;
             description: string | null;
             displayOrder: number;
+            createdAt: Date;
         };
     } & {
-        createdAt: Date;
         id: number;
         name: string;
+        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -129,21 +129,21 @@ export declare class DishesController {
     })[]>;
     findByPrepRequirement(needPrep: string): Promise<({
         station: {
-            createdAt: Date;
             id: number;
             name: string;
+            createdAt: Date;
         };
         category: {
-            createdAt: Date;
             id: number;
             name: string;
             description: string | null;
             displayOrder: number;
+            createdAt: Date;
         };
     } & {
-        createdAt: Date;
         id: number;
         name: string;
+        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -153,30 +153,30 @@ export declare class DishesController {
         isActive: boolean;
     })[]>;
     getCategoriesInServingOrder(): Promise<{
-        createdAt: Date;
         id: number;
         name: string;
         description: string | null;
         displayOrder: number;
+        createdAt: Date;
     }[]>;
     getDishesGroupedByCategory(): Promise<any[]>;
     create(createDishDto: any): Promise<{
         station: {
-            createdAt: Date;
             id: number;
             name: string;
+            createdAt: Date;
         };
         category: {
-            createdAt: Date;
             id: number;
             name: string;
             description: string | null;
             displayOrder: number;
+            createdAt: Date;
         };
     } & {
-        createdAt: Date;
         id: number;
         name: string;
+        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -187,21 +187,21 @@ export declare class DishesController {
     }>;
     update(id: string, updateDishDto: any): Promise<{
         station: {
-            createdAt: Date;
             id: number;
             name: string;
+            createdAt: Date;
         };
         category: {
-            createdAt: Date;
             id: number;
             name: string;
             description: string | null;
             displayOrder: number;
+            createdAt: Date;
         };
     } & {
-        createdAt: Date;
         id: number;
         name: string;
+        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -211,9 +211,9 @@ export declare class DishesController {
         isActive: boolean;
     }>;
     remove(id: string): Promise<{
-        createdAt: Date;
         id: number;
         name: string;
+        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
