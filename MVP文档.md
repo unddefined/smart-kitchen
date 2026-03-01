@@ -121,6 +121,7 @@ category_id     -- 分类ID
 shortcut_code   -- 模糊搜索代号
 countable       -- 是否计数，比如托炉饼一份需按一桌的人数计数（如是，则数量=人数/桌数）
 recipe_id       -- 对应菜谱
+need_prep       -- 是否需要打荷预处理，如否则跳过status.prep
 is_active       -- 启用或禁用菜品
 ```
 
