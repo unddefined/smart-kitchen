@@ -23,9 +23,7 @@ services:
       retries: 3
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/undundefined/smart-kitchen-backend:latest
     container_name: smart-kitchen-backend-prod
     environment:
       DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
@@ -63,12 +61,10 @@ services:
       - backend-network
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ghcr.io/undundefined/smart-kitchen-frontend:latest
     container_name: smart-kitchen-frontend-prod
     ports:
-      - "80:80"
+      - "3000:80"
     restart: unless-stopped
     networks:
       - backend-network
