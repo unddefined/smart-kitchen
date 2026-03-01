@@ -24,6 +24,9 @@ RUN npm run build
 # 5. (可选) 清理缓存
 RUN npm cache clean --force
 
+# 清理开发依赖，只保留生产依赖
+RUN npm prune --production
+
 # 生产阶段
 FROM node:25-alpine AS production
 
