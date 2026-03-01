@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class DishesService {
+  private readonly logger = new Logger(DishesService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async findAll() {
@@ -144,6 +146,7 @@ export class DishesService {
    * 获取按上菜顺序排序的所有分类
    */
   async getCategoriesInServingOrder() {
+    this.logger.debug('获取分类排序');
     return this.prisma.dishCategory.findMany({
       orderBy: {
         displayOrder: 'asc'
@@ -155,35 +158,49 @@ export class DishesService {
    * 获取按上菜顺序排序的菜品（分组）
    */
   async getDishesGroupedByCategory() {
-    const categories = await this.getCategoriesInServingOrder();
-    const result = [];
+    this.logger.debug('开始获取分组菜品数据');
+    
+    try {
+      const categories = await this.getCategoriesInServingOrder();
+      this.logger.debug(`获取到 ${categories.length} 个分类`);
+      
+      const result = [];
 
-    for (const category of categories) {
-      const dishes = await this.prisma.dish.findMany({
-        where: { 
-          categoryId: category.id,
-          isActive: true
-        },
-        include: {
-          station: true
-        },
-        orderBy: [
-          { name: 'asc' }  // 同一类别的菜品按名称排序
-        ]
-      });
-
-      if (dishes.length > 0) {
-        result.push({
-          category: {
-            id: category.id,
-            name: category.name,
-            displayOrder: category.displayOrder
+      for (const category of categories) {
+        this.logger.debug(`处理分类: ${category.name} (ID: ${category.id})`);
+        
+        const dishes = await this.prisma.dish.findMany({
+          where: { 
+            categoryId: category.id,
+            isActive: true
           },
-          dishes: dishes
+          include: {
+            station: true
+          },
+          orderBy: [
+            { name: 'asc' }  // 同一类别的菜品按名称排序
+          ]
         });
-      }
-    }
 
-    return result;
+        this.logger.debug(`分类 ${category.name} 包含 ${dishes.length} 个菜品`);
+
+        if (dishes.length > 0) {
+          result.push({
+            category: {
+              id: category.id,
+              name: category.name,
+              displayOrder: category.displayOrder
+            },
+            dishes: dishes
+          });
+        }
+      }
+
+      this.logger.debug(`返回 ${result.length} 个分组`);
+      return result;
+    } catch (error) {
+      this.logger.error('获取分组菜品失败:', error);
+      throw error;
+    }
   }
 }

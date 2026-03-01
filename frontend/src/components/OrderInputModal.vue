@@ -496,12 +496,19 @@ const loadDishes = async () => {
   dishesLoading.value = true;
   dishesError.value = null;
   try {
-    const dishes = await DishService.getAllDishes();
+    // 使用按上菜顺序排序的菜品数据
+    const dishes = await DishService.getAllDishesInServingOrder();
     allDishes.value = dishes;
   } catch (error) {
     console.error("加载菜品数据失败:", error);
     dishesError.value = "加载菜品失败，请稍后重试";
-    allDishes.value = [];
+    // 回退到字母排序
+    try {
+      const fallbackDishes = await DishService.getAllDishes();
+      allDishes.value = fallbackDishes;
+    } catch (fallbackError) {
+      allDishes.value = [];
+    }
   } finally {
     dishesLoading.value = false;
   }

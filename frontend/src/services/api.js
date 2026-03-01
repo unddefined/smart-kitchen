@@ -108,6 +108,9 @@ export const api = {
     // 获取菜品列表
     list: () => request("/api/dishes"),
 
+    // 获取按分类分组的菜品（按上菜顺序）
+    groupedByCategory: () => request("/api/dishes/grouped-by-category"),
+
     // 获取菜品详情
     get: (id) => request(`/api/dishes/${id}`),
 

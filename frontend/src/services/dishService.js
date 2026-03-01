@@ -2,7 +2,7 @@ import { api } from "./api";
 
 // 菜品管理服务
 export class DishService {
-  // 获取所有菜品
+  // 获取所有菜品（按字母顺序）
   static async getAllDishes() {
     try {
       const dishes = await api.dishes.list();
@@ -10,6 +10,43 @@ export class DishService {
     } catch (error) {
       console.error("获取菜品列表失败:", error);
       return [];
+    }
+  }
+
+  // 获取按上菜顺序分组的菜品
+  static async getDishesGroupedByCategory() {
+    try {
+      const response = await api.dishes.groupedByCategory();
+      return response;
+    } catch (error) {
+      console.error("获取分组菜品失败:", error);
+      return [];
+    }
+  }
+
+  // 获取按上菜顺序排序的所有菜品
+  static async getAllDishesInServingOrder() {
+    try {
+      // 先获取分组数据
+      const groupedData = await this.getDishesGroupedByCategory();
+      
+      // 展平为单一数组，保持分类顺序
+      const allDishes = [];
+      groupedData.forEach(group => {
+        group.dishes.forEach(dish => {
+          allDishes.push({
+            ...dish,
+            categoryName: group.category.name,
+            categoryDisplayOrder: group.category.displayOrder
+          });
+        });
+      });
+      
+      return allDishes;
+    } catch (error) {
+      console.error("获取上菜顺序菜品失败:", error);
+      // 回退到字母排序
+      return await this.getAllDishes();
     }
   }
 
@@ -43,7 +80,7 @@ export class DishService {
   static async searchDishes(query) {
     try {
       if (!query || query.trim() === "") {
-        return await this.getAllDishes();
+        return await this.getAllDishesInServingOrder();
       }
 
       // 先尝试使用API搜索
@@ -52,7 +89,7 @@ export class DishService {
         return results;
       } catch (searchError) {
         // 如果API搜索失败，使用本地搜索
-        const allDishes = await this.getAllDishes();
+        const allDishes = await this.getAllDishesInServingOrder();
         const searchTerm = query.toLowerCase().trim();
 
         return allDishes.filter(
@@ -179,7 +216,7 @@ export class DishService {
     try {
       // 这里可以实现基于订单数据的热门菜品统计
       // 暂时返回所有菜品按名称排序
-      const dishes = await this.getAllDishes();
+      const dishes = await this.getAllDishesInServingOrder();
       return dishes.slice(0, limit);
     } catch (error) {
       console.error("获取热门菜品失败:", error);
@@ -192,7 +229,7 @@ export class DishService {
     try {
       // 这里可以实现菜品使用频率统计
       // 需要结合订单数据进行分析
-      const dishes = await this.getAllDishes();
+      const dishes = await this.getAllDishesInServingOrder();
       return dishes.map((dish) => ({
         id: dish.id,
         name: dish.name,
