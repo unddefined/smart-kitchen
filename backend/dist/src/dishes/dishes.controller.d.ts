@@ -11,14 +11,13 @@ export declare class DishesController {
         category: {
             id: number;
             name: string;
+            createdAt: Date;
             description: string | null;
             displayOrder: number;
-            createdAt: Date;
         };
     } & {
         id: number;
         name: string;
-        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -26,6 +25,7 @@ export declare class DishesController {
         countable: boolean;
         needPrep: boolean;
         isActive: boolean;
+        createdAt: Date;
     })[]>;
     findOne(id: string): Promise<{
         station: {
@@ -36,14 +36,13 @@ export declare class DishesController {
         category: {
             id: number;
             name: string;
+            createdAt: Date;
             description: string | null;
             displayOrder: number;
-            createdAt: Date;
         };
     } & {
         id: number;
         name: string;
-        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -51,6 +50,7 @@ export declare class DishesController {
         countable: boolean;
         needPrep: boolean;
         isActive: boolean;
+        createdAt: Date;
     }>;
     findByCategory(categoryId: string): Promise<({
         station: {
@@ -61,14 +61,13 @@ export declare class DishesController {
         category: {
             id: number;
             name: string;
+            createdAt: Date;
             description: string | null;
             displayOrder: number;
-            createdAt: Date;
         };
     } & {
         id: number;
         name: string;
-        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -76,6 +75,7 @@ export declare class DishesController {
         countable: boolean;
         needPrep: boolean;
         isActive: boolean;
+        createdAt: Date;
     })[]>;
     findByStation(stationId: string): Promise<({
         station: {
@@ -86,14 +86,13 @@ export declare class DishesController {
         category: {
             id: number;
             name: string;
+            createdAt: Date;
             description: string | null;
             displayOrder: number;
-            createdAt: Date;
         };
     } & {
         id: number;
         name: string;
-        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -101,6 +100,7 @@ export declare class DishesController {
         countable: boolean;
         needPrep: boolean;
         isActive: boolean;
+        createdAt: Date;
     })[]>;
     searchByName(name: string): Promise<({
         station: {
@@ -111,14 +111,13 @@ export declare class DishesController {
         category: {
             id: number;
             name: string;
+            createdAt: Date;
             description: string | null;
             displayOrder: number;
-            createdAt: Date;
         };
     } & {
         id: number;
         name: string;
-        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -126,6 +125,7 @@ export declare class DishesController {
         countable: boolean;
         needPrep: boolean;
         isActive: boolean;
+        createdAt: Date;
     })[]>;
     findByPrepRequirement(needPrep: string): Promise<({
         station: {
@@ -136,14 +136,13 @@ export declare class DishesController {
         category: {
             id: number;
             name: string;
+            createdAt: Date;
             description: string | null;
             displayOrder: number;
-            createdAt: Date;
         };
     } & {
         id: number;
         name: string;
-        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -151,7 +150,16 @@ export declare class DishesController {
         countable: boolean;
         needPrep: boolean;
         isActive: boolean;
+        createdAt: Date;
     })[]>;
+    getCategoriesInServingOrder(): Promise<{
+        id: number;
+        name: string;
+        createdAt: Date;
+        description: string | null;
+        displayOrder: number;
+    }[]>;
+    getDishesGroupedByCategory(): Promise<any[]>;
     create(createDishDto: any): Promise<{
         station: {
             id: number;
@@ -161,14 +169,13 @@ export declare class DishesController {
         category: {
             id: number;
             name: string;
+            createdAt: Date;
             description: string | null;
             displayOrder: number;
-            createdAt: Date;
         };
     } & {
         id: number;
         name: string;
-        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -176,6 +183,7 @@ export declare class DishesController {
         countable: boolean;
         needPrep: boolean;
         isActive: boolean;
+        createdAt: Date;
     }>;
     update(id: string, updateDishDto: any): Promise<{
         station: {
@@ -186,14 +194,13 @@ export declare class DishesController {
         category: {
             id: number;
             name: string;
+            createdAt: Date;
             description: string | null;
             displayOrder: number;
-            createdAt: Date;
         };
     } & {
         id: number;
         name: string;
-        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -201,11 +208,11 @@ export declare class DishesController {
         countable: boolean;
         needPrep: boolean;
         isActive: boolean;
+        createdAt: Date;
     }>;
     remove(id: string): Promise<{
         id: number;
         name: string;
-        createdAt: Date;
         stationId: number;
         categoryId: number;
         shortcutCode: string | null;
@@ -213,6 +220,7 @@ export declare class DishesController {
         countable: boolean;
         needPrep: boolean;
         isActive: boolean;
+        createdAt: Date;
     }>;
     batchUpdatePrepRequirement(body: {
         dishIds: number[];
