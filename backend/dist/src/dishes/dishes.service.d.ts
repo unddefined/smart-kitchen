@@ -24,6 +24,7 @@ export declare class DishesService {
         shortcutCode: string | null;
         recipeId: number | null;
         countable: boolean;
+        needPrep: boolean;
         isActive: boolean;
     })[]>;
     findOne(id: number): Promise<{
@@ -48,6 +49,7 @@ export declare class DishesService {
         shortcutCode: string | null;
         recipeId: number | null;
         countable: boolean;
+        needPrep: boolean;
         isActive: boolean;
     }>;
     findByCategory(categoryId: number): Promise<({
@@ -72,6 +74,7 @@ export declare class DishesService {
         shortcutCode: string | null;
         recipeId: number | null;
         countable: boolean;
+        needPrep: boolean;
         isActive: boolean;
     })[]>;
     findByStation(stationId: number): Promise<({
@@ -96,6 +99,7 @@ export declare class DishesService {
         shortcutCode: string | null;
         recipeId: number | null;
         countable: boolean;
+        needPrep: boolean;
         isActive: boolean;
     })[]>;
     create(data: any): Promise<{
@@ -120,6 +124,7 @@ export declare class DishesService {
         shortcutCode: string | null;
         recipeId: number | null;
         countable: boolean;
+        needPrep: boolean;
         isActive: boolean;
     }>;
     update(id: number, data: any): Promise<{
@@ -144,6 +149,7 @@ export declare class DishesService {
         shortcutCode: string | null;
         recipeId: number | null;
         countable: boolean;
+        needPrep: boolean;
         isActive: boolean;
     }>;
     remove(id: number): Promise<{
@@ -155,6 +161,7 @@ export declare class DishesService {
         shortcutCode: string | null;
         recipeId: number | null;
         countable: boolean;
+        needPrep: boolean;
         isActive: boolean;
     }>;
     searchByName(name: string): Promise<({
@@ -179,6 +186,33 @@ export declare class DishesService {
         shortcutCode: string | null;
         recipeId: number | null;
         countable: boolean;
+        needPrep: boolean;
         isActive: boolean;
     })[]>;
+    findByPrepRequirement(needPrep: boolean): Promise<({
+        station: {
+            id: number;
+            name: string;
+            createdAt: Date;
+        };
+        category: {
+            id: number;
+            name: string;
+            description: string | null;
+            displayOrder: number;
+            createdAt: Date;
+        };
+    } & {
+        id: number;
+        name: string;
+        createdAt: Date;
+        stationId: number;
+        categoryId: number;
+        shortcutCode: string | null;
+        recipeId: number | null;
+        countable: boolean;
+        needPrep: boolean;
+        isActive: boolean;
+    })[]>;
+    batchUpdatePrepRequirement(dishIds: number[], needPrep: boolean): Promise<import(".prisma/client").Prisma.BatchPayload>;
 }

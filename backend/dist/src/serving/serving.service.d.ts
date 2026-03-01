@@ -15,6 +15,7 @@ export declare class ServingService {
                 shortcutCode: string | null;
                 recipeId: number | null;
                 countable: boolean;
+                needPrep: boolean;
                 isActive: boolean;
             };
         } & {
@@ -53,6 +54,7 @@ export declare class ServingService {
                 shortcutCode: string | null;
                 recipeId: number | null;
                 countable: boolean;
+                needPrep: boolean;
                 isActive: boolean;
             };
         } & {
@@ -103,6 +105,7 @@ export declare class ServingService {
             shortcutCode: string | null;
             recipeId: number | null;
             countable: boolean;
+            needPrep: boolean;
             isActive: boolean;
         };
         order: {
@@ -176,6 +179,7 @@ export declare class ServingService {
             shortcutCode: string | null;
             recipeId: number | null;
             countable: boolean;
+            needPrep: boolean;
             isActive: boolean;
         };
         order: {
@@ -213,6 +217,7 @@ export declare class ServingService {
             shortcutCode: string | null;
             recipeId: number | null;
             countable: boolean;
+            needPrep: boolean;
             isActive: boolean;
         };
         order: {

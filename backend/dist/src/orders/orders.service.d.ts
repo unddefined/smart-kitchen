@@ -26,6 +26,7 @@ export declare class OrdersService {
                 shortcutCode: string | null;
                 recipeId: number | null;
                 countable: boolean;
+                needPrep: boolean;
                 isActive: boolean;
             };
         } & {
@@ -64,6 +65,7 @@ export declare class OrdersService {
                 shortcutCode: string | null;
                 recipeId: number | null;
                 countable: boolean;
+                needPrep: boolean;
                 isActive: boolean;
             };
         } & {
@@ -101,6 +103,7 @@ export declare class OrdersService {
             shortcutCode: string | null;
             recipeId: number | null;
             countable: boolean;
+            needPrep: boolean;
             isActive: boolean;
         };
     } & {
@@ -125,6 +128,7 @@ export declare class OrdersService {
             shortcutCode: string | null;
             recipeId: number | null;
             countable: boolean;
+            needPrep: boolean;
             isActive: boolean;
         };
     } & {
