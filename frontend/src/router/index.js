@@ -6,7 +6,6 @@ import History from "@/views/History.vue";
 import RecipeView from "@/views/RecipeView.vue";
 import OrderInputTest from "@/views/OrderInputTest.vue";
 import OrderDataTest from "@/views/OrderDataTest.vue";
-import DishSortingTest from "@/views/DishSortingTest.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -51,11 +50,6 @@ const router = createRouter({
       path: "/order-test",
       name: "OrderDataTest",
       component: OrderDataTest,
-    },
-    {
-      path: "/dish-sorting-test",
-      name: "dish-sorting-test",
-      component: DishSortingTest,
     },
   ],
 });

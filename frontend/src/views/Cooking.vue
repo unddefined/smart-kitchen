@@ -1,3 +1,4 @@
+<!-- eslint-disable prettier/prettier -->
 <template>
   <div class="flex flex-col h-full bg-gray-100 relative">
     <!-- 加载状态覆盖层 -->
@@ -35,8 +36,30 @@
         </div>
 
         <!-- 右侧：日期选择 + 午/晚餐切换 -->
-        <div class="text-right flex">
-          <span class="text-gray-600 text-lg block mr-3">{{ currentDate }}</span>
+        <div class="text-right flex items-center">
+          <!-- 隐藏原生日期输入框，只用于数据绑定 -->
+          <input 
+            type="date" 
+            v-model="selectedDate" 
+            ref="dateInput"
+            class="hidden"
+            @change="handleDateChange"
+          />
+          <!-- 自定义日期显示 -->
+          <div 
+            class="flex items-center text-gray-600 text-xl cursor-pointer mr-3 group text-bold"
+            @click="openDatePicker"
+          >
+            <span class="mr-1">{{ currentDate }}</span>
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              class="h-5 w-5 text-gray-400 group-hover:text-blue-500 transition-colors duration-200" 
+              viewBox="0 0 20 20" 
+              fill="currentColor"
+            >
+              <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+            </svg>
+          </div>
           <span>
             <button
               :class="[
@@ -190,6 +213,8 @@ const showOrderModal = ref(false);
 const showSidebar = ref(false);
 const loading = ref(false);
 const error = ref(null);
+const selectedDate = ref(new Date().toISOString().split('T')[0]); // 初始化为今天
+const dateInput = ref(null); // 添加对日期输入框的引用
 
 // 真实订单数据
 const orders = ref([]);
@@ -259,12 +284,17 @@ const mockServedDishes = ref([
 
 // 计算属性
 const currentDate = computed(() => {
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const dateStr = `${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-
-  // 如果是当年，只显示月日；否则显示完整日期
-  return dateStr;
+  const date = new Date(selectedDate.value);
+  const currentYear = new Date().getFullYear();
+  const selectedYear = date.getFullYear();
+  
+  // 只有当选中的年份不是当前年份时才显示年份
+  if (selectedYear !== currentYear) {
+    return `${selectedYear}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  } else {
+    // 当前年份只显示月日
+    return `${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  }
 });
 
 const activeOrderId = computed(() => {
@@ -378,6 +408,29 @@ const handleOrderSubmit = async (orderData) => {
   } catch (error) {
     console.error("订单提交错误:", error);
   }
+};
+
+// 日期选择器打开方法
+const openDatePicker = () => {
+  if (dateInput.value) {
+    dateInput.value.click();
+    // 对于支持showPicker的浏览器，也可以尝试调用
+    if (dateInput.value.showPicker) {
+      try {
+        dateInput.value.showPicker();
+      } catch (e) {
+        // 如果showPicker失败，回退到click方法
+        dateInput.value.click();
+      }
+    }
+  }
+};
+
+// 日期变更处理方法
+const handleDateChange = () => {
+  console.log("日期已更改为:", selectedDate.value);
+  // 这里可以添加重新加载数据的逻辑
+  loadOrders();
 };
 
 // 过滤订单（按状态）
