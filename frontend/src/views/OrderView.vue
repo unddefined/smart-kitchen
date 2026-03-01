@@ -183,7 +183,7 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
-import { OrderService } from "@/services";
+import OrderService from "@/services";
 
 // Props
 const props = defineProps({

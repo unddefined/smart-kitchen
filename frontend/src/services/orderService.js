@@ -326,5 +326,5 @@ export class OrderService {
   }
 }
 
-// 导出服务实例
+// 同时导出实例以保持向后兼容
 export default new OrderService();

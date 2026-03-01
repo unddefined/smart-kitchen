@@ -181,7 +181,7 @@ import { ref, computed, onMounted } from "vue";
 import OverviewView from "./OverviewView.vue";
 import OrderView from "./OrderView.vue";
 import OrderInputModal from "../components/OrderInputModal.vue";
-import { OrderService } from "@/services";
+import OrderService from "@/services";
 
 // 响应式数据
 const mealType = ref("lunch");
