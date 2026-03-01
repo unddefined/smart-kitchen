@@ -11,6 +11,11 @@ export class DishesService {
         station: true,
         category: true,
       },
+      orderBy: {
+        category: {
+          displayOrder: 'asc'
+        }
+      }
     });
   }
 
@@ -31,6 +36,11 @@ export class DishesService {
         station: true,
         category: true,
       },
+      orderBy: {
+        category: {
+          displayOrder: 'asc'
+        }
+      }
     });
   }
 
@@ -41,6 +51,11 @@ export class DishesService {
         station: true,
         category: true,
       },
+      orderBy: {
+        category: {
+          displayOrder: 'asc'
+        }
+      }
     });
   }
 
@@ -83,6 +98,11 @@ export class DishesService {
         station: true,
         category: true,
       },
+      orderBy: {
+        category: {
+          displayOrder: 'asc'
+        }
+      }
     });
   }
 
@@ -96,6 +116,11 @@ export class DishesService {
         station: true,
         category: true,
       },
+      orderBy: {
+        category: {
+          displayOrder: 'asc'
+        }
+      }
     });
   }
 
@@ -113,5 +138,52 @@ export class DishesService {
         needPrep,
       },
     });
+  }
+
+  /**
+   * 获取按上菜顺序排序的所有分类
+   */
+  async getCategoriesInServingOrder() {
+    return this.prisma.dishCategory.findMany({
+      orderBy: {
+        displayOrder: 'asc'
+      }
+    });
+  }
+
+  /**
+   * 获取按上菜顺序排序的菜品（分组）
+   */
+  async getDishesGroupedByCategory() {
+    const categories = await this.getCategoriesInServingOrder();
+    const result = [];
+
+    for (const category of categories) {
+      const dishes = await this.prisma.dish.findMany({
+        where: { 
+          categoryId: category.id,
+          isActive: true
+        },
+        include: {
+          station: true
+        },
+        orderBy: [
+          { name: 'asc' }  // 同一类别的菜品按名称排序
+        ]
+      });
+
+      if (dishes.length > 0) {
+        result.push({
+          category: {
+            id: category.id,
+            name: category.name,
+            displayOrder: category.displayOrder
+          },
+          dishes: dishes
+        });
+      }
+    }
+
+    return result;
   }
 }

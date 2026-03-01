@@ -36,6 +36,16 @@ export class DishesController {
     return this.dishesService.findByPrepRequirement(needPrepBool);
   }
 
+  @Get('categories/serving-order')
+  getCategoriesInServingOrder() {
+    return this.dishesService.getCategoriesInServingOrder();
+  }
+
+  @Get('grouped-by-category')
+  getDishesGroupedByCategory() {
+    return this.dishesService.getDishesGroupedByCategory();
+  }
+
   @Post()
   create(@Body() createDishDto: any) {
     return this.dishesService.create(createDishDto);
