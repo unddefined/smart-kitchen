@@ -3,7 +3,7 @@ services:
     image: crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com/walker-11572/smart-kitchen-backend:latest
     container_name: smart-kitchen-backend-prod
     environment:
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@pgm-2ze353m6093d70a7.pg.rds.aliyuncs.com:5432/${DB_NAME}
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@pgm-2ze353m6093d70a7mo.pg.rds.aliyuncs.com:5432/${DB_NAME}
       NODE_ENV: production
       PORT: 3001
     ports:
