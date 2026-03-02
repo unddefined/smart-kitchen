@@ -208,11 +208,7 @@ jobs:
               sleep 1
             done
 
-            # 7. 运行数据库迁移
-            echo "🔄 Running database migrations..."
-            if [ -n "$BACKEND_SERVICE" ]; then
-              docker compose exec -T $BACKEND_SERVICE npx prisma migrate deploy || echo "⚠️ Migration failed or not needed"
-            fi
+            # 7. 运行数据库迁移（已放在 Dockerfile CMD 里）
 
             # 8. 最终健康检查
             echo "🔍 Final verification..."
