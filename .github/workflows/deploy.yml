@@ -50,8 +50,8 @@ jobs:
       # ================================
       # 后端构建
       # ================================
-      - name: Extract metadata for backend
-        id: meta-backend
+      - name: Extract metadata for backend (GHCR)
+        id: meta-backend-ghcr
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/smart-kitchen-backend
@@ -60,21 +60,41 @@ jobs:
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and Push Backend Image
+      - name: Extract metadata for backend (Aliyun ACR)
+        id: meta-backend-acr
+        uses: docker/metadata-action@v5
+        with:
+          images: crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com/walker-11572/smart-kitchen-backend
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and Push Backend Image to GHCR
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          tags: ${{ steps.meta-backend.outputs.tags }}
+          tags: ${{ steps.meta-backend-ghcr.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and Push Backend Image to Aliyun ACR
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-backend-acr.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       # ================================
       # 【重要】前端构建 - 确保nginx配置被正确打包
       # ================================
-      - name: Extract metadata for frontend
-        id: meta-frontend
+      - name: Extract metadata for frontend (GHCR)
+        id: meta-frontend-ghcr
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/smart-kitchen-frontend
@@ -83,13 +103,37 @@ jobs:
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and Push Frontend Image
+      - name: Extract metadata for frontend (Aliyun ACR)
+        id: meta-frontend-acr
+        uses: docker/metadata-action@v5
+        with:
+          images: crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com/walker-11572/smart-kitchen-frontend
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and Push Frontend Image to GHCR
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: ${{ steps.meta-frontend.outputs.tags }}
+          tags: ${{ steps.meta-frontend-ghcr.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          
+          # 【关键】添加构建参数确保配置文件被正确包含
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+      - name: Build and Push Frontend Image to Aliyun ACR
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-frontend-acr.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           
