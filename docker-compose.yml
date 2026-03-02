@@ -1,37 +1,13 @@
 services:
-  postgres:
-    image: crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com/walker-11572/smart-kitchen-postgres:15
-    container_name: smart-kitchen-postgres-prod
-    environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data_prod:/var/lib/postgresql/data
-      - ./init-scripts:/docker-entrypoint-initdb.d
-    restart: unless-stopped
-    networks:
-      - backend-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   backend:
     image: crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com/walker-11572/smart-kitchen-backend:latest
     container_name: smart-kitchen-backend-prod
     environment:
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@pgm-2ze353m6093d70a7.pg.rds.aliyuncs.com:5432/${DB_NAME}
       NODE_ENV: production
       PORT: 3001
     ports:
       - "3001:3001"
-    depends_on:
-      postgres:
-        condition: service_healthy
     restart: unless-stopped
     networks:
       - backend-network
@@ -52,9 +28,6 @@ services:
       - backend-network
     depends_on:
       - backend
-
-volumes:
-  postgres_data_prod:
 
 networks:
   backend-network:
