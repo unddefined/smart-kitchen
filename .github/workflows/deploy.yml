@@ -27,7 +27,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_PAT }}
 
       - name: Login to Aliyun ACR
         uses: docker/login-action@v3
@@ -154,6 +154,7 @@ jobs:
           script: |
             # 0. 登录 GHCR (以便服务器能拉取私有镜像)
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            echo "${{ secrets.ALIYUN_USERNAME }}" | docker login crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com -u ${{ secrets.ALIYUN_USERNAME }} --password-stdin
 
             cd /root/smart-kitchen
 
