@@ -19,7 +19,7 @@ async function main() {
     const dishCount = await prisma.dish.count();
     console.log(`📊 当前菜品数量: ${dishCount}`);
   } catch (error) {
-    console.error('❌ 数据库连接失败:', error.message);
+    console.error('❌ 数据库连接失败:', error);
   } finally {
     await prisma.$disconnect();
   }
