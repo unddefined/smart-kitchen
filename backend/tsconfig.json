@@ -15,7 +15,7 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
-    "module": "ESNext",
+    "module": "commonjs",
     "moduleResolution": "node",
     "target": "ES2022",
     "strict": true,
