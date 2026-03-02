@@ -21,7 +21,7 @@ services:
       retries: 3
 
   backend:
-    image: remob4cgu28upunmja-ghcr.xuanyuan.run/unddefined/smart-kitchen-backend:latest
+    image: crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com/walker_11572/smart-kitchen-backend:latest
     container_name: smart-kitchen-backend-prod
     environment:
       DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
@@ -43,7 +43,7 @@ services:
 
   # 移除独立的nginx服务，让前端容器直接暴露80端口
   frontend:
-    image: remob4cgu28upunmja-ghcr.xuanyuan.run/unddefined/smart-kitchen-frontend:latest
+    image: crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com/walker_11572/smart-kitchen-frontend:latest
     container_name: smart-kitchen-frontend-prod
     ports:
       - "80:80"  # 直接暴露前端容器的80端口
