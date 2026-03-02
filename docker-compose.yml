@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:15
+    image: crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com/walker-11572/smart-kitchen-postgres:15
     container_name: smart-kitchen-postgres-prod
     environment:
       POSTGRES_USER: ${DB_USER}
