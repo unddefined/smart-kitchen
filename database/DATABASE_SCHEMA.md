@@ -2,9 +2,9 @@
 
 ## 📊 数据库概览
 
-**数据库名称**: smart_kitchen_prod  
-**数据库用户**: smart_kitchen
-**部署方式**: Docker容器化 (PostgreSQL 15)
+**数据库名称**: smart_kitchen
+**数据库用户**: smart_admin
+**部署方式**: Docker容器化 (PostgreSQL 17)
 
 ## 🏗️ 表结构设计
 
