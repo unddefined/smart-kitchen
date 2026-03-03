@@ -64,7 +64,6 @@ temp/
 .dockerignore
 
 # Prisma
-**/migrations/
 **/dev.db
 **/dev.db-journal
 
