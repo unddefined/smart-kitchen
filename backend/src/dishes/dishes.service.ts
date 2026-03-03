@@ -15,20 +15,20 @@ export class DishesService {
       },
       orderBy: {
         category: {
-          displayOrder: 'asc'
-        }
-      }
+          displayOrder: 'asc',
+        },
+      },
     });
   }
 
   async findOne(id: number) {
     // Prisma schema 中 id 是 Int 类型，需要确保传入的是有效整数
     const idNumber = Number(id);
-    
+
     if (!idNumber || !Number.isInteger(idNumber) || idNumber <= 0) {
       throw new Error(`无效的菜品 ID: ${id}`);
     }
-    
+
     return this.prisma.dish.findUnique({
       where: { id: idNumber },
       include: {
@@ -47,9 +47,9 @@ export class DishesService {
       },
       orderBy: {
         category: {
-          displayOrder: 'asc'
-        }
-      }
+          displayOrder: 'asc',
+        },
+      },
     });
   }
 
@@ -62,9 +62,9 @@ export class DishesService {
       },
       orderBy: {
         category: {
-          displayOrder: 'asc'
-        }
-      }
+          displayOrder: 'asc',
+        },
+      },
     });
   }
 
@@ -109,9 +109,9 @@ export class DishesService {
       },
       orderBy: {
         category: {
-          displayOrder: 'asc'
-        }
-      }
+          displayOrder: 'asc',
+        },
+      },
     });
   }
 
@@ -127,9 +127,9 @@ export class DishesService {
       },
       orderBy: {
         category: {
-          displayOrder: 'asc'
-        }
-      }
+          displayOrder: 'asc',
+        },
+      },
     });
   }
 
@@ -157,8 +157,8 @@ export class DishesService {
     try {
       const categories = await this.prisma.dishCategory.findMany({
         orderBy: {
-          displayOrder: 'asc'
-        }
+          displayOrder: 'asc',
+        },
       });
       this.logger.log(`成功获取 ${categories.length} 个分类`);
       return categories;
@@ -173,29 +173,29 @@ export class DishesService {
    */
   async getDishesGroupedByCategory() {
     this.logger.log('开始获取分组菜品数据');
-    
+
     try {
       this.logger.log('获取分类排序...');
       const categories = await this.getCategoriesInServingOrder();
       this.logger.log(`获取到 ${categories.length} 个分类`);
-      
+
       const result = [];
 
       for (const category of categories) {
         this.logger.log(`处理分类：${category.name} (ID: ${category.id})`);
-        
+
         try {
           const dishes = await this.prisma.dish.findMany({
-            where: { 
+            where: {
               categoryId: category.id,
-              isActive: true
+              isActive: true,
             },
             include: {
-              station: true
+              station: true,
             },
             orderBy: [
-              { name: 'asc' }  // 同一类别的菜品按名称排序
-            ]
+              { name: 'asc' }, // 同一类别的菜品按名称排序
+            ],
           });
 
           this.logger.log(`分类 ${category.name} 包含 ${dishes.length} 个菜品`);
@@ -205,9 +205,9 @@ export class DishesService {
               category: {
                 id: category.id,
                 name: category.name,
-                displayOrder: category.displayOrder
+                displayOrder: category.displayOrder,
               },
-              dishes: dishes
+              dishes: dishes,
             });
           }
         } catch (dishError) {
@@ -222,5 +222,27 @@ export class DishesService {
       this.logger.error('获取分组菜品失败:', error);
       throw error;
     }
+  }
+
+  /**
+   * 获取所有工位
+   */
+  async findAllStations() {
+    return this.prisma.station.findMany({
+      orderBy: {
+        id: 'asc',
+      },
+    });
+  }
+
+  /**
+   * 获取所有分类
+   */
+  async findAllCategories() {
+    return this.prisma.dishCategory.findMany({
+      orderBy: {
+        displayOrder: 'asc',
+      },
+    });
   }
 }
