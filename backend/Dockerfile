@@ -5,7 +5,7 @@ WORKDIR /app
 
 # 先复制所有必要文件
 COPY prisma ./prisma
-COPY package.json ./package.json
+COPY package*.json ./
 COPY tsconfig*.json ./
 
 
