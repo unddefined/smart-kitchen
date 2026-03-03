@@ -1,6 +1,6 @@
 services:
   backend:
-    image: crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com/walker-11572/smart-kitchen-backend:latest
+    image: crpi-obg02yu23b1k3mun-vpc.cn-wulanchabu.personal.cr.aliyuncs.com/walker-11572/smart-kitchen-backend:latest
     container_name: smart-kitchen-backend-prod
     environment:
       DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@pgm-2ze353m6093d70a7mo.pg.rds.aliyuncs.com:5432/${DB_NAME}
@@ -19,7 +19,7 @@ services:
 
   # 移除独立的nginx服务，让前端容器直接暴露80端口
   frontend:
-    image: crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com/walker-11572/smart-kitchen-frontend:latest
+    image: crpi-obg02yu23b1k3mun-vpc.cn-wulanchabu.personal.cr.aliyuncs.com/walker-11572/smart-kitchen-frontend:latest
     container_name: smart-kitchen-frontend-prod
     ports:
       - "80:80"  # 直接暴露前端容器的80端口

@@ -22,8 +22,15 @@ export class DishesService {
   }
 
   async findOne(id: number) {
+    // Prisma schema 中 id 是 Int 类型，需要确保传入的是有效整数
+    const idNumber = Number(id);
+    
+    if (!idNumber || !Number.isInteger(idNumber) || idNumber <= 0) {
+      throw new Error(`无效的菜品 ID: ${id}`);
+    }
+    
     return this.prisma.dish.findUnique({
-      where: { id },
+      where: { id: idNumber },
       include: {
         station: true,
         category: true,
@@ -146,57 +153,70 @@ export class DishesService {
    * 获取按上菜顺序排序的所有分类
    */
   async getCategoriesInServingOrder() {
-    this.logger.debug('获取分类排序');
-    return this.prisma.dishCategory.findMany({
-      orderBy: {
-        displayOrder: 'asc'
-      }
-    });
+    this.logger.log('获取分类排序...');
+    try {
+      const categories = await this.prisma.dishCategory.findMany({
+        orderBy: {
+          displayOrder: 'asc'
+        }
+      });
+      this.logger.log(`成功获取 ${categories.length} 个分类`);
+      return categories;
+    } catch (error) {
+      this.logger.error('获取分类失败:', error);
+      throw error;
+    }
   }
 
   /**
    * 获取按上菜顺序排序的菜品（分组）
    */
   async getDishesGroupedByCategory() {
-    this.logger.debug('开始获取分组菜品数据');
+    this.logger.log('开始获取分组菜品数据');
     
     try {
+      this.logger.log('获取分类排序...');
       const categories = await this.getCategoriesInServingOrder();
-      this.logger.debug(`获取到 ${categories.length} 个分类`);
+      this.logger.log(`获取到 ${categories.length} 个分类`);
       
       const result = [];
 
       for (const category of categories) {
-        this.logger.debug(`处理分类: ${category.name} (ID: ${category.id})`);
+        this.logger.log(`处理分类：${category.name} (ID: ${category.id})`);
         
-        const dishes = await this.prisma.dish.findMany({
-          where: { 
-            categoryId: category.id,
-            isActive: true
-          },
-          include: {
-            station: true
-          },
-          orderBy: [
-            { name: 'asc' }  // 同一类别的菜品按名称排序
-          ]
-        });
-
-        this.logger.debug(`分类 ${category.name} 包含 ${dishes.length} 个菜品`);
-
-        if (dishes.length > 0) {
-          result.push({
-            category: {
-              id: category.id,
-              name: category.name,
-              displayOrder: category.displayOrder
+        try {
+          const dishes = await this.prisma.dish.findMany({
+            where: { 
+              categoryId: category.id,
+              isActive: true
             },
-            dishes: dishes
+            include: {
+              station: true
+            },
+            orderBy: [
+              { name: 'asc' }  // 同一类别的菜品按名称排序
+            ]
           });
+
+          this.logger.log(`分类 ${category.name} 包含 ${dishes.length} 个菜品`);
+
+          if (dishes.length > 0) {
+            result.push({
+              category: {
+                id: category.id,
+                name: category.name,
+                displayOrder: category.displayOrder
+              },
+              dishes: dishes
+            });
+          }
+        } catch (dishError) {
+          this.logger.error(`获取分类 ${category.name} 的菜品失败:`, dishError);
+          throw dishError;
         }
       }
 
-      this.logger.debug(`返回 ${result.length} 个分组`);
+      this.logger.log(`返回 ${result.length} 个分组`);
       return result;
     } catch (error) {
       this.logger.error('获取分组菜品失败:', error);

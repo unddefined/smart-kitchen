@@ -1,4 +1,4 @@
-// API基础配置和服务
+// API 基础配置和服务
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://8.145.34.30:3001";
 
