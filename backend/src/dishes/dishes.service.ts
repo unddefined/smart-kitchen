@@ -228,21 +228,37 @@ export class DishesService {
    * 获取所有工位
    */
   async findAllStations() {
-    return this.prisma.station.findMany({
-      orderBy: {
-        id: 'asc',
-      },
-    });
+    this.logger.log('获取所有工位...');
+    try {
+      const stations = await this.prisma.station.findMany({
+        orderBy: {
+          name: 'asc', // 使用 name 字段排序
+        },
+      });
+      this.logger.log(`成功获取 ${stations.length} 个工位`);
+      return stations;
+    } catch (error) {
+      this.logger.error('获取工位失败:', error);
+      throw error;
+    }
   }
 
   /**
    * 获取所有分类
    */
   async findAllCategories() {
-    return this.prisma.dishCategory.findMany({
-      orderBy: {
-        displayOrder: 'asc',
-      },
-    });
+    this.logger.log('获取所有分类...');
+    try {
+      const categories = await this.prisma.dishCategory.findMany({
+        orderBy: {
+          displayOrder: 'asc',
+        },
+      });
+      this.logger.log(`成功获取 ${categories.length} 个分类`);
+      return categories;
+    } catch (error) {
+      this.logger.error('获取分类失败:', error);
+      throw error;
+    }
   }
 }

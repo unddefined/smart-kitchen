@@ -107,7 +107,7 @@
         <div class="p-4 border-t bg-gray-50">
           <div class="flex space-x-3">
             <button 
-              @click="hasSelectedDishes ? clearSelectedDishes : cancel" 
+              @click="handleCancelOrClear" 
               :class="[
                 'flex-1 py-3 rounded-lg font-medium transition-colors',
                 hasSelectedDishes 
@@ -433,7 +433,11 @@ const addHalfQuantity = () => {
 };
 
 const resetQuantity = () => {
-  currentDish.value.quantity = 0;
+  // 从已选列表中移除该菜品
+  const index = selectedDishes.value.findIndex((d) => d.id === currentDish.value.id);
+  if (index >= 0) {
+    selectedDishes.value.splice(index, 1);
+  }
   closeDishDetailModal();
 };
 
@@ -505,13 +509,26 @@ const resetNewDishForm = () => {
 };
 
 const cancel = () => {
+  console.log('取消按钮被点击');
   resetForm();
   closeModal();
 };
 
+// 处理取消或清空按钮点击
+const handleCancelOrClear = () => {
+  console.log('按钮点击，hasSelectedDishes:', hasSelectedDishes.value);
+  if (hasSelectedDishes.value) {
+    clearSelectedDishes();
+  } else {
+    cancel();
+  }
+};
+
 // 清空已选菜品
 const clearSelectedDishes = () => {
+  console.log('清空已选菜品，当前数量:', selectedDishes.value.length);
   selectedDishes.value = [];
+  console.log('已选菜品已清空');
 };
 
 const submit = async () => {
