@@ -42,8 +42,8 @@ export class DishesController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.dishesService.findOne(+id);
+  findOne(@Param('id') id: number) {
+    return this.dishesService.findOne(id);
   }
 
   @Post()
@@ -52,18 +52,32 @@ export class DishesController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDishDto: any) {
-    return this.dishesService.update(+id, updateDishDto);
+  update(@Param('id') id: number, @Body() updateDishDto: any) {
+    return this.dishesService.update(id, updateDishDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.dishesService.remove(+id);
+  remove(@Param('id') id: number) {
+    return this.dishesService.remove(id);
   }
 
   @Post('batch-prep')
-  batchUpdatePrepRequirement(@Body() body: { dishIds: number[]; needPrep: boolean }) {
+  batchUpdatePrepRequirement(
+    @Body() body: { dishIds: number[]; needPrep: boolean },
+  ) {
     const { dishIds, needPrep } = body;
     return this.dishesService.batchUpdatePrepRequirement(dishIds, needPrep);
+  }
+
+  // 新增：获取所有工位
+  @Get('stations')
+  findAllStations() {
+    return this.dishesService.findAllStations();
+  }
+
+  // 新增：获取所有分类
+  @Get('categories')
+  findAllCategories() {
+    return this.dishesService.findAllCategories();
   }
 }

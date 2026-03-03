@@ -139,7 +139,7 @@
               'w-full p-2 border-none cursor-pointer text-lg transition-all duration-200 text-left ',
               activeTab === `order-${order.id}` ? 'bg-gray-100 text-black' : '',
               order.hasUrgentItems ? 'text-red-500 font-bold' : '',
-              order.isPending ? 'text-gray-400' : '',
+              order.isNotServing ? 'text-gray-400' : '',
             ]"
             @click="activeTab = `order-${order.id}`">
             {{ order.hallNumber }}
@@ -338,7 +338,7 @@ const loadOrders = async () => {
       status: order.status,
       createdAt: order.createdAt,
       hasUrgentItems: checkHasUrgentItems(order),
-      isPending: order.status === "created",
+      isNotServing: order.status !== "serving" && order.status !== "urged",
     }));
   } catch (err) {
     console.error("加载订单失败:", err);

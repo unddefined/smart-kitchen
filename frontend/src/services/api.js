@@ -142,16 +142,19 @@ export const api = {
   // 工位相关API
   stations: {
     // 获取工位列表
-    list: () => request("/api/stations"),
+    list: () => request("/api/dishes/stations"),
 
     // 获取工位详情
-    get: (id) => request(`/api/stations/${id}`),
+    get: (id) => request(`/api/dishes/stations/${id}`),
   },
 
   // 菜品分类相关API
   categories: {
     // 获取分类列表
-    list: () => request("/api/categories"),
+    list: () => request("/api/dishes/categories"),
+    
+    // 获取分类详情
+    get: (id) => request(`/api/dishes/categories/${id}`),
   },
 
   // 出餐相关API
