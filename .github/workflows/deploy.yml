@@ -177,11 +177,16 @@ jobs:
             echo "📦 Force pulling latest images..."
             docker compose pull --policy always
 
-            # 5. 启动服务
+            # 5. 运行数据库迁移
+            echo "📦 Running database migrations..."
+            docker compose run --rm backend npx prisma migrate deploy
+
+
+            # 6. 启动服务
             echo "🚀 Starting services..."
             docker compose up -d
 
-            # 6. 等待服务就绪
+            # 7. 等待服务就绪
             echo "⏳ Waiting for services..."
 
             # 6.1 等待数据库
@@ -207,8 +212,6 @@ jobs:
               fi
               sleep 1
             done
-
-            # 7. 运行数据库迁移（已放在 Dockerfile CMD 里）
 
             # 8. 最终健康检查
             echo "🔍 Final verification..."

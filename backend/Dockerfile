@@ -3,13 +3,14 @@ FROM node:25-alpine AS builder
 
 WORKDIR /app
 
-# 复制package文件
-COPY package*.json ./
+# 先复制所有必要文件
+COPY prisma ./prisma
+COPY package.json ./package.json
+COPY tsconfig*.json ./
+
 
 # 1. 安装依赖
 RUN npm ci 
-
-COPY prisma ./prisma
 
 # 2. 【新增】生成 Prisma 客户端 (必须在编译前执行)
 # 确保此时 schema.prisma 已经复制到容器中
@@ -49,5 +50,6 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3001/api/health || exit 1
 
-# 启动应用
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main.js"]
+RUN test -d /app/prisma/generated || (echo "❌ Prisma Client not generated!" && exit 1)
+
+CMD ["node", "dist/main.js"]
