@@ -1,54 +1,53 @@
-# 构建阶段
-FROM node:25-alpine AS builder
+# =========================
+# Build stage
+# =========================
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
-# 先复制所有必要文件
+# 仅复制依赖文件（最大化缓存命中）
+COPY package.json package-lock.json ./
+
+# 启用 npm cache mount（必须配合 buildx）
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
+
+# 复制 prisma 和 tsconfig
 COPY prisma ./prisma
-COPY package*.json ./
 COPY tsconfig*.json ./
 COPY prisma.config.ts ./
 
-
-# 1. 安装依赖
-RUN npm ci 
-
-# 2. 【新增】生成 Prisma 客户端 (必须在编译前执行)
-# 确保此时 schema.prisma 已经复制到容器中
+# 生成 Prisma Client
 RUN npx prisma generate
 
-# 3. 复制源代码 (如果之前没复制全)确保这步在 generate 之前或者 generate 能访问到 schema
+# 复制源码
 COPY . .
 
-# 4. 编译 TypeScript
+# 构建
 RUN npm run build
 
-# 5. (可选) 清理缓存
-RUN npm cache clean --force
-
-# 清理开发依赖，只保留生产依赖
-RUN npm ci --omit=dev
-
-# 生产阶段
-FROM node:25-alpine AS production
+# =========================
+# Production stage
+# =========================
+FROM node:24-alpine AS production
 
 WORKDIR /app
 
-# 复制package文件
-COPY package*.json ./
+ENV NODE_ENV=production
 
-# 复制构建产物和依赖
-COPY --from=builder /app/dist ./dist
+# 只复制必要文件
+COPY package.json package-lock.json ./
+
+# 直接从 builder 复制已经优化过的 node_modules
 COPY --from=builder /app/node_modules ./node_modules
-# 复制Prisma相关文件
+
+# 复制构建产物
+COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma.config.ts ./
 
-# 暴露端口
 EXPOSE 3001
 
-# 健康检查
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3001/api/health || exit 1
 
