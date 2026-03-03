@@ -7,6 +7,7 @@ WORKDIR /app
 COPY prisma ./prisma
 COPY package*.json ./
 COPY tsconfig*.json ./
+COPY prisma.config.ts ./
 
 
 # 1. 安装依赖
