@@ -10,21 +10,6 @@ export class DishesController {
     return this.dishesService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.dishesService.findOne(+id);
-  }
-
-  @Get('category/:categoryId')
-  findByCategory(@Param('categoryId') categoryId: string) {
-    return this.dishesService.findByCategory(+categoryId);
-  }
-
-  @Get('station/:stationId')
-  findByStation(@Param('stationId') stationId: string) {
-    return this.dishesService.findByStation(+stationId);
-  }
-
   @Get('search')
   searchByName(@Query('name') name: string) {
     return this.dishesService.searchByName(name);
@@ -44,6 +29,21 @@ export class DishesController {
   @Get('grouped-by-category')
   getDishesGroupedByCategory() {
     return this.dishesService.getDishesGroupedByCategory();
+  }
+
+  @Get('category/:categoryId')
+  findByCategory(@Param('categoryId') categoryId: number) {
+    return this.dishesService.findByCategory(categoryId);
+  }
+
+  @Get('station/:stationId')
+  findByStation(@Param('stationId') stationId: number) {
+    return this.dishesService.findByStation(stationId);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.dishesService.findOne(+id);
   }
 
   @Post()
