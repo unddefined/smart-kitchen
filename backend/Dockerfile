@@ -43,6 +43,7 @@ COPY --from=builder /app/node_modules ./node_modules
 # 复制Prisma相关文件
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/prisma.config.ts ./
 
 # 暴露端口
 EXPOSE 3001
