@@ -18,9 +18,11 @@ async function bootstrap() {
   app.enableCors();
 
   const port = process.env.PORT ?? 3001;
+  const host = process.env.HOST ?? '0.0.0.0'; // 监听所有网络接口
   console.log('Starting server on port:', port);
+  console.log('Host:', host);
   console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
   
-  await app.listen(port);
+  await app.listen(port, host);
 }
 bootstrap();
