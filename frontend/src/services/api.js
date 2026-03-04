@@ -86,6 +86,12 @@ export const api = {
         method: "POST",
       }),
 
+    // 完成订单
+    complete: (id) =>
+      request(`/api/orders/${id}/complete`, {
+        method: "PATCH",
+      }),
+
     // 删除订单
     delete: (id) =>
       request(`/api/orders/${id}`, {
@@ -200,12 +206,24 @@ export const api = {
     // 获取出餐提醒
     getAlerts: () => request("/api/serving/alerts"),
 
-    // 检测紧急菜品（催菜检测）
-    detectUrgent: () => request("/api/serving/urgent"),
+    // 获取紧急菜品
+    detectUrgent: () => request("/api/serving/urgent-dishes"),
 
-    // 自动调整订单优先级
+    // 自动调整优先级
     autoAdjustPriorities: (orderId) =>
-      request(`/api/serving/auto-adjust/${orderId}`, {
+      request(`/api/serving/orders/${orderId}/auto-adjust`, {
+        method: "POST",
+      }),
+
+    // 标记菜品完成切配（pending → prep）
+    completePrep: (itemId) =>
+      request(`/api/serving/items/${itemId}/complete-prep`, {
+        method: "POST",
+      }),
+
+    // 标记菜品已上菜（任意状态 → served）
+    serveDish: (itemId) =>
+      request(`/api/serving/items/${itemId}/serve`, {
         method: "POST",
       }),
   },

@@ -30,9 +30,9 @@
           <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-xl transition-all duration-200 hover:scale-110">
             👤
           </div>
-          <div class="font-light text-gray-800 text-base ml-1">打荷</div>
+          <div class="font-light text-gray-800 text-xl ml-1">打荷</div>
           <span class="text-lg font-bold">·</span>
-          <div class="font-normal text-gray-800 text-base">张师傅</div>
+          <div class="font-normal text-gray-800 text-xl">储旭</div>
         </div>
 
         <!-- 右侧：日期选择 + 午/晚餐切换 -->
@@ -53,10 +53,10 @@
                 clip-rule="evenodd" />
             </svg>
           </div>
-          <span>
+          <span class="flex rounded overflow-hidden">
             <button
               :class="[
-                'px-1 py-0.5 border border-gray-300 text-base cursor-pointer transition-all duration-200',
+                'px-1 py-0.5 border-r border-gray-300 text-base cursor-pointer transition-all duration-200',
                 mealType === 'lunch' ? 'bg-blue-500 text-white border-blue-500' : '',
               ]"
               @click="mealType = 'lunch'">
@@ -64,7 +64,7 @@
             </button>
             <button
               :class="[
-                'px-1 py-0.5 border border-gray-300 text-base cursor-pointer transition-all duration-200',
+                'px-1 py-0.5 border-gray-300 text-base cursor-pointer transition-all duration-200',
                 mealType === 'dinner' ? 'bg-blue-500 text-white border-blue-500' : '',
               ]"
               @click="mealType = 'dinner'">
@@ -78,7 +78,7 @@
       <div class="flex w-full justify-between text-black gap-1">
         <button
           :class="[
-            'py-1.5 border-none rounded-lg text-base font-medium cursor-pointer transition-all duration-200 text-center flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]',
+            'py-1.5 border-none rounded-lg text-xl font-medium cursor-pointer transition-all duration-200 text-center flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]',
             canStartDish || activeTab === 'overview' ? ' text-black hover:bg-blue-600 bg-gray-300' : 'bg-gray-300 text-gray-400 cursor-not-allowed',
           ]"
           @click="showActionModal('start')"
@@ -87,7 +87,7 @@
         </button>
         <button
           :class="[
-            'py-1.5 border-none rounded-lg text-base font-medium cursor-pointer transition-all duration-200 text-center flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]',
+            'py-1.5 border-none rounded-lg text-xl font-medium cursor-pointer transition-all duration-200 text-center flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]',
             canUrgentDish || activeTab === 'overview' ? ' text-black hover:bg-red-600 bg-gray-300' : 'bg-gray-300 text-gray-400 cursor-not-allowed',
           ]"
           @click="showActionModal('urgent')"
@@ -95,13 +95,13 @@
           催菜
         </button>
         <button
-          class="py-1.5 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
+          class="py-1.5 border-none rounded-lg text-xl font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
           @click="handleAddDish">
           加菜
         </button>
         <button
           :class="[
-            'py-1.5 border-none rounded-lg text-base font-medium cursor-pointer transition-all duration-200 text-center flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]',
+            'py-1.5 border-none rounded-lg text-xl font-medium cursor-pointer transition-all duration-200 text-center flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]',
             canPauseDish || activeTab === 'overview' ? ' text-black hover:bg-yellow-600 bg-gray-300' : 'bg-gray-300 text-gray-400 cursor-not-allowed',
           ]"
           @click="showActionModal('pause')"
@@ -109,12 +109,12 @@
           暂停
         </button>
         <button
-          class="py-1.5 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
+          class="py-1.5 border-none rounded-lg text-xl font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
           @click="handleReturnDish">
           退菜
         </button>
         <button
-          class="py-1.5 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.6] md:flex-grow-[1.6] sm:flex-grow-[1.2]"
+          class="py-1.5 border-none rounded-lg text-xl font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.6] md:flex-grow-[1.6] sm:flex-grow-[1.2]"
           @click="showOrderModal = true">
           录入订单
         </button>
@@ -191,8 +191,6 @@
           <div class="mb-4 p-3 bg-blue-50 rounded-lg" :class="getStatusCardClass()">
             <p class="text-sm text-gray-600">当前订单</p>
             <p class="text-base font-medium text-gray-800 mt-1">{{ currentOrderInfo }}</p>
-            <p class="text-sm text-gray-600 mb-1 mt-1">当前状态</p>
-            <p class="text-base font-semibold">{{ getStatusText() }}</p>
           </div>
 
           <!-- 操作类型提示 -->
@@ -206,30 +204,27 @@
             <p class="text-sm text-yellow-700"><span class="font-semibold">暂停说明：</span>将订单状态恢复为"待起菜"，需要重新起菜才能继续出餐</p>
           </div>
 
-          <!-- 台号选择 -->
-          <div class="mb-4">
+          <!-- 台号选择 - 仅在总览视图显示 -->
+          <div v-if="!activeTab.startsWith('order-')" class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-2"> 选择台号（可多选） </label>
             <div class="grid grid-cols-2 gap-2">
               <button
                 v-for="table in availableTables"
                 :key="table"
                 @click="toggleTableSelection(table)"
-                :disabled="!canPerformAction()"
                 :class="[
                   'py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200',
-                  !canPerformAction()
-                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : selectedTables.includes(table)
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+                  selectedTables.includes(table)
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
                 ]">
                 {{ table }}
               </button>
             </div>
           </div>
 
-          <!-- 已选台号显示 -->
-          <div v-if="selectedTables.length > 0" class="mb-4 p-3 bg-gray-50 rounded-lg">
+          <!-- 已选台号显示 - 仅在总览视图显示 -->
+          <div v-if="selectedTables.length > 0 && !activeTab.startsWith('order-')" class="mb-4 p-3 bg-gray-50 rounded-lg">
             <p class="text-sm text-gray-600">已选择</p>
             <div class="flex flex-wrap gap-2 mt-2">
               <span
@@ -252,10 +247,10 @@
           </button>
           <button
             @click="confirmAction"
-            :disabled="selectedTables.length === 0 || !canPerformAction()"
+            :disabled="(!activeTab.startsWith('order-') && selectedTables.length === 0)"
             :class="[
               'px-5 py-2.5 rounded-lg text-base font-medium cursor-pointer transition-all duration-200',
-              selectedTables.length === 0 || !canPerformAction() ? 'bg-gray-300 text-gray-400 cursor-not-allowed' : actionButtonColor,
+              (!activeTab.startsWith('order-') && selectedTables.length === 0) ? 'bg-gray-300 text-gray-400 cursor-not-allowed' : actionButtonColor,
             ]">
             确认
           </button>
@@ -305,8 +300,27 @@ import OrderView from "./OrderView.vue";
 import OrderInputModal from "../components/OrderInputModal.vue";
 import { OrderService } from "@/services";
 
+// 根据当前时间获取用餐类型
+const getDefaultMealType = () => {
+  const now = new Date();
+  const hour = now.getHours();
+
+  // 9:00-15:00 为午餐时段
+  if (hour >= 9 && hour < 15) {
+    return "lunch";
+  }
+  // 15:00-24:00 为晚餐时段
+  else if (hour >= 15 && hour < 24) {
+    return "dinner";
+  }
+  // 0:00-9:00 默认返回午餐（第二天早餐时段）
+  else {
+    return "lunch";
+  }
+};
+
 // 响应式数据
-const mealType = ref("lunch");
+const mealType = ref(getDefaultMealType());
 const activeTab = ref("overview");
 const showSidebar = ref(false);
 const loading = ref(false);
@@ -387,7 +401,13 @@ const showOrderModal = ref(false);
 const showActionModalVisible = ref(false);
 const currentActionType = ref("start"); // 'start' | 'urgent' | 'pause'
 const selectedTables = ref([]); // string[]
-const availableTables = ref(["1 台", "2 台", "3 台", "4 台", "5 台", "6 台", "7 台", "8 台"]);
+
+// 计算属性：可用台号列表（从真实订单中提取）
+const availableTables = computed(() => {
+  // 从当前订单列表中提取所有不重复的台号
+  const tableSet = new Set(orders.value.map(order => order.hallNumber));
+  return Array.from(tableSet).sort();
+});
 
 // 计算属性：弹窗标题
 const actionModalTitle = computed(() => {
@@ -609,7 +629,7 @@ const loadOrders = async () => {
       mealType: mealType.value,
     };
 
-    console.log('加载订单，筛选条件:', filterParams);
+    console.log("加载订单，筛选条件:", filterParams);
 
     const orderList = await OrderService.getOrders(filterParams);
     orders.value = orderList.map((order) => ({
@@ -625,7 +645,7 @@ const loadOrders = async () => {
       isNotServing: order.status !== "serving" && order.status !== "urged",
     }));
 
-    console.log('加载完成的订单数:', orders.value.length);
+    console.log("加载完成的订单数:", orders.value.length);
   } catch (err) {
     console.error("加载订单失败:", err);
     error.value = "加载订单数据失败，请检查网络连接";
@@ -727,85 +747,95 @@ const toggleTableSelection = (table) => {
 
 // 确认执行操作
 const confirmAction = async () => {
-  if (!activeOrderId.value) {
+  // 订单 tab 模式下必须有选中的订单
+  if (activeTab.value.startsWith('order-') && !activeOrderId.value) {
     alert("请先选择一个订单");
     return;
   }
 
-  if (selectedTables.value.length === 0) {
+  // 总览 tab 模式下必须选择台号
+  if (!activeTab.value.startsWith('order-') && selectedTables.value.length === 0) {
     alert("请至少选择一个台号");
     return;
   }
 
-  // 验证订单状态
-  const order = orders.value.find((o) => o.id === activeOrderId.value);
-  if (!order) {
-    alert("订单不存在");
-    return;
-  }
+  // 订单 tab 模式下的验证
+  if (activeTab.value.startsWith('order-')) {
+    // 验证订单是否存在
+    const order = orders.value.find((o) => o.id === activeOrderId.value);
+    if (!order) {
+      alert("订单不存在");
+      return;
+    }
 
-  // 根据操作类型验证订单状态
-  switch (currentActionType.value) {
-    case "start":
-      if (order.status !== "started") {
-        alert("只有待起菜状态的订单才能起菜");
-        return;
-      }
-      break;
-    case "urgent":
-      if (order.status !== "serving") {
-        alert("只有出餐中的订单才能催菜");
-        return;
-      }
-      break;
-    case "pause":
-      if (order.status !== "serving" && order.status !== "urged") {
-        alert("只有出餐中或催菜状态的订单才能暂停");
-        return;
-      }
-      break;
-  }
-
-  try {
-    let result;
+    // 根据操作类型验证订单状态
     switch (currentActionType.value) {
       case "start":
-        result = await OrderService.startOrder(activeOrderId.value);
+        if (order.status !== "started") {
+          alert("只有待起菜状态的订单才能起菜");
+          return;
+        }
         break;
       case "urgent":
-        result = await OrderService.urgeOrder(activeOrderId.value);
+        if (order.status !== "serving") {
+          alert("只有出餐中的订单才能催菜");
+          return;
+        }
         break;
       case "pause":
-        result = await OrderService.pauseOrder(activeOrderId.value);
+        if (order.status !== "serving" && order.status !== "urged") {
+          alert("只有出餐中或催菜状态的订单才能暂停");
+          return;
+        }
         break;
     }
 
-    if (result.success) {
-      const actionNames = {
-        start: "起菜",
-        urgent: "催菜",
-        pause: "暂停",
-      };
-      alert(`${actionNames[currentActionType.value]}成功`);
-
-      // 刷新订单列表
-      await loadOrders();
-
-      // 刷新当前订单详情
-      if (activeTab.value.startsWith("order-")) {
-        activeTab.value = "overview";
-        await nextTick();
-        activeTab.value = `order-${activeOrderId.value}`;
+    try {
+      let result;
+      switch (currentActionType.value) {
+        case "start":
+          result = await OrderService.startOrder(activeOrderId.value);
+          break;
+        case "urgent":
+          result = await OrderService.urgeOrder(activeOrderId.value);
+          break;
+        case "pause":
+          result = await OrderService.pauseOrder(activeOrderId.value);
+          break;
       }
 
-      // 关闭弹窗
-      closeActionModal();
-    } else {
-      alert(result.message);
+      if (result.success) {
+        const actionNames = {
+          start: "起菜",
+          urgent: "催菜",
+          pause: "暂停",
+        };
+        alert(`${actionNames[currentActionType.value]}成功`);
+
+        // 刷新订单列表
+        await loadOrders();
+
+        // 刷新当前订单详情
+        if (activeTab.value.startsWith("order-")) {
+          activeTab.value = "overview";
+          await nextTick();
+          activeTab.value = `order-${activeOrderId.value}`;
+        }
+
+        // 关闭弹窗
+        closeActionModal();
+      } else {
+        alert(result.message);
+      }
+    } catch (error) {
+      console.error("操作失败:", error);
+      alert("操作失败：" + error.message);
     }
-  } catch (error) {
-    console.error("操作失败:", error);
-    alert("操作失败：" + error.message);
+  } else {
+    // 总览 tab 模式 - TODO: 实现批量操作逻辑
+    alert(`将在选中的台号执行${currentActionType.value === 'start' ? '起菜' : currentActionType.value === 'urgent' ? '催菜' : '暂停'}操作：${selectedTables.value.join(', ')}`);
+    // 这里后续可以添加对选中台号的批量操作逻辑
+    closeActionModal();
   }
 };
 

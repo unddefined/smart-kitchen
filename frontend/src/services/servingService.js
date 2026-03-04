@@ -56,7 +56,41 @@ export class ServingService {
     } catch (error) {
       return {
         success: false,
-        message: "标记失败: " + error.message,
+        message: "标记失败：" + error.message,
+      };
+    }
+  }
+
+  // 标记菜品完成切配（pending → prep）
+  static async completePreparation(itemId) {
+    try {
+      const result = await api.serving.completePrep(itemId);
+      return {
+        success: true,
+        message: "切配完成",
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: "操作失败：" + error.message,
+      };
+    }
+  }
+
+  // 标记菜品已上菜（直接标记为 served）
+  static async serveDish(itemId) {
+    try {
+      const result = await api.serving.serveDish(itemId);
+      return {
+        success: true,
+        message: "已上菜",
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: "操作失败：" + error.message,
       };
     }
   }

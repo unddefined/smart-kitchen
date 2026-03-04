@@ -89,6 +89,15 @@ export class OrdersController {
     return await this.ordersService.resumeOrderAfterServe(id);
   }
 
+  /**
+   * 完成订单 - 当所有菜品上完后手动确认完成
+   * PATCH /api/orders/:id/complete
+   */
+  @Patch(':id/complete')
+  async completeOrder(@Param('id', ParseIntPipe) id: number) {
+    return await this.ordersService.completeOrder(id);
+  }
+
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.ordersService.remove(id);
