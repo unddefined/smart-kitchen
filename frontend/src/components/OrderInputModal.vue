@@ -53,7 +53,7 @@
               <input
                 v-model="mealDate"
                 type="date"
-                class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]" />
+                class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]" />
               <span class="flex rounded overflow-hidden">
                 <button
                   :class="[
