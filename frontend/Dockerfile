@@ -5,6 +5,9 @@ FROM node:24-alpine AS build
 
 WORKDIR /app
 
+# 设置生产环境变量（Vite 会自动加载 .env.production）
+ENV VITE_API_BASE_URL=http://8.145.34.30:3001
+
 # 只复制依赖文件（最大化缓存命中）
 COPY package.json package-lock.json ./
 
@@ -15,7 +18,7 @@ RUN --mount=type=cache,target=/root/.npm \
 # 再复制源码
 COPY . .
 
-# 构建
+# 构建（使用 production 模式）
 RUN npm run build:prod
 
 # =========================
