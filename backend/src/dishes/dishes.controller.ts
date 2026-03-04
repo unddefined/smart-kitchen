@@ -21,6 +21,17 @@ export class DishesController {
     return this.dishesService.findByPrepRequirement(needPrepBool);
   }
 
+  // 具体路由必须放在动态参数路由之前
+  @Get('stations')
+  findAllStations() {
+    return this.dishesService.findAllStations();
+  }
+
+  @Get('categories')
+  findAllCategories() {
+    return this.dishesService.findAllCategories();
+  }
+
   @Get('categories/serving-order')
   getCategoriesInServingOrder() {
     return this.dishesService.getCategoriesInServingOrder();
@@ -41,6 +52,15 @@ export class DishesController {
     return this.dishesService.findByStation(stationId);
   }
 
+  @Post('batch-prep')
+  batchUpdatePrepRequirement(
+    @Body() body: { dishIds: number[]; needPrep: boolean },
+  ) {
+    const { dishIds, needPrep } = body;
+    return this.dishesService.batchUpdatePrepRequirement(dishIds, needPrep);
+  }
+
+  // 动态参数路由必须放在最后
   @Get(':id')
   findOne(@Param('id') id: number) {
     return this.dishesService.findOne(id);
@@ -59,25 +79,5 @@ export class DishesController {
   @Delete(':id')
   remove(@Param('id') id: number) {
     return this.dishesService.remove(id);
-  }
-
-  @Post('batch-prep')
-  batchUpdatePrepRequirement(
-    @Body() body: { dishIds: number[]; needPrep: boolean },
-  ) {
-    const { dishIds, needPrep } = body;
-    return this.dishesService.batchUpdatePrepRequirement(dishIds, needPrep);
-  }
-
-  // 新增：获取所有工位
-  @Get('stations')
-  findAllStations() {
-    return this.dishesService.findAllStations();
-  }
-
-  // 新增：获取所有分类
-  @Get('categories')
-  findAllCategories() {
-    return this.dishesService.findAllCategories();
   }
 }

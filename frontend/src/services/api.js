@@ -39,7 +39,12 @@ export const api = {
       }),
 
     // 获取订单列表
-    list: () => request("/api/orders"),
+    list: (queryParams) => {
+      const queryString = queryParams
+        ? `?${new URLSearchParams(queryParams).toString()}`
+        : "";
+      return request(`/api/orders${queryString}`);
+    },
 
     // 获取订单详情
     get: (id) => request(`/api/orders/${id}`),
@@ -55,6 +60,30 @@ export const api = {
     cancel: (id) =>
       request(`/api/orders/${id}/cancel`, {
         method: "PATCH",
+      }),
+
+    // 起菜
+    start: (id) =>
+      request(`/api/orders/${id}/start`, {
+        method: "PATCH",
+      }),
+
+    // 催菜
+    urge: (id) =>
+      request(`/api/orders/${id}/urge`, {
+        method: "PATCH",
+      }),
+
+    // 暂停
+    pause: (id) =>
+      request(`/api/orders/${id}/pause`, {
+        method: "PATCH",
+      }),
+
+    // 恢复（催菜后自动恢复）
+    resume: (id) =>
+      request(`/api/orders/${id}/resume`, {
+        method: "POST",
       }),
 
     // 删除订单

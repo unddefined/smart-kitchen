@@ -104,25 +104,100 @@ export class OrderService {
     }
   }
 
+  // 起菜 - 将订单状态更新为 serving 并设置起菜时间
+  static async startOrder(orderId) {
+    try {
+      const order = await api.orders.start(orderId);
+
+      return {
+        success: true,
+        message: "订单已起菜",
+        data: order,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: "起菜失败: " + error.message,
+      };
+    }
+  }
+
+  // 催菜 - 将订单状态更新为 urged
+  static async urgeOrder(orderId) {
+    try {
+      const order = await api.orders.urge(orderId);
+
+      return {
+        success: true,
+        message: "订单已催菜",
+        data: order,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: "催菜失败: " + error.message,
+      };
+    }
+  }
+
+  // 暂停 - 将订单状态更新为 started
+  static async pauseOrder(orderId) {
+    try {
+      const order = await api.orders.pause(orderId);
+
+      return {
+        success: true,
+        message: "订单已暂停",
+        data: order,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: "暂停失败: " + error.message,
+      };
+    }
+  }
+
+  // 恢复 - 催菜后自动恢复
+  static async resumeOrder(orderId) {
+    try {
+      const order = await api.orders.resume(orderId);
+
+      return {
+        success: true,
+        message: "订单已恢复",
+        data: order,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: "恢复失败: " + error.message,
+      };
+    }
+  }
+
   // 获取订单列表
   static async getOrders(filters = {}) {
     try {
-      const orders = await api.orders.list();
+      // 将筛选参数传递给后端
+      const queryParams = {};
+      
+      if (filters.date) {
+        queryParams.date = filters.date;
+      }
+      
+      if (filters.mealType) {
+        queryParams.mealType = filters.mealType;
+      }
 
-      // 应用过滤条件
+      const orders = await api.orders.list(queryParams);
+
+      // 应用前端过滤条件（如果需要额外的状态过滤）
       let filteredOrders = orders;
 
       if (filters.status) {
         filteredOrders = filteredOrders.filter(
           (order) => order.status === filters.status,
-        );
-      }
-
-      if (filters.date) {
-        filteredOrders = filteredOrders.filter(
-          (order) =>
-            new Date(order.createdAt).toDateString() ===
-            new Date(filters.date).toDateString(),
         );
       }
 
@@ -321,6 +396,23 @@ export class OrderService {
       return {
         success: false,
         message: "订单取消失败: " + error.message,
+      };
+    }
+  }
+
+  // 删除订单
+  static async deleteOrder(orderId) {
+    try {
+      await api.orders.delete(orderId);
+      
+      return {
+        success: true,
+        message: "订单删除成功",
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: "订单删除失败: " + error.message,
       };
     }
   }

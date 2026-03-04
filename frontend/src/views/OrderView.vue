@@ -103,7 +103,12 @@
               </span>
               <span class="bg-gray-200 px-2 py-0.5 rounded-full text-sm">{{ getOrderItemStatusText(dish.status) }}</span>
             </div>
-            <div v-if="dish.remark" class="text-lg text-gray-600 mt-2 p-2 bg-gray-100 rounded">
+            <!-- 催菜提示 - 当订单状态为 urged 时显示 -->
+            <div v-if="orderDetail?.status === 'urged'" class="text-red-600 font-medium mt-2 p-2 bg-red-50 rounded text-lg">
+              {{ orderDetail.hallNumber }}催菜
+            </div>
+            <!-- 普通备注 -->
+            <div v-else-if="dish.remark" class="text-lg text-gray-600 mt-2 p-2 bg-gray-100 rounded">
               {{ dish.remark }}
             </div>
             <div class="dish-meta"></div>
@@ -121,19 +126,25 @@
           class="flex-1 py-2 px-3 border border-gray-300 rounded-lg bg-white text-gray-800 text-base cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:border-gray-400 whitespace-nowrap">
           编辑订单信息
         </button>
-        
       </div>
       <button
-          @click="showCancelConfirm"
-          :disabled="isCancelButtonDisabled"
-          :class="[
-            'flex-1 py-2 px-3 mt-3 w-full border rounded-lg text-base cursor-pointer transition-all duration-200 whitespace-nowrap',
-            isCancelButtonDisabled 
-              ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-400'
-          ]">
-          取消订单
-        </button>
+        @click="showCancelConfirm"
+        :disabled="isCancelButtonDisabled"
+        :class="[
+          'flex-1 py-2 px-3 mt-3 w-full border rounded-lg text-base cursor-pointer transition-all duration-200 whitespace-nowrap',
+          isCancelButtonDisabled
+            ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed'
+            : 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-400',
+        ]">
+        取消订单
+      </button>
+      <!-- 删除按钮 - 仅对已取消的订单显示 -->
+      <button
+        @click="showDeleteConfirm"
+        v-if="orderDetail?.status === 'cancelled'"
+        class="flex-1 py-2 px-3 mt-3 w-full border border-red-300 bg-red-50 text-red-700 rounded-lg text-base cursor-pointer transition-all duration-200 hover:bg-red-100 hover:border-red-400 whitespace-nowrap">
+        删除订单
+      </button>
       <div class="h-16"></div>
     </div>
 
@@ -149,16 +160,12 @@
         <div class="text-center mb-6">
           <div class="text-5xl mb-4">⚠️</div>
           <h3 class="text-xl font-bold text-gray-800 mb-2">确认取消订单</h3>
-          <p class="text-gray-600">
-            确定要取消订单 #{{ orderDetail?.id }} 吗？此操作不可撤销。
-          </p>
+          <p class="text-gray-600">确定要取消订单 #{{ orderDetail?.id }} 吗？此操作不可撤销。</p>
           <div class="mt-4 p-3 bg-red-50 rounded-lg">
-            <p class="text-red-700 text-sm">
-              注意：已开始制作的菜品可能无法退款
-            </p>
+            <p class="text-red-700 text-sm">注意：已开始制作的菜品可能无法退款</p>
           </div>
         </div>
-        
+
         <div class="flex gap-3">
           <button
             @click="hideCancelConfirm"
@@ -170,11 +177,40 @@
             :disabled="isCancelling"
             :class="[
               'flex-1 py-3 px-4 rounded-lg text-white text-base cursor-pointer transition-all duration-200',
-              isCancelling 
-                ? 'bg-red-300 cursor-not-allowed' 
-                : 'bg-red-500 hover:bg-red-600 hover:-translate-y-0.5'
+              isCancelling ? 'bg-red-300 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 hover:-translate-y-0.5',
             ]">
-            {{ isCancelling ? '取消中...' : '确认取消' }}
+            {{ isCancelling ? "取消中..." : "确认取消" }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 删除订单确认弹窗 -->
+    <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+        <div class="text-center mb-6">
+          <div class="text-5xl mb-4">🗑️</div>
+          <h3 class="text-xl font-bold text-gray-800 mb-2">确认删除订单</h3>
+          <p class="text-gray-600">确定要删除订单 #{{ orderDetail?.id }} 吗？此操作将永久删除订单数据，不可恢复。</p>
+          <div class="mt-4 p-3 bg-red-50 rounded-lg">
+            <p class="text-red-700 text-sm font-medium">警告：此操作将删除所有相关菜品记录</p>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <button
+            @click="hideDeleteConfirm"
+            class="flex-1 py-3 px-4 border border-gray-300 rounded-lg bg-white text-gray-800 text-base cursor-pointer transition-all duration-200 hover:bg-gray-50">
+            取消
+          </button>
+          <button
+            @click="confirmDeleteOrder"
+            :disabled="isDeleting"
+            :class="[
+              'flex-1 py-3 px-4 rounded-lg text-white text-base cursor-pointer transition-all duration-200',
+              isDeleting ? 'bg-red-300 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 hover:-translate-y-0.5',
+            ]">
+            {{ isDeleting ? "删除中..." : "确认删除" }}
           </button>
         </div>
       </div>
@@ -195,20 +231,22 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(["back", "orderCancelled"]);
+const emit = defineEmits(["back", "orderCancelled", "orderDeleted"]);
 
 // 响应式数据
 const orderDetail = ref(null);
 const loading = ref(false);
 const error = ref(null);
 const showCancelModal = ref(false);
+const showDeleteModal = ref(false);
 const isCancelling = ref(false);
+const isDeleting = ref(false);
 
 // 计算属性 - 判断取消按钮是否禁用
 const isCancelButtonDisabled = computed(() => {
   if (!orderDetail.value) return true;
   // 已完成或已取消的订单不能再次取消
-  return orderDetail.value.status === 'done' || orderDetail.value.status === 'cancelled';
+  return orderDetail.value.status === "done" || orderDetail.value.status === "cancelled";
 });
 
 // 获取菜品优先级对应的CSS类
@@ -295,40 +333,87 @@ const hideCancelConfirm = () => {
 
 const confirmCancelOrder = async () => {
   if (isCancelling.value) return;
-  
+
   try {
     isCancelling.value = true;
-    
-    // 确保orderId是数字类型
+
+    // 确保 orderId 是数字类型
     const orderId = parseInt(props.orderId);
     if (isNaN(orderId)) {
-      throw new Error("无效的订单ID");
+      throw new Error("无效的订单 ID");
     }
 
     const result = await OrderService.cancelOrder(orderId);
-    
+
     if (result.success) {
       // 更新本地订单状态
       if (orderDetail.value) {
-        orderDetail.value.status = 'cancelled';
+        orderDetail.value.status = "cancelled";
       }
-      
+
       // 隐藏确认弹窗
       hideCancelConfirm();
-      
+
       // 通知父组件订单已取消
-      emit('orderCancelled', orderId);
-      
+      emit("orderCancelled", orderId);
+
       // 显示成功提示（这里可以添加全局提示组件）
-      alert('订单取消成功');
+      alert("订单取消成功");
     } else {
       throw new Error(result.message);
     }
   } catch (error) {
-    console.error('取消订单失败:', error);
-    alert('取消订单失败: ' + (error.message || '未知错误'));
+    console.error("取消订单失败:", error);
+    alert("取消订单失败：" + (error.message || "未知错误"));
   } finally {
     isCancelling.value = false;
+  }
+};
+
+// 删除订单相关方法
+const showDeleteConfirm = () => {
+  showDeleteModal.value = true;
+};
+
+const hideDeleteConfirm = () => {
+  showDeleteModal.value = false;
+};
+
+const confirmDeleteOrder = async () => {
+  if (isDeleting.value) return;
+
+  try {
+    isDeleting.value = true;
+
+    // 确保 orderId 是数字类型
+    const orderId = parseInt(props.orderId);
+    if (isNaN(orderId)) {
+      throw new Error("无效的订单 ID");
+    }
+
+    const result = await OrderService.deleteOrder(orderId);
+
+    if (result.success) {
+      // 清空当前订单详情
+      orderDetail.value = null;
+
+      // 隐藏确认弹窗
+      hideDeleteConfirm();
+
+      // 通知父组件订单已删除，需要刷新列表并返回总览
+      emit("orderDeleted", orderId);
+      emit("back");
+
+      // 显示成功提示
+      alert("订单删除成功");
+    } else {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error("删除订单失败:", error);
+    alert("删除订单失败：" + (error.message || "未知错误"));
+  } finally {
+    isDeleting.value = false;
   }
 };
 

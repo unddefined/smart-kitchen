@@ -106,15 +106,13 @@
         <!-- 底部按钮区域 -->
         <div class="p-4 border-t bg-gray-50">
           <div class="flex space-x-3">
-            <button 
-              @click="handleCancelOrClear" 
+            <button
+              @click="handleCancelOrClear"
               :class="[
                 'flex-1 py-3 rounded-lg font-medium transition-colors',
-                hasSelectedDishes 
-                  ? 'bg-red-500 text-white hover:bg-red-600' 
-                  : 'bg-gray-200 text-black hover:bg-gray-300',
+                hasSelectedDishes ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-200 text-black hover:bg-gray-300',
               ]">
-              {{ hasSelectedDishes ? '清空已选' : '取消' }}
+              {{ hasSelectedDishes ? "清空已选" : "取消" }}
             </button>
             <button
               @click="submit"
@@ -173,11 +171,14 @@
 
           <div>
             <label class="block text-xs font-medium text-gray-700 mb-2">重量</label>
-            <input
+            <select
               v-model="currentDish.weight"
-              type="text"
-              placeholder="如：5两，1斤"
-              class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option :value="null" disabled>请选择重量</option>
+              <option v-for="option in WEIGHT_OPTIONS" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
           </div>
 
           <div>
@@ -222,74 +223,79 @@
             <div class="inline-block w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
             <p class="text-xs text-gray-500 mt-1">加载选项中...</p>
           </div>
-          
+
           <template v-else>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">工位 *</label>
-              <select
-                v-model.number="newDish.stationId"
-                class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option :value="null" disabled>请选择工位</option>
-                <option v-for="station in stations" :key="station.id" :value="station.id">
-                  {{ station.name }}
-                </option>
-              </select>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">分类 *</label>
+                <select
+                  v-model.number="newDish.categoryId"
+                  @change="handleCategoryChange"
+                  class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option :value="null" disabled>请选择分类</option>
+                  <option v-for="category in categories" :key="category.id" :value="category.id">
+                    {{ category.name }}
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">工位（自动匹配）</label>
+                <input
+                  type="text"
+                  :value="getStationName(newDish.stationId)"
+                  readonly
+                  class="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-lg text-gray-600 cursor-not-allowed" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">份量</label>
+                <input
+                  v-model.number="newDish.quantity"
+                  type="number"
+                  min="1"
+                  placeholder="请输入份量"
+                  class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">重量</label>
+                <select
+                  v-model="newDish.weight"
+                  class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option :value="null" disabled>请选择重量</option>
+                  <option v-for="option in WEIGHT_OPTIONS" :key="option.value" :value="option.value">
+                    {{ option.label }}
+                  </option>
+                </select>
+              </div>
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">分类 *</label>
-              <select
-                v-model.number="newDish.categoryId"
-                class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option :value="null" disabled>请选择分类</option>
-                <option v-for="category in categories" :key="category.id" :value="category.id">
-                  {{ category.name }}
-                </option>
-              </select>
+              <label class="block text-sm font-medium text-gray-700 mb-2">备注</label>
+              <textarea
+                v-model="newDish.remark"
+                rows="3"
+                placeholder="特殊要求..."
+                class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">是否按人头计数 *</label>
+              <div class="flex space-x-4">
+                <label class="flex items-center">
+                  <input v-model="newDish.countable" type="radio" :value="true" class="mr-2" />
+                  是
+                </label>
+                <label class="flex items-center">
+                  <input v-model="newDish.countable" type="radio" :value="false" class="mr-2" />
+                  否
+                </label>
+              </div>
             </div>
           </template>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">份量</label>
-            <input
-              v-model.number="newDish.quantity"
-              type="number"
-              min="1"
-              placeholder="请输入份量"
-              class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">重量</label>
-            <input
-              v-model="newDish.weight"
-              type="text"
-              placeholder="如：5 两，1 斤"
-              class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">备注</label>
-            <textarea
-              v-model="newDish.remark"
-              rows="3"
-              placeholder="特殊要求..."
-              class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">是否按人头计数 *</label>
-            <div class="flex space-x-4">
-              <label class="flex items-center">
-                <input v-model="newDish.countable" type="radio" :value="true" class="mr-2" />
-                是
-              </label>
-              <label class="flex items-center">
-                <input v-model="newDish.countable" type="radio" :value="false" class="mr-2" />
-                否
-              </label>
-            </div>
-          </div>
         </div>
 
         <div class="p-4 border-t bg-gray-50 flex space-x-3">
@@ -301,7 +307,9 @@
             :disabled="!newDish.name || !newDish.stationId || !newDish.categoryId"
             :class="[
               'flex-1 py-3 rounded-lg font-medium transition-colors',
-              (newDish.name && newDish.stationId && newDish.categoryId) ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-300 text-gray-500 cursor-not-allowed',
+              newDish.name && newDish.stationId && newDish.categoryId
+                ? 'bg-blue-500 text-white hover:bg-blue-600'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed',
             ]">
             确认
           </button>
@@ -314,6 +322,30 @@
 <script setup>
 import { ref, computed, watch, onMounted } from "vue";
 import { DishService, OrderService } from "@/services";
+
+// 重量选项常量 - 在两个弹窗中复用
+const WEIGHT_OPTIONS = [
+  { value: '1 两', label: '1 两' },
+  { value: '2 两', label: '2 两' },
+  { value: '3 两', label: '3 两' },
+  { value: '4 两', label: '4 两' },
+  { value: '5 两', label: '5 两' },
+  { value: '6 两', label: '6 两' },
+  { value: '7 两', label: '7 两' },
+  { value: '8 两', label: '8 两' },
+  { value: '9 两', label: '9 两' },
+  { value: '1 斤', label: '1 斤' },
+  { value: '1 斤 1 两', label: '1 斤 1 两' },
+  { value: '1 斤 2 两', label: '1 斤 2 两' },
+  { value: '1 斤 3 两', label: '1 斤 3 两' },
+  { value: '1 斤 4 两', label: '1 斤 4 两' },
+  { value: '1 斤 5 两', label: '1 斤 5 两' },
+  { value: '1 斤 6 两', label: '1 斤 6 两' },
+  { value: '1 斤 7 两', label: '1 斤 7 两' },
+  { value: '1 斤 8 两', label: '1 斤 8 两' },
+  { value: '1 斤 9 两', label: '1 斤 9 两' },
+  { value: '2 斤', label: '2 斤' },
+];
 
 // Props
 const props = defineProps({
@@ -353,8 +385,8 @@ const newDish = ref({
   weight: "",
   remark: "",
   countable: false,
-  stationId: null, // 工位 ID
-  categoryId: null, // 分类 ID
+  categoryId: null,
+  stationId: null,
 });
 
 // 工位和分类数据
@@ -369,12 +401,20 @@ const dishesError = ref(null); // 添加错误状态
 
 // 计算属性
 const canSubmit = computed(() => {
-  return (
+  // 基础表单验证
+  const basicFormValid =
     personCount.value > 0 &&
     tableCount.value > 0 && // 桌数验证
     hallNumber.value &&
-    selectedDishes.value.length > 0
-  );
+    selectedDishes.value.length > 0;
+
+  // 如果没有选中菜品，直接返回 false
+  if (!basicFormValid) return false;
+
+  // 验证每个菜品的重量是否已填写
+  // const allDishesHaveWeight = selectedDishes.value.every(dish => dish.weight);
+
+  return basicFormValid;
 });
 
 // 计算是否有选中菜品
@@ -460,11 +500,20 @@ const closeAddDishModal = () => {
 };
 
 const confirmAddDish = async () => {
-  if (!newDish.value.name) return;
-  
-  // 验证工位和分类是否已选择
-  if (!newDish.value.stationId || !newDish.value.categoryId) {
-    console.error("请选择工位和分类");
+  if (!newDish.value.name) {
+    console.error("请输入菜品名称");
+    return;
+  }
+
+  // 验证分类是否已选择（工位会自动匹配）
+  if (!newDish.value.categoryId) {
+    console.error("请选择分类");
+    return;
+  }
+
+  // 验证工位是否已自动匹配
+  if (!newDish.value.stationId) {
+    console.error("无法自动匹配工位，请检查分类是否正确");
     return;
   }
 
@@ -489,7 +538,9 @@ const confirmAddDish = async () => {
       };
 
       selectedDishes.value.push(newDishItem);
-      allDishes.value.push(result.data);
+
+      // 刷新菜品列表，确保显示最新数据
+      await loadDishes();
 
       closeAddDishModal();
     }
@@ -505,18 +556,52 @@ const resetNewDishForm = () => {
     weight: "",
     remark: "",
     countable: false,
+    categoryId: null,
+    stationId: null,
   };
 };
 
+// 分类到工位的映射关系
+const categoryToStationMap = {
+  凉菜: "凉菜",
+  前菜: "热菜",
+  中菜: "热菜",
+  后菜: "热菜",
+  尾菜: "热菜",
+  点心: "点心",
+  蒸菜: "蒸煮",
+};
+
+// 根据分类自动选择工位
+const handleCategoryChange = () => {
+  const selectedCategory = categories.value.find((c) => c.id === newDish.value.categoryId);
+  if (selectedCategory) {
+    const stationName = categoryToStationMap[selectedCategory.name];
+    if (stationName) {
+      const station = stations.value.find((s) => s.name === stationName);
+      if (station) {
+        newDish.value.stationId = station.id;
+      }
+    }
+  }
+};
+
+// 获取工位名称
+const getStationName = (stationId) => {
+  if (!stationId) return "请先选择分类";
+  const station = stations.value.find((s) => s.id === stationId);
+  return station ? station.name : "";
+};
+
 const cancel = () => {
-  console.log('取消按钮被点击');
+  console.log("取消按钮被点击");
   resetForm();
   closeModal();
 };
 
 // 处理取消或清空按钮点击
 const handleCancelOrClear = () => {
-  console.log('按钮点击，hasSelectedDishes:', hasSelectedDishes.value);
+  console.log("按钮点击，hasSelectedDishes:", hasSelectedDishes.value);
   if (hasSelectedDishes.value) {
     clearSelectedDishes();
   } else {
@@ -526,9 +611,9 @@ const handleCancelOrClear = () => {
 
 // 清空已选菜品
 const clearSelectedDishes = () => {
-  console.log('清空已选菜品，当前数量:', selectedDishes.value.length);
+  console.log("清空已选菜品，当前数量:", selectedDishes.value.length);
   selectedDishes.value = [];
-  console.log('已选菜品已清空');
+  console.log("已选菜品已清空");
 };
 
 const submit = async () => {
@@ -634,13 +719,13 @@ const loadOptions = async () => {
   loadingOptions.value = true;
   try {
     const [stationsData, categoriesData] = await Promise.all([
-      import('@/services/api.js').then(({ api }) => api.stations.list()),
-      import('@/services/api.js').then(({ api }) => api.categories.list()),
+      import("@/services/api.js").then(({ api }) => api.stations.list()),
+      import("@/services/api.js").then(({ api }) => api.categories.list()),
     ]);
-    
+
     stations.value = stationsData || [];
     categories.value = categoriesData || [];
-    
+
     // 自动选择第一个工位和分类（如果有数据）
     if (stations.value.length > 0 && !newDish.value.stationId) {
       newDish.value.stationId = stations.value[0].id;
@@ -654,7 +739,6 @@ const loadOptions = async () => {
     loadingOptions.value = false;
   }
 };
-
 </script>
 
 <style scoped>

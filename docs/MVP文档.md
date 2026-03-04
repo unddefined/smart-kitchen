@@ -178,7 +178,7 @@ GET    /api/stations        # 获取工位列表
 
 订单已起菜时，status = 'serving'；订单被暂停时，status = 'started'；
 
-若某订单被催菜，该订单的status = 'urged'，然后在order_items的remark中增加“[台号]催菜”；当status = 'urged'并在上了一道菜后，该订单的status = 'serving'，删除催菜备注。
+若某订单被催菜，该订单的status = 'urged'，然后在order_items的details ui中增加“[台号]催菜”；当status = 'urged'并在上了一道菜后，该订单的status = 'serving'，删除催菜备注。
 
 红色卡片：优先出(催菜)，优先级3；
 
@@ -214,7 +214,7 @@ GET    /api/stations        # 获取工位列表
 
 再加一排按钮：起菜、催菜、加菜、暂停、退菜、录入订单
 
-点击起菜/催菜/暂停后，弹出一个表单容器（背景模糊），选择对应的台号（可多选），执行起菜/催菜/暂停操作，确认或取消；
+点击起菜/催菜/暂停后，弹出一个表单容器（背景模糊），选择对应的台号（可多选），执行起菜/催菜/暂停操作，确认或取消；弹窗中也要有状态检查。
 
 **body**
 

@@ -129,7 +129,7 @@ export class DishService {
         stationId: dishData.stationId,
         categoryId: dishData.categoryId,
         shortcutCode: dishData.shortcutCode || null,
-        recipe: dishData.recipe || null,
+        recipeId: dishData.recipeId || null,
         countable: dishData.countable || false,
       });
 
@@ -141,7 +141,7 @@ export class DishService {
     } catch (error) {
       return {
         success: false,
-        message: "菜品创建失败: " + error.message,
+        message: "菜品创建失败：" + error.message,
       };
     }
   }

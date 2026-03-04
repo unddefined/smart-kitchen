@@ -5,6 +5,108 @@ import { PrismaService } from '../prisma/prisma.service';
 export class OrdersService {
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * 检查并更新订单状态 - 如果订单进入用餐时间范围，自动将状态从 'created' 更新为 'started'
+   * 如果订单已过用餐时间范围，自动将状态更新为 'cancelled'
+   * 午餐：9:00-13:00
+   * 晚餐：16:00-20:00
+   */
+  private async checkAndUpdateOrderStatus(order: any) {
+    // 只有 created 或 started 状态的订单才需要检查
+    if (order.status !== 'created' && order.status !== 'started') {
+      return order;
+    }
+
+    // 检查是否有用餐时间设置
+    if (!order.mealTime) {
+      return order;
+    }
+
+    const now = new Date();
+    const mealTime = new Date(order.mealTime);
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentTimeInMinutes = currentHour * 60 + currentMinute;
+
+    // 判断是否为午餐或晚餐订单
+    const isLunch = order.mealType === 'lunch';
+    const isDinner = order.mealType === 'dinner';
+
+    // 检查是否到达用餐日期
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const mealDate = new Date(mealTime);
+    mealDate.setHours(0, 0, 0, 0);
+
+    // 如果还没到用餐日期，不更新状态
+    if (now < mealDate) {
+      return order;
+    }
+
+    // 检查是否在用餐时间范围内或已过期
+    let shouldStart = false;
+    let isExpired = false;
+
+    if (isLunch) {
+      // 午餐时间范围：9:00-13:00
+      const lunchStart = 9 * 60; // 9:00 = 540 分钟
+      const lunchEnd = 13 * 60; // 13:00 = 780 分钟
+
+      if (currentTimeInMinutes > lunchEnd) {
+        // 已过午餐时间
+        isExpired = true;
+      } else if (
+        currentTimeInMinutes >= lunchStart &&
+        currentTimeInMinutes <= lunchEnd
+      ) {
+        // 在午餐时间内
+        shouldStart = true;
+      }
+    } else if (isDinner) {
+      // 晚餐时间范围：16:00-20:00
+      const dinnerStart = 16 * 60; // 16:00 = 960 分钟
+      const dinnerEnd = 20 * 60; // 20:00 = 1200 分钟
+
+      if (currentTimeInMinutes > dinnerEnd) {
+        // 已过晚餐时间
+        isExpired = true;
+      } else if (
+        currentTimeInMinutes >= dinnerStart &&
+        currentTimeInMinutes <= dinnerEnd
+      ) {
+        // 在晚餐时间内
+        shouldStart = true;
+      }
+    } else {
+      // 其他类型（早餐等），默认在用餐时间开始后即可起菜
+      shouldStart = now >= mealTime;
+    }
+
+    // 如果已过期，更新状态为 'cancelled'
+    if (isExpired) {
+      return await this.prisma.order.update({
+        where: { id: order.id },
+        data: {
+          status: 'cancelled',
+          updatedAt: now,
+        },
+      });
+    }
+
+    // 如果在用餐时间范围内且当前状态是 created，更新状态为 'started'
+    if (shouldStart && order.status === 'created') {
+      return await this.prisma.order.update({
+        where: { id: order.id },
+        data: {
+          status: 'started',
+          updatedAt: now,
+        },
+      });
+    }
+
+    return order;
+  }
+
   async create(createOrderDto: any) {
     // 解析 mealTime 和 mealType
     // 前端传递的 mealTime 格式："2026-03-03 午餐" 或 "2026-03-03 晚餐"
@@ -75,7 +177,7 @@ export class OrdersService {
     });
   }
 
-  async findAll() {
+  async findAll(queryParams: any) {
     const orders = await this.prisma.order.findMany({
       include: {
         orderItems: true, // 先只包含 orderItems，不包含 dish
@@ -85,11 +187,14 @@ export class OrdersService {
       },
     });
 
-    // 手动获取每个订单项的菜品信息，避免 IN (NULL) 查询
-    const ordersWithDishes = await Promise.all(
+    // 检查并更新每个订单的状态，然后手动获取每个订单项的菜品信息
+    const updatedOrders = await Promise.all(
       orders.map(async (order) => {
+        // 检查并可能更新订单状态
+        const updatedOrder = await this.checkAndUpdateOrderStatus(order);
+
         const orderItemsWithDish = await Promise.all(
-          order.orderItems.map(async (item) => {
+          updatedOrder.orderItems.map(async (item) => {
             const dish = item.dishId
               ? await this.prisma.dish.findUnique({
                   where: { id: item.dishId },
@@ -108,13 +213,52 @@ export class OrdersService {
         );
 
         return {
-          ...order,
+          ...updatedOrder,
           orderItems: orderItemsWithDish,
         };
       }),
     );
 
-    return ordersWithDishes;
+    // 应用筛选条件
+    let filteredOrders = updatedOrders;
+
+    // 按日期筛选
+    if (queryParams.date) {
+      const filterDateStr = queryParams.date; // 格式："2026-03-04"
+      
+      filteredOrders = filteredOrders.filter((order) => {
+        if (!order.mealTime) return false;
+        
+        // mealTime 是 Date 对象或 ISO 字符串 "2026-03-03T04:00:00.000Z"
+        let orderDateStr;
+        
+        if (typeof order.mealTime === 'string') {
+          // ISO 字符串格式：2026-03-03T04:00:00.000Z
+          orderDateStr = order.mealTime.split('T')[0];
+        } else if (order.mealTime instanceof Date) {
+          // Date 对象
+          const d = order.mealTime;
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          orderDateStr = `${year}-${month}-${day}`;
+        } else {
+          return false;
+        }
+        
+        // 比较日期字符串
+        return orderDateStr === filterDateStr;
+      });
+    }
+
+    // 按餐型筛选
+    if (queryParams.mealType) {
+      filteredOrders = filteredOrders.filter(
+        (order) => order.mealType === queryParams.mealType,
+      );
+    }
+
+    return filteredOrders;
   }
 
   async findOne(id: number) {
@@ -129,9 +273,12 @@ export class OrdersService {
       return null;
     }
 
+    // 检查并可能更新订单状态
+    const updatedOrder = await this.checkAndUpdateOrderStatus(order);
+
     // 手动获取每个订单项的菜品信息
     const orderItemsWithDish = await Promise.all(
-      order.orderItems.map(async (item) => {
+      updatedOrder.orderItems.map(async (item) => {
         const dish = item.dishId
           ? await this.prisma.dish.findUnique({
               where: { id: item.dishId },
@@ -150,7 +297,7 @@ export class OrdersService {
     );
 
     return {
-      ...order,
+      ...updatedOrder,
       orderItems: orderItemsWithDish,
     };
   }
@@ -240,7 +387,149 @@ export class OrdersService {
     });
   }
 
+  /**
+   * 起菜 - 将订单状态更新为 serving 并设置起菜时间
+   * 只有 started 状态的订单可以起菜
+   */
+  async startServing(id: number) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+    });
+
+    if (!order) {
+      throw new Error('订单不存在');
+    }
+
+    // 检查订单状态，只有 started 状态的订单可以起菜
+    if (order.status !== 'started') {
+      throw new Error('只有待起菜状态的订单可以起菜');
+    }
+
+    return await this.prisma.order.update({
+      where: { id },
+      data: {
+        status: 'serving',
+        startTime: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  /**
+   * 催菜 - 将订单状态更新为 urged
+   */
+  async urgeOrder(id: number) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+    });
+
+    if (!order) {
+      throw new Error('订单不存在');
+    }
+
+    // 检查订单状态，只有 serving 状态的订单可以催菜
+    if (order.status !== 'serving') {
+      throw new Error('只有出餐中的订单可以催菜');
+    }
+
+    // 只更新订单状态为 urged
+    return await this.prisma.order.update({
+      where: { id },
+      data: {
+        status: 'urged',
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  /**
+   * 暂停 - 将订单状态更新为 started
+   * 可以从 serving 或 urged 状态切换到 started
+   */
+  async pauseOrder(id: number) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+    });
+
+    if (!order) {
+      throw new Error('订单不存在');
+    }
+
+    // 检查订单状态，只有 serving 或 urged 状态的订单可以暂停
+    if (order.status !== 'serving' && order.status !== 'urged') {
+      throw new Error('只有出餐中或催菜状态的订单可以暂停');
+    }
+
+    return await this.prisma.order.update({
+      where: { id },
+      data: {
+        status: 'started',
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  /**
+   * 恢复 - 催菜后上了一道菜时自动恢复为 serving
+   * 当 status = 'urged' 并在上了一道菜后，该订单的 status = 'serving'
+   */
+  async resumeOrderAfterServe(id: number) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: {
+        orderItems: true,
+      },
+    });
+
+    if (!order) {
+      throw new Error('订单不存在');
+    }
+
+    // 只有在 urged 状态下才执行恢复逻辑
+    if (order.status !== 'urged') {
+      return order;
+    }
+
+    // 检查是否有已上菜的菜品
+    const hasServedItems = order.orderItems.some(
+      (item) => item.status === 'served',
+    );
+
+    if (hasServedItems) {
+      // 恢复订单状态为 serving
+      return await this.prisma.order.update({
+        where: { id },
+        data: {
+          status: 'serving',
+          updatedAt: new Date(),
+        },
+      });
+    }
+
+    return order;
+  }
+
   async remove(id: number) {
-    return await this.prisma.order.delete({ where: { id } });
+    // 首先验证订单是否存在
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+    });
+
+    if (!order) {
+      throw new Error('订单不存在');
+    }
+
+    // 使用事务同时删除订单及其关联项
+    return this.prisma.$transaction(async (tx) => {
+      // 删除所有订单项
+      await tx.orderItem.deleteMany({
+        where: { orderId: id },
+      });
+
+      // 删除订单本身
+      await tx.order.delete({
+        where: { id },
+      });
+    });
   }
 }
