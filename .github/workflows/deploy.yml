@@ -14,7 +14,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  DATABASE_URL: postgresql://smart_admin:13814349230cX@pgm-2ze353m6093d70a7mo.pg.rds.aliyuncs.com:5432/smart_kitchen
+  DATABASE_URL: postgresql://smart_admin:13814349230cX@localhost:5432/smart_kitchen
 
 jobs:
   # ================================
