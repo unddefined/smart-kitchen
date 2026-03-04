@@ -127,6 +127,17 @@
           编辑订单信息
         </button>
       </div>
+      <!-- 完成订单按钮 - 当所有菜品上完后显示 -->
+      <button
+        @click="showCompleteConfirm"
+        v-if="canCompleteOrder"
+        :class="[
+          'flex-1 py-2 px-3 mt-3 w-full border rounded-lg text-base cursor-pointer transition-all duration-200 whitespace-nowrap',
+          'border-green-300 bg-green-50 text-green-700 hover:bg-green-100 hover:border-green-400',
+        ]">
+        完成订单
+      </button>
+      <!-- 取消订单按钮 -->
       <button
         @click="showCancelConfirm"
         :disabled="isCancelButtonDisabled"
@@ -180,6 +191,37 @@
               isCancelling ? 'bg-red-300 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 hover:-translate-y-0.5',
             ]">
             {{ isCancelling ? "取消中..." : "确认取消" }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 完成订单确认弹窗 -->
+    <div v-if="showCompleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+        <div class="text-center mb-6">
+          <div class="text-5xl mb-4">✓</div>
+          <h3 class="text-xl font-bold text-gray-800 mb-2">确认完成订单</h3>
+          <p class="text-gray-600">确定要完成订单 #{{ orderDetail?.id }} 吗？</p>
+          <div class="mt-4 p-3 bg-green-50 rounded-lg">
+            <p class="text-green-700 text-sm font-medium">所有菜品已上完，订单完成后将无法修改</p>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <button
+            @click="hideCompleteConfirm"
+            class="flex-1 py-3 px-4 border border-gray-300 rounded-lg bg-white text-gray-800 text-base cursor-pointer transition-all duration-200 hover:bg-gray-50">
+            取消
+          </button>
+          <button
+            @click="confirmCompleteOrder"
+            :disabled="isCompleting"
+            :class="[
+              'flex-1 py-3 px-4 rounded-lg text-white text-base cursor-pointer transition-all duration-200',
+              isCompleting ? 'bg-green-300 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600 hover:-translate-y-0.5',
+            ]">
+            {{ isCompleting ? "完成中..." : "确认完成" }}
           </button>
         </div>
       </div>
@@ -239,14 +281,25 @@ const loading = ref(false);
 const error = ref(null);
 const showCancelModal = ref(false);
 const showDeleteModal = ref(false);
+const showCompleteModal = ref(false);
 const isCancelling = ref(false);
 const isDeleting = ref(false);
+const isCompleting = ref(false);
 
 // 计算属性 - 判断取消按钮是否禁用
 const isCancelButtonDisabled = computed(() => {
   if (!orderDetail.value) return true;
   // 已完成或已取消的订单不能再次取消
   return orderDetail.value.status === "done" || orderDetail.value.status === "cancelled";
+});
+
+// 计算属性 - 判断是否可以完成订单
+const canCompleteOrder = computed(() => {
+  if (!orderDetail.value) return false;
+  // 只有出餐中或催菜状态的订单，且所有菜品都已上完才能完成
+  const isServingStatus = orderDetail.value.status === "serving" || orderDetail.value.status === "urged";
+  const allItemsServed = pendingDishes.value.length === 0;
+  return isServingStatus && allItemsServed;
 });
 
 // 获取菜品优先级对应的CSS类
@@ -367,6 +420,55 @@ const confirmCancelOrder = async () => {
     alert("取消订单失败：" + (error.message || "未知错误"));
   } finally {
     isCancelling.value = false;
+  }
+};
+
+// 完成订单相关方法
+const showCompleteConfirm = () => {
+  if (!canCompleteOrder.value) return;
+  showCompleteModal.value = true;
+};
+
+const hideCompleteConfirm = () => {
+  showCompleteModal.value = false;
+};
+
+const confirmCompleteOrder = async () => {
+  if (isCompleting.value) return;
+
+  try {
+    isCompleting.value = true;
+
+    // 确保 orderId 是数字类型
+    const orderId = parseInt(props.orderId);
+    if (isNaN(orderId)) {
+      throw new Error("无效的订单 ID");
+    }
+
+    const result = await OrderService.completeOrder(orderId);
+
+    if (result.success) {
+      // 更新本地订单状态
+      if (orderDetail.value) {
+        orderDetail.value.status = "done";
+      }
+
+      // 隐藏确认弹窗
+      hideCompleteConfirm();
+
+      // 通知父组件订单已完成
+      emit("orderCancelled", orderId);
+
+      // 显示成功提示
+      alert("订单完成成功");
+    } else {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error("完成订单失败:", error);
+    alert("完成订单失败：" + (error.message || "未知错误"));
+  } finally {
+    isCompleting.value = false;
   }
 };
 

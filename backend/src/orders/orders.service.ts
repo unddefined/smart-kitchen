@@ -8,8 +8,8 @@ export class OrdersService {
   /**
    * 检查并更新订单状态 - 如果订单进入用餐时间范围，自动将状态从 'created' 更新为 'started'
    * 如果订单已过用餐时间范围，自动将状态更新为 'cancelled'
-   * 午餐：9:00-13:00
-   * 晚餐：16:00-20:00
+   * 午餐：9:00-14:00
+   * 晚餐：15:00-21:00
    */
   private async checkAndUpdateOrderStatus(order: any) {
     // 只有 created 或 started 状态的订单才需要检查
@@ -48,9 +48,9 @@ export class OrdersService {
     let isExpired = false;
 
     if (isLunch) {
-      // 午餐时间范围：9:00-13:00
+      // 午餐时间范围：9:00-14:00
       const lunchStart = 9 * 60; // 9:00 = 540 分钟
-      const lunchEnd = 13 * 60; // 13:00 = 780 分钟
+      const lunchEnd = 14 * 60; // 14:00 = 840 分钟
 
       if (currentTimeInMinutes > lunchEnd) {
         // 已过午餐时间
@@ -63,8 +63,8 @@ export class OrdersService {
         shouldStart = true;
       }
     } else if (isDinner) {
-      // 晚餐时间范围：16:00-20:00
-      const dinnerStart = 16 * 60; // 16:00 = 960 分钟
+      // 晚餐时间范围：15:00-21:00
+      const dinnerStart = 15 * 60; // 15:00 = 900 分钟
       const dinnerEnd = 20 * 60; // 20:00 = 1200 分钟
 
       if (currentTimeInMinutes > dinnerEnd) {
@@ -225,13 +225,13 @@ export class OrdersService {
     // 按日期筛选
     if (queryParams.date) {
       const filterDateStr = queryParams.date; // 格式："2026-03-04"
-      
+
       filteredOrders = filteredOrders.filter((order) => {
         if (!order.mealTime) return false;
-        
+
         // mealTime 是 Date 对象或 ISO 字符串 "2026-03-03T04:00:00.000Z"
         let orderDateStr;
-        
+
         if (typeof order.mealTime === 'string') {
           // ISO 字符串格式：2026-03-03T04:00:00.000Z
           orderDateStr = order.mealTime.split('T')[0];
@@ -245,7 +245,7 @@ export class OrdersService {
         } else {
           return false;
         }
-        
+
         // 比较日期字符串
         return orderDateStr === filterDateStr;
       });
@@ -530,6 +530,40 @@ export class OrdersService {
       await tx.order.delete({
         where: { id },
       });
+    });
+  }
+
+  /**
+   * 完成订单 - 手动将订单状态更新为 done
+   * 当订单的所有菜品都上完后，也可以手动确认完成
+   */
+  async completeOrder(id: number) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: {
+        orderItems: true,
+      },
+    });
+
+    if (!order) {
+      throw new Error('订单不存在');
+    }
+
+    // 检查是否所有菜品都已上完
+    const allItemsServed = order.orderItems.every(
+      (item) => item.status === 'served',
+    );
+
+    if (!allItemsServed) {
+      throw new Error('仍有菜品未上完，无法完成订单');
+    }
+
+    return await this.prisma.order.update({
+      where: { id },
+      data: {
+        status: 'done',
+        updatedAt: new Date(),
+      },
     });
   }
 }

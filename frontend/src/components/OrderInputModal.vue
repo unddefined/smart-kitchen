@@ -2,7 +2,7 @@
 <template>
   <Teleport to="#modal-container">
     <!-- 主订单录入弹窗 -->
-    <div v-if="visible" class="fixed inset-0 bg-black bg-opacity-50 flex items-end z-2000">
+    <div v-if="visible" class="fixed inset-0 bg-black bg-opacity-50 flex items-end z-2000" @click.self="closeModal">
       <div class="bg-white w-full rounded-t-2xl max-h-[90vh] flex flex-col min-h-[400px]">
         <!-- 头部 -->
         <div class="p-4 border-b flex items-center justify-between">
@@ -49,17 +49,29 @@
           <!-- 用餐时间 -->
           <div class="flex space-x-4 items-center">
             <label class="text-xl font-medium text-gray-700 whitespace-nowrap">用餐时间</label>
-            <div class="flex space-x-2">
+            <div class="flex space-x-2 items-center flex-nowrap">
               <input
                 v-model="mealDate"
                 type="date"
-                class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <select
-                v-model="mealTime"
-                class="w-18 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="午餐">午餐</option>
-                <option value="晚餐">晚餐</option>
-              </select>
+                class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]" />
+              <span class="flex rounded overflow-hidden">
+                <button
+                  :class="[
+                    'px-3 py-1 border-r border-gray-300 text-xl cursor-pointer transition-all duration-200',
+                    mealTime === '午餐' ? 'bg-blue-500 text-white' : 'hover:bg-gray-100',
+                  ]"
+                  @click="mealTime = '午餐'">
+                  午
+                </button>
+                <button
+                  :class="[
+                    'px-3 py-1 border-gray-300 text-xl cursor-pointer transition-all duration-200',
+                    mealTime === '晚餐' ? 'bg-blue-500 text-white' : 'hover:bg-gray-100',
+                  ]"
+                  @click="mealTime = '晚餐'">
+                  晚
+                </button>
+              </span>
             </div>
           </div>
 
@@ -325,26 +337,26 @@ import { DishService, OrderService } from "@/services";
 
 // 重量选项常量 - 在两个弹窗中复用
 const WEIGHT_OPTIONS = [
-  { value: '1 两', label: '1 两' },
-  { value: '2 两', label: '2 两' },
-  { value: '3 两', label: '3 两' },
-  { value: '4 两', label: '4 两' },
-  { value: '5 两', label: '5 两' },
-  { value: '6 两', label: '6 两' },
-  { value: '7 两', label: '7 两' },
-  { value: '8 两', label: '8 两' },
-  { value: '9 两', label: '9 两' },
-  { value: '1 斤', label: '1 斤' },
-  { value: '1 斤 1 两', label: '1 斤 1 两' },
-  { value: '1 斤 2 两', label: '1 斤 2 两' },
-  { value: '1 斤 3 两', label: '1 斤 3 两' },
-  { value: '1 斤 4 两', label: '1 斤 4 两' },
-  { value: '1 斤 5 两', label: '1 斤 5 两' },
-  { value: '1 斤 6 两', label: '1 斤 6 两' },
-  { value: '1 斤 7 两', label: '1 斤 7 两' },
-  { value: '1 斤 8 两', label: '1 斤 8 两' },
-  { value: '1 斤 9 两', label: '1 斤 9 两' },
-  { value: '2 斤', label: '2 斤' },
+  { value: "1 两", label: "1 两" },
+  { value: "2 两", label: "2 两" },
+  { value: "3 两", label: "3 两" },
+  { value: "4 两", label: "4 两" },
+  { value: "5 两", label: "5 两" },
+  { value: "6 两", label: "6 两" },
+  { value: "7 两", label: "7 两" },
+  { value: "8 两", label: "8 两" },
+  { value: "9 两", label: "9 两" },
+  { value: "1 斤", label: "1 斤" },
+  { value: "1 斤 1 两", label: "1 斤 1 两" },
+  { value: "1 斤 2 两", label: "1 斤 2 两" },
+  { value: "1 斤 3 两", label: "1 斤 3 两" },
+  { value: "1 斤 4 两", label: "1 斤 4 两" },
+  { value: "1 斤 5 两", label: "1 斤 5 两" },
+  { value: "1 斤 6 两", label: "1 斤 6 两" },
+  { value: "1 斤 7 两", label: "1 斤 7 两" },
+  { value: "1 斤 8 两", label: "1 斤 8 两" },
+  { value: "1 斤 9 两", label: "1 斤 9 两" },
+  { value: "2 斤", label: "2 斤" },
 ];
 
 // Props
@@ -363,12 +375,31 @@ const props = defineProps({
 // Emits
 const emit = defineEmits(["update:visible", "submit", "close"]);
 
+// 根据当前时间获取用餐时间
+const getDefaultMealTime = () => {
+  const now = new Date();
+  const hour = now.getHours();
+
+  // 9:00-15:00 为午餐时段
+  if (hour >= 9 && hour < 15) {
+    return "午餐";
+  }
+  // 15:00-24:00 为晚餐时段
+  else if (hour >= 15 && hour < 24) {
+    return "晚餐";
+  }
+  // 0:00-9:00 默认返回午餐（第二天早餐时段）
+  else {
+    return "午餐";
+  }
+};
+
 // 状态
 const personCount = ref(1);
 const tableCount = ref(1); // 桌数字段
 const hallNumber = ref("");
 const mealDate = ref(new Date().toISOString().split("T")[0]);
-const mealTime = ref("午餐");
+const mealTime = ref(getDefaultMealTime());
 const selectedDishes = ref([]);
 
 // 弹窗状态
@@ -667,7 +698,7 @@ const resetForm = () => {
   tableCount.value = 1;
   hallNumber.value = "";
   mealDate.value = new Date().toISOString().split("T")[0];
-  mealTime.value = "午餐";
+  mealTime.value = getDefaultMealTime();
   // 注意：不重置 selectedDishes，以保持已选菜品状态用于下一张订单
 };
 

@@ -416,6 +416,24 @@ export class OrderService {
       };
     }
   }
+
+  // 完成订单 - 当所有菜品上完后手动确认完成
+  static async completeOrder(orderId) {
+    try {
+      const order = await api.orders.complete(orderId);
+      
+      return {
+        success: true,
+        message: "订单已完成",
+        data: order,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: "订单完成失败: " + error.message,
+      };
+    }
+  }
 }
 
 // 同时导出实例以保持向后兼容
