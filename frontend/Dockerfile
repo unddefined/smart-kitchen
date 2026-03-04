@@ -16,7 +16,7 @@ RUN --mount=type=cache,target=/root/.npm \
 COPY . .
 
 # 构建
-RUN npm run build
+RUN npm run build:prod
 
 # =========================
 # Production stage

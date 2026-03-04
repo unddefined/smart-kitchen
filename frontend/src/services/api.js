@@ -56,6 +56,13 @@ export const api = {
         body: JSON.stringify({ status }),
       }),
 
+    // 更新订单信息（人数、台号、状态、用餐时间等）
+    update: (id, updateData) =>
+      request(`/api/orders/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(updateData),
+      }),
+
     // 取消订单
     cancel: (id) =>
       request(`/api/orders/${id}/cancel`, {
