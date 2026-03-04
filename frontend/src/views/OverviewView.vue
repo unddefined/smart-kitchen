@@ -93,9 +93,14 @@
             </div>
 
             <!-- 菜品详细标注 -->
-            <div
-              class="text-lg text-gray-800 leading-relaxed font-medium flex flex-col items-center justify-center"
-            >
+            <div class="text-lg text-gray-800 leading-relaxed font-medium flex flex-col items-center justify-center">
+              <!-- 催菜提示 - 当优先级为 3 时显示 -->
+              <div
+                v-if="dish.priority === 3"
+                class="text-red-600 font-bold text-center mb-1"
+              >
+                催菜
+              </div>
               <div
                 v-for="(detail, idx) in dish.displayDetails"
                 :key="idx"

@@ -38,26 +38,19 @@
         <!-- 右侧：日期选择 + 午/晚餐切换 -->
         <div class="text-right flex items-center">
           <!-- 隐藏原生日期输入框，只用于数据绑定 -->
-          <input 
-            type="date" 
-            v-model="selectedDate" 
-            ref="dateInput"
-            class="hidden"
-            @change="handleDateChange"
-          />
+          <input type="date" v-model="selectedDate" ref="dateInput" class="hidden" @change="handleDateChange" />
           <!-- 自定义日期显示 -->
-          <div 
-            class="flex items-center text-gray-600 text-xl cursor-pointer mr-3 group text-bold"
-            @click="openDatePicker"
-          >
+          <div class="flex items-center text-gray-600 text-xl cursor-pointer mr-3 group text-bold" @click="openDatePicker">
             <span class="mr-1">{{ currentDate }}</span>
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              class="h-5 w-5 text-gray-400 group-hover:text-blue-500 transition-colors duration-200" 
-              viewBox="0 0 20 20" 
-              fill="currentColor"
-            >
-              <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5 text-gray-400 group-hover:text-blue-500 transition-colors duration-200"
+              viewBox="0 0 20 20"
+              fill="currentColor">
+              <path
+                fill-rule="evenodd"
+                d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                clip-rule="evenodd" />
             </svg>
           </div>
           <span>
@@ -81,16 +74,24 @@
         </div>
       </div>
 
-      <!-- 功能按钮区域：起菜、催菜、加菜、暂缓、退菜、录入订单 -->
+      <!-- 功能按钮区域：起菜、催菜、加菜、暂停、退菜、录入订单 -->
       <div class="flex w-full justify-between text-black gap-1">
         <button
-          class="py-1.5 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
-          @click="handleStartDish">
+          :class="[
+            'py-1.5 border-none rounded-lg text-base font-medium cursor-pointer transition-all duration-200 text-center flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]',
+            canStartDish || activeTab === 'overview' ? ' text-black hover:bg-blue-600 bg-gray-300' : 'bg-gray-300 text-gray-400 cursor-not-allowed',
+          ]"
+          @click="showActionModal('start')"
+          :disabled="!canStartDish && activeTab !== 'overview'">
           起菜
         </button>
         <button
-          class="py-1.5 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
-          @click="handleUrgentDish">
+          :class="[
+            'py-1.5 border-none rounded-lg text-base font-medium cursor-pointer transition-all duration-200 text-center flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]',
+            canUrgentDish || activeTab === 'overview' ? ' text-black hover:bg-red-600 bg-gray-300' : 'bg-gray-300 text-gray-400 cursor-not-allowed',
+          ]"
+          @click="showActionModal('urgent')"
+          :disabled="!canUrgentDish && activeTab !== 'overview'">
           催菜
         </button>
         <button
@@ -99,8 +100,12 @@
           加菜
         </button>
         <button
-          class="py-1.5 border-none rounded-lg text-base font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
-          @click="handlePauseDish">
+          :class="[
+            'py-1.5 border-none rounded-lg text-base font-medium cursor-pointer transition-all duration-200 text-center flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]',
+            canPauseDish || activeTab === 'overview' ? ' text-black hover:bg-yellow-600 bg-gray-300' : 'bg-gray-300 text-gray-400 cursor-not-allowed',
+          ]"
+          @click="showActionModal('pause')"
+          :disabled="!canPauseDish && activeTab !== 'overview'">
           暂停
         </button>
         <button
@@ -157,12 +162,106 @@
           @dish-action="handleDishAction" />
 
         <!-- 订单详情视图 -->
-        <OrderView v-else-if="activeTab.startsWith('order-')" :order-id="activeOrderId" @back="activeTab = 'overview'" />
+        <OrderView
+          v-else-if="activeTab.startsWith('order-')"
+          :order-id="activeOrderId"
+          @back="activeTab = 'overview'"
+          @orderCancelled="handleOrderDeleted"
+          @orderDeleted="handleOrderDeleted" />
       </div>
     </main>
 
-    <!-- 订单录入弹窗 -->
+    <!-- 录入订单弹窗 -->
     <OrderInputModal v-model:visible="showOrderModal" @submit="handleOrderSubmit" />
+
+    <!-- 起菜/催菜/暂停操作弹窗 -->
+    <div
+      v-if="showActionModalVisible"
+      class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      @click="closeActionModal">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all" @click.stop>
+        <!-- 弹窗标题 -->
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-2xl font-semibold text-gray-800">{{ actionModalTitle }}</h3>
+        </div>
+
+        <!-- 弹窗内容 -->
+        <div class="p-6">
+          <!-- 当前订单信息 -->
+          <div class="mb-4 p-3 bg-blue-50 rounded-lg" :class="getStatusCardClass()">
+            <p class="text-sm text-gray-600">当前订单</p>
+            <p class="text-base font-medium text-gray-800 mt-1">{{ currentOrderInfo }}</p>
+            <p class="text-sm text-gray-600 mb-1 mt-1">当前状态</p>
+            <p class="text-base font-semibold">{{ getStatusText() }}</p>
+          </div>
+
+          <!-- 操作类型提示 -->
+          <div v-if="currentActionType === 'start'" class="mb-4 p-3 bg-green-50 border-l-4 border-green-500 rounded">
+            <p class="text-sm text-green-700"><span class="font-semibold">起菜说明：</span>将订单状态从"待起菜"变更为"出餐中"</p>
+          </div>
+          <div v-else-if="currentActionType === 'urgent'" class="mb-4 p-3 bg-red-50 border-l-4 border-red-500 rounded">
+            <p class="text-sm text-red-700"><span class="font-semibold">催菜说明：</span>标记为催菜订单，前端将显示"[台号] 催菜"提示</p>
+          </div>
+          <div v-else-if="currentActionType === 'pause'" class="mb-4 p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded">
+            <p class="text-sm text-yellow-700"><span class="font-semibold">暂停说明：</span>将订单状态恢复为"待起菜"，需要重新起菜才能继续出餐</p>
+          </div>
+
+          <!-- 台号选择 -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2"> 选择台号（可多选） </label>
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                v-for="table in availableTables"
+                :key="table"
+                @click="toggleTableSelection(table)"
+                :disabled="!canPerformAction()"
+                :class="[
+                  'py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200',
+                  !canPerformAction()
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : selectedTables.includes(table)
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+                ]">
+                {{ table }}
+              </button>
+            </div>
+          </div>
+
+          <!-- 已选台号显示 -->
+          <div v-if="selectedTables.length > 0" class="mb-4 p-3 bg-gray-50 rounded-lg">
+            <p class="text-sm text-gray-600">已选择</p>
+            <div class="flex flex-wrap gap-2 mt-2">
+              <span
+                v-for="table in selectedTables"
+                :key="table"
+                class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700">
+                {{ table }}
+                <button @click="toggleTableSelection(table)" class="ml-2 text-blue-500 hover:text-blue-700">×</button>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 弹窗底部按钮 -->
+        <div class="px-6 py-4 border-t border-gray-200 flex gap-3 justify-end">
+          <button
+            @click="closeActionModal"
+            class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-base font-medium cursor-pointer transition-all duration-200 hover:bg-gray-200">
+            取消
+          </button>
+          <button
+            @click="confirmAction"
+            :disabled="selectedTables.length === 0 || !canPerformAction()"
+            :class="[
+              'px-5 py-2.5 rounded-lg text-base font-medium cursor-pointer transition-all duration-200',
+              selectedTables.length === 0 || !canPerformAction() ? 'bg-gray-300 text-gray-400 cursor-not-allowed' : actionButtonColor,
+            ]">
+            确认
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- 侧边栏（员工信息详情） -->
     <div v-if="showSidebar" class="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-start" @click="toggleSidebar">
@@ -200,7 +299,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, nextTick, watch } from "vue";
 import OverviewView from "./OverviewView.vue";
 import OrderView from "./OrderView.vue";
 import OrderInputModal from "../components/OrderInputModal.vue";
@@ -209,11 +308,10 @@ import { OrderService } from "@/services";
 // 响应式数据
 const mealType = ref("lunch");
 const activeTab = ref("overview");
-const showOrderModal = ref(false);
 const showSidebar = ref(false);
 const loading = ref(false);
 const error = ref(null);
-const selectedDate = ref(new Date().toISOString().split('T')[0]); // 初始化为今天
+const selectedDate = ref(new Date().toISOString().split("T")[0]); // 初始化为今天
 const dateInput = ref(null); // 添加对日期输入框的引用
 
 // 真实订单数据
@@ -282,12 +380,168 @@ const mockServedDishes = ref([
   },
 ]);
 
+// 录入订单弹窗
+const showOrderModal = ref(false);
+
+// 起菜/催菜/暂停操作弹窗相关状态
+const showActionModalVisible = ref(false);
+const currentActionType = ref("start"); // 'start' | 'urgent' | 'pause'
+const selectedTables = ref([]); // string[]
+const availableTables = ref(["1 台", "2 台", "3 台", "4 台", "5 台", "6 台", "7 台", "8 台"]);
+
+// 计算属性：弹窗标题
+const actionModalTitle = computed(() => {
+  const titles = {
+    start: "起菜操作",
+    urgent: "催菜操作",
+    pause: "暂停操作",
+  };
+  return titles[currentActionType.value];
+});
+
+// 计算属性：当前订单信息
+const currentOrderInfo = computed(() => {
+  if (!activeOrderId.value) return "未选择订单";
+  const order = orders.value.find((o) => o.id === activeOrderId.value);
+  if (!order) return "订单不存在";
+  return `${order.hallNumber} - ${order.status === "started" ? "待起菜" : order.status === "serving" ? "出餐中" : order.status === "urged" ? "已催菜" : order.status}`;
+});
+
+// 计算属性：确认按钮颜色
+const actionButtonColor = computed(() => {
+  const colors = {
+    start: "bg-blue-500 text-white hover:bg-blue-600",
+    urgent: "bg-red-500 text-white hover:bg-red-600",
+    pause: "bg-yellow-500 text-white hover:bg-yellow-600",
+  };
+  return colors[currentActionType.value];
+});
+
+// 获取当前订单状态卡片样式
+const getStatusCardClass = () => {
+  if (!activeOrderId.value) return "bg-gray-100 border-gray-400";
+
+  const order = orders.value.find((o) => o.id === activeOrderId.value);
+  if (!order) return "bg-gray-100 border-gray-400";
+
+  const statusClasses = {
+    created: "bg-gray-50 border-gray-500",
+    started: "bg-blue-50 border-blue-500",
+    serving: "bg-green-50 border-green-500",
+    urged: "bg-red-50 border-red-500",
+    done: "bg-purple-50 border-purple-500",
+    cancelled: "bg-red-50 border-red-400",
+  };
+
+  return statusClasses[order.status] || "bg-gray-100 border-gray-400";
+};
+
+// 获取当前订单状态文本
+const getStatusText = () => {
+  if (!activeOrderId.value) return "未选择订单";
+
+  const order = orders.value.find((o) => o.id === activeOrderId.value);
+  if (!order) return "订单不存在";
+
+  const statusMap = {
+    created: "待处理",
+    started: "待起菜",
+    serving: "出餐中",
+    urged: "已催菜",
+    done: "已完成",
+    cancelled: "已取消",
+  };
+
+  return statusMap[order.status] || order.status;
+};
+
+// 获取当前订单状态图标
+const getStatusIcon = () => {
+  if (!activeOrderId.value) return "❓";
+
+  const order = orders.value.find((o) => o.id === activeOrderId.value);
+  if (!order) return "❓";
+
+  const iconMap = {
+    created: "📋",
+    started: "⏳",
+    serving: "🍽️",
+    urged: "🔥",
+    done: "✅",
+    cancelled: "❌",
+  };
+
+  return iconMap[order.status] || "❓";
+};
+
+// 检查是否可以执行操作
+const canPerformAction = () => {
+  if (!activeOrderId.value) return false;
+
+  const order = orders.value.find((o) => o.id === activeOrderId.value);
+  if (!order) return false;
+
+  // 根据操作类型检查订单状态
+  switch (currentActionType.value) {
+    case "start":
+      return order.status === "started";
+    case "urgent":
+      return order.status === "serving";
+    case "pause":
+      return order.status === "serving" || order.status === "urged";
+    default:
+      return false;
+  }
+};
+
+// 获取操作被禁用的原因
+const getActionDisabledReason = () => {
+  if (!activeOrderId.value) return "请先选择一个订单";
+
+  const order = orders.value.find((o) => o.id === activeOrderId.value);
+  if (!order) return "订单不存在";
+
+  const actionNames = {
+    start: "起菜",
+    urgent: "催菜",
+    pause: "暂停",
+  };
+
+  const reasonMap = {
+    start: {
+      allowed: ["started"],
+      message: '该订单处于"{status}"状态，无法执行起菜操作（需要"待起菜"状态）',
+    },
+    urgent: {
+      allowed: ["serving"],
+      message: '该订单处于"{status}"状态，无法执行催菜操作（需要"出餐中"状态）',
+    },
+    pause: {
+      allowed: ["serving", "urged"],
+      message: '该订单处于"{status}"状态，无法执行暂停操作（需要"出餐中"或"已催菜"状态）',
+    },
+  };
+
+  const config = reasonMap[currentActionType.value];
+  const statusMap = {
+    created: "待处理",
+    started: "待起菜",
+    serving: "出餐中",
+    urged: "已催菜",
+    done: "已完成",
+    cancelled: "已取消",
+  };
+
+  const currentStatus = statusMap[order.status] || order.status;
+  return config.message.replace("{status}", currentStatus);
+};
+
 // 计算属性
 const currentDate = computed(() => {
   const date = new Date(selectedDate.value);
   const currentYear = new Date().getFullYear();
   const selectedYear = date.getFullYear();
-  
+
   // 只有当选中的年份不是当前年份时才显示年份
   if (selectedYear !== currentYear) {
     return `${selectedYear}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -318,6 +572,26 @@ const doneCount = computed(() => {
   return orders.value.filter((order) => order.status === "done").length;
 });
 
+// 按钮状态计算属性
+const canStartDish = computed(() => {
+  if (!activeOrderId.value) return false;
+  const order = orders.value.find((o) => o.id === activeOrderId.value);
+  return order?.status === "started";
+});
+
+const canUrgentDish = computed(() => {
+  if (!activeOrderId.value) return false;
+  const order = orders.value.find((o) => o.id === activeOrderId.value);
+  return order?.status === "serving";
+});
+
+const canPauseDish = computed(() => {
+  if (!activeOrderId.value) return false;
+  const order = orders.value.find((o) => o.id === activeOrderId.value);
+  // 可以从 serving 或 urged 状态暂停
+  return order?.status === "serving" || order?.status === "urged";
+});
+
 // 方法
 const toggleSidebar = () => {
   showSidebar.value = !showSidebar.value;
@@ -329,7 +603,15 @@ const loadOrders = async () => {
     loading.value = true;
     error.value = null;
 
-    const orderList = await OrderService.getOrders();
+    // 构建筛选参数
+    const filterParams = {
+      date: selectedDate.value,
+      mealType: mealType.value,
+    };
+
+    console.log('加载订单，筛选条件:', filterParams);
+
+    const orderList = await OrderService.getOrders(filterParams);
     orders.value = orderList.map((order) => ({
       id: order.id,
       hallNumber: order.hallNumber,
@@ -337,9 +619,13 @@ const loadOrders = async () => {
       tableCount: order.tableCount,
       status: order.status,
       createdAt: order.createdAt,
+      mealType: order.mealType,
+      mealTime: order.mealTime,
       hasUrgentItems: checkHasUrgentItems(order),
       isNotServing: order.status !== "serving" && order.status !== "urged",
     }));
+
+    console.log('加载完成的订单数:', orders.value.length);
   } catch (err) {
     console.error("加载订单失败:", err);
     error.value = "加载订单数据失败，请检查网络连接";
@@ -360,29 +646,35 @@ const refreshOrders = async () => {
   await loadOrders();
 };
 
+// 处理订单删除后的刷新逻辑
+const handleOrderDeleted = async () => {
+  // 等待一小段时间确保后端删除完成后再刷新
+  setTimeout(async () => {
+    await loadOrders();
+  }, 300);
+};
+
 // 组件挂载时加载数据
 onMounted(() => {
   loadOrders();
 });
 
-const handleStartDish = () => {
-  console.log("起菜功能");
-  // 实现起菜逻辑
+// 处理起菜逻辑（已改为弹窗表单方式）
+const handleStartDish = async () => {
+  // 此方法已被 showActionModal('start') 替代
+  console.log("请使用弹窗表单方式进行起菜操作");
 };
 
-const handleUrgentDish = () => {
-  console.log("催菜功能");
-  // 实现催菜逻辑
+// 处理催菜逻辑（已改为弹窗表单方式）
+const handleUrgentDish = async () => {
+  // 此方法已被 showActionModal('urgent') 替代
+  console.log("请使用弹窗表单方式进行催菜操作");
 };
 
-const handleAddDish = () => {
-  console.log("加菜功能");
-  // 实现加菜逻辑
-};
-
-const handlePauseDish = () => {
-  console.log("暂停功能");
-  // 实现暂停逻辑
+// 处理暂停逻辑（已改为弹窗表单方式）
+const handlePauseDish = async () => {
+  // 此方法已被 showActionModal('pause') 替代
+  console.log("请使用弹窗表单方式进行暂停操作");
 };
 
 const handleReturnDish = () => {
@@ -410,6 +702,113 @@ const handleOrderSubmit = async (orderData) => {
   }
 };
 
+// 显示操作弹窗
+const showActionModal = (actionType) => {
+  currentActionType.value = actionType;
+  selectedTables.value = []; // 重置选择
+  showActionModalVisible.value = true;
+};
+
+// 关闭操作弹窗
+const closeActionModal = () => {
+  showActionModalVisible.value = false;
+  selectedTables.value = [];
+};
+
+// 切换台号选择状态
+const toggleTableSelection = (table) => {
+  const index = selectedTables.value.indexOf(table);
+  if (index > -1) {
+    selectedTables.value.splice(index, 1);
+  } else {
+    selectedTables.value.push(table);
+  }
+};
+
+// 确认执行操作
+const confirmAction = async () => {
+  if (!activeOrderId.value) {
+    alert("请先选择一个订单");
+    return;
+  }
+
+  if (selectedTables.value.length === 0) {
+    alert("请至少选择一个台号");
+    return;
+  }
+
+  // 验证订单状态
+  const order = orders.value.find((o) => o.id === activeOrderId.value);
+  if (!order) {
+    alert("订单不存在");
+    return;
+  }
+
+  // 根据操作类型验证订单状态
+  switch (currentActionType.value) {
+    case "start":
+      if (order.status !== "started") {
+        alert("只有待起菜状态的订单才能起菜");
+        return;
+      }
+      break;
+    case "urgent":
+      if (order.status !== "serving") {
+        alert("只有出餐中的订单才能催菜");
+        return;
+      }
+      break;
+    case "pause":
+      if (order.status !== "serving" && order.status !== "urged") {
+        alert("只有出餐中或催菜状态的订单才能暂停");
+        return;
+      }
+      break;
+  }
+
+  try {
+    let result;
+    switch (currentActionType.value) {
+      case "start":
+        result = await OrderService.startOrder(activeOrderId.value);
+        break;
+      case "urgent":
+        result = await OrderService.urgeOrder(activeOrderId.value);
+        break;
+      case "pause":
+        result = await OrderService.pauseOrder(activeOrderId.value);
+        break;
+    }
+
+    if (result.success) {
+      const actionNames = {
+        start: "起菜",
+        urgent: "催菜",
+        pause: "暂停",
+      };
+      alert(`${actionNames[currentActionType.value]}成功`);
+
+      // 刷新订单列表
+      await loadOrders();
+
+      // 刷新当前订单详情
+      if (activeTab.value.startsWith("order-")) {
+        activeTab.value = "overview";
+        await nextTick();
+        activeTab.value = `order-${activeOrderId.value}`;
+      }
+
+      // 关闭弹窗
+      closeActionModal();
+    } else {
+      alert(result.message);
+    }
+  } catch (error) {
+    console.error("操作失败:", error);
+    alert("操作失败：" + error.message);
+  }
+};
+
 // 日期选择器打开方法
 const openDatePicker = () => {
   if (dateInput.value) {
@@ -432,6 +831,12 @@ const handleDateChange = () => {
   // 这里可以添加重新加载数据的逻辑
   loadOrders();
 };
+
+// 监听餐型变化
+watch(mealType, (newType, oldType) => {
+  console.log("餐型从", oldType, "变更为", newType);
+  loadOrders();
+});
 
 // 过滤订单（按状态）
 const filterOrders = (status) => {

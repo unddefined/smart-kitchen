@@ -1,11 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrdersService } from '../orders/orders.service';
 
 @Injectable()
 export class ServingService {
   private readonly logger = new Logger(ServingService.name);
+  private readonly ordersService: OrdersService;
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) {
+    this.ordersService = new OrdersService(prisma);
+  }
 
   /**
    * 计算菜品优先级（与数据库函数保持一致）
@@ -298,12 +302,24 @@ export class ServingService {
     });
 
     this.logger.log(
-      `菜品已上菜: 订单${item.order.hallNumber}的${item.dish.name}`,
+      `菜品已上菜：订单${item.order.hallNumber}的${item.dish.name}`,
       {
         orderId: item.orderId,
         dishId: item.dishId,
       },
     );
+
+    // 如果订单状态为 urged，检查是否需要恢复为 serving
+    if (item.order.status === 'urged') {
+      const ordersService = new OrdersService(this.prisma);
+      try {
+        await ordersService.resumeOrderAfterServe(item.orderId);
+        this.logger.log(`订单 ${item.orderId} 已自动恢复为 serving 状态`);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : '未知错误';
+        this.logger.error(`恢复订单状态失败：${errorMessage}`);
+      }
+    }
 
     return {
       success: true,

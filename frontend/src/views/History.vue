@@ -2,6 +2,7 @@
   <div class="history-container">
     <h2>历史记录</h2>
     <p>待实现历史记录功能</p>
+    <p>显示历史订单信息和订单操作记录</p>
   </div>
 </template>
 
