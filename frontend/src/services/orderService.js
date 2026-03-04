@@ -434,6 +434,29 @@ export class OrderService {
       };
     }
   }
+
+  // 更新订单信息（人数、台号、状态、用餐时间）
+  static async updateOrder(orderId, updateData) {
+    try {
+      // 验证必要字段
+      if (!updateData || Object.keys(updateData).length === 0) {
+        throw new Error("至少需要一个更新字段");
+      }
+
+      const order = await api.orders.update(orderId, updateData);
+
+      return {
+        success: true,
+        message: "订单信息更新成功",
+        data: order,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: "订单信息更新失败：" + error.message,
+      };
+    }
+  }
 }
 
 // 同时导出实例以保持向后兼容
