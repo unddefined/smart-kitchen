@@ -1,6 +1,9 @@
 <!-- eslint-disable prettier/prettier -->
 <template>
   <div class="flex flex-col h-full bg-gray-100 relative">
+    <!-- Toast 提示 -->
+    <Toast v-model:visible="toast.visible" :message="toast.message" :type="toast.type" :duration="toast.duration" />
+
     <!-- 加载状态覆盖层 -->
     <div v-if="loading" class="absolute inset-0 bg-white bg-opacity-90 flex justify-center items-center z-50">
       <div class="text-center p-5 bg-white rounded-xl shadow-lg">
@@ -141,7 +144,7 @@
             v-for="order in orders"
             :key="order.id"
             :class="[
-              'w-full p-2 border-none cursor-pointer text-lg transition-all duration-200 text-left ',
+              'w-full p-2 border-none cursor-pointer text-xl transition-all duration-200 text-left ',
               activeTab === `order-${order.id}` ? 'bg-gray-100 text-black' : '',
               order.hasUrgentItems ? 'text-red-500 font-bold' : '',
               order.isNotServing ? 'text-gray-400' : '',
@@ -157,8 +160,7 @@
         <!-- 总览视图 -->
         <OverviewView
           v-if="activeTab === 'overview'"
-          :pending-dishes="mockPendingDishes"
-          :served-dishes="mockServedDishes"
+          :orders="orders"
           @dish-action="handleDishAction" />
 
         <!-- 订单详情视图 -->
@@ -189,51 +191,36 @@
         <div class="p-6">
           <!-- 当前订单信息 -->
           <div class="mb-4 p-3 bg-blue-50 rounded-lg" :class="getStatusCardClass()">
-            <p class="text-sm text-gray-600">当前订单</p>
-            <p class="text-base font-medium text-gray-800 mt-1">{{ currentOrderInfo }}</p>
+            <p class="text-base text-gray-600">当前订单</p>
+            <p class="text-lg font-medium text-gray-800 mt-1">{{ currentOrderInfo }}</p>
           </div>
 
           <!-- 操作类型提示 -->
           <div v-if="currentActionType === 'start'" class="mb-4 p-3 bg-green-50 border-l-4 border-green-500 rounded">
-            <p class="text-sm text-green-700"><span class="font-semibold">起菜说明：</span>将订单状态从"待起菜"变更为"出餐中"</p>
+            <p class="text-base text-green-700"><span class="font-semibold">起菜说明：</span>将订单状态从"待起菜"变更为"出餐中"</p>
           </div>
           <div v-else-if="currentActionType === 'urgent'" class="mb-4 p-3 bg-red-50 border-l-4 border-red-500 rounded">
-            <p class="text-sm text-red-700"><span class="font-semibold">催菜说明：</span>标记为催菜订单，前端将显示"[台号] 催菜"提示</p>
+            <p class="text-base text-red-700"><span class="font-semibold">催菜说明：</span>标记为催菜订单，前端将显示"[台号] 催菜"提示</p>
           </div>
           <div v-else-if="currentActionType === 'pause'" class="mb-4 p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded">
-            <p class="text-sm text-yellow-700"><span class="font-semibold">暂停说明：</span>将订单状态恢复为"待起菜"，需要重新起菜才能继续出餐</p>
+            <p class="text-base text-yellow-700"><span class="font-semibold">暂停说明：</span>将订单状态恢复为"待起菜"，需要重新起菜才能继续出餐</p>
           </div>
 
           <!-- 台号选择 - 仅在总览视图显示 -->
           <div v-if="!activeTab.startsWith('order-')" class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2"> 选择台号（可多选） </label>
-            <div class="grid grid-cols-2 gap-2">
+            <label class="block text-base font-medium text-gray-700 mb-2"> 选择订单（可多选） </label>
+            <div class="grid grid-cols-2 gap-2 max-h-96 overflow-y-auto">
               <button
-                v-for="table in availableTables"
-                :key="table"
-                @click="toggleTableSelection(table)"
+                v-for="order in availableOrders"
+                :key="order.id"
+                @click="toggleOrderSelection(order.id)"
                 :class="[
-                  'py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200',
-                  selectedTables.includes(table)
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+                  'py-2 px-3 rounded-lg text-xl font-medium transition-all duration-200 flex items-center justify-between gap-2',
+                  selectedOrderIds.includes(order.id) ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
                 ]">
-                {{ table }}
+                <span class="truncate">{{ order.displayName }}</span>
+                <span :class="selectedOrderIds.includes(order.id) ? 'text-blue-100 flex-shrink-0' : 'text-gray-400 flex-shrink-0'">{{ order.displayId }}</span>
               </button>
-            </div>
-          </div>
-
-          <!-- 已选台号显示 - 仅在总览视图显示 -->
-          <div v-if="selectedTables.length > 0 && !activeTab.startsWith('order-')" class="mb-4 p-3 bg-gray-50 rounded-lg">
-            <p class="text-sm text-gray-600">已选择</p>
-            <div class="flex flex-wrap gap-2 mt-2">
-              <span
-                v-for="table in selectedTables"
-                :key="table"
-                class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700">
-                {{ table }}
-                <button @click="toggleTableSelection(table)" class="ml-2 text-blue-500 hover:text-blue-700">×</button>
-              </span>
             </div>
           </div>
         </div>
@@ -247,10 +234,10 @@
           </button>
           <button
             @click="confirmAction"
-            :disabled="(!activeTab.startsWith('order-') && selectedTables.length === 0)"
+            :disabled="!activeTab.startsWith('order-') && selectedOrderIds.length === 0"
             :class="[
               'px-5 py-2.5 rounded-lg text-base font-medium cursor-pointer transition-all duration-200',
-              (!activeTab.startsWith('order-') && selectedTables.length === 0) ? 'bg-gray-300 text-gray-400 cursor-not-allowed' : actionButtonColor,
+              !activeTab.startsWith('order-') && selectedOrderIds.length === 0 ? 'bg-gray-300 text-gray-400 cursor-not-allowed' : actionButtonColor,
             ]">
             确认
           </button>
@@ -298,7 +285,12 @@ import { ref, computed, onMounted, nextTick, watch } from "vue";
 import OverviewView from "./OverviewView.vue";
 import OrderView from "./OrderView.vue";
 import OrderInputModal from "../components/OrderInputModal.vue";
+import Toast from "@/components/Toast.vue";
 import { OrderService } from "@/services";
+import { useToast } from "@/composables/useToast";
+
+// 使用 toast 组合式函数
+const { toast, showToast, showSuccess, showError, showInfo } = useToast();
 
 // 根据当前时间获取用餐类型
 const getDefaultMealType = () => {
@@ -325,74 +317,21 @@ const activeTab = ref("overview");
 const showSidebar = ref(false);
 const loading = ref(false);
 const error = ref(null);
-const selectedDate = ref(new Date().toISOString().split("T")[0]); // 初始化为今天
+
+// 获取本地日期（避免时区问题）
+const getLocalDate = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const selectedDate = ref(getLocalDate()); // 使用本地时间初始化为今天
 const dateInput = ref(null); // 添加对日期输入框的引用
 
 // 真实订单数据
 const orders = ref([]);
-
-// 模拟待处理菜品数据（这部分暂时保留用于总览视图）
-const mockPendingDishes = ref([
-  {
-    id: 1,
-    name: "宫保鸡丁",
-    quantity: 2,
-    priority: 3,
-    status: "ready",
-    details: ["少辣", "加花生"],
-  },
-  {
-    id: 2,
-    name: "麻婆豆腐",
-    quantity: 1,
-    priority: 2,
-    status: "pending",
-    details: ["正常"],
-  },
-  {
-    id: 3,
-    name: "红烧肉",
-    quantity: 3,
-    priority: 1,
-    status: "prep",
-    details: ["肥瘦相间"],
-  },
-  {
-    id: 4,
-    name: "清蒸鲈鱼",
-    quantity: 1,
-    priority: 3,
-    status: "pending",
-    details: ["鲜活"],
-  },
-  {
-    id: 5,
-    name: "西红柿鸡蛋",
-    quantity: 2,
-    priority: 1,
-    status: "pending",
-    details: ["少盐"],
-  },
-]);
-
-// 模拟已出菜品数据
-const mockServedDishes = ref([
-  {
-    id: 101,
-    name: "糖醋里脊",
-    quantity: 1,
-  },
-  {
-    id: 102,
-    name: "干煸豆角",
-    quantity: 2,
-  },
-  {
-    id: 103,
-    name: "蒜蓉西兰花",
-    quantity: 1,
-  },
-]);
 
 // 录入订单弹窗
 const showOrderModal = ref(false);
@@ -400,14 +339,27 @@ const showOrderModal = ref(false);
 // 起菜/催菜/暂停操作弹窗相关状态
 const showActionModalVisible = ref(false);
 const currentActionType = ref("start"); // 'start' | 'urgent' | 'pause'
-const selectedTables = ref([]); // string[]
+const selectedOrderIds = ref([]); // string[] - 存储选中的订单 ID
 
-// 计算属性：可用台号列表（从真实订单中提取）
-const availableTables = computed(() => {
-  // 从当前订单列表中提取所有不重复的台号
-  const tableSet = new Set(orders.value.map(order => order.hallNumber));
-  return Array.from(tableSet).sort();
+// 计算属性：订单列表（每个订单显示为一个按钮）
+const availableOrders = computed(() => {
+  // 返回所有订单，按台号排序
+  return orders.value
+    .map((order) => ({
+      id: order.id,
+      hallNumber: order.hallNumber,
+      status: order.status,
+      displayName: `${order.hallNumber}`,
+      displayId: `#${order.id}`,
+    }))
+    .sort((a, b) => a.hallNumber.localeCompare(b.hallNumber));
 });
+
+// 获取订单索引的辅助函数
+const getOrderByTable = (table, index) => {
+  const matchingOrders = orders.value.filter((order) => order.hallNumber === table);
+  return matchingOrders[index];
+};
 
 // 计算属性：弹窗标题
 const actionModalTitle = computed(() => {
@@ -632,6 +584,13 @@ const loadOrders = async () => {
     console.log("加载订单，筛选条件:", filterParams);
 
     const orderList = await OrderService.getOrders(filterParams);
+    
+    console.log("=== Cooking.vue 从后端获取的订单 ===");
+    console.log("后端返回的订单数:", orderList.length);
+    if (orderList.length > 0) {
+      console.log("第一个订单详情:", JSON.stringify(orderList[0], null, 2));
+    }
+    
     orders.value = orderList.map((order) => ({
       id: order.id,
       hallNumber: order.hallNumber,
@@ -641,11 +600,25 @@ const loadOrders = async () => {
       createdAt: order.createdAt,
       mealType: order.mealType,
       mealTime: order.mealTime,
+      orderItems: order.orderItems || [], // 保留订单菜品数据
       hasUrgentItems: checkHasUrgentItems(order),
       isNotServing: order.status !== "serving" && order.status !== "urged",
     }));
 
-    console.log("加载完成的订单数:", orders.value.length);
+    console.log("=== Cooking.vue 加载完成的订单 ===");
+    console.log("订单总数:", orders.value.length);
+    orders.value.forEach((order, index) => {
+      console.log(`订单 ${index + 1}:`, {
+        id: order.id,
+        hallNumber: order.hallNumber,
+        status: order.status,
+        peopleCount: order.peopleCount,
+        tableCount: order.tableCount,
+        itemCount: order.orderItems?.length
+      });
+    });
+    console.log("===============================");
+
   } catch (err) {
     console.error("加载订单失败:", err);
     error.value = "加载订单数据失败，请检查网络连接";
@@ -725,46 +698,46 @@ const handleOrderSubmit = async (orderData) => {
 // 显示操作弹窗
 const showActionModal = (actionType) => {
   currentActionType.value = actionType;
-  selectedTables.value = []; // 重置选择
+  selectedOrderIds.value = []; // 重置选择
   showActionModalVisible.value = true;
 };
 
 // 关闭操作弹窗
 const closeActionModal = () => {
   showActionModalVisible.value = false;
-  selectedTables.value = [];
+  selectedOrderIds.value = [];
 };
 
-// 切换台号选择状态
-const toggleTableSelection = (table) => {
-  const index = selectedTables.value.indexOf(table);
+// 切换订单选择状态
+const toggleOrderSelection = (orderId) => {
+  const index = selectedOrderIds.value.indexOf(orderId);
   if (index > -1) {
-    selectedTables.value.splice(index, 1);
+    selectedOrderIds.value.splice(index, 1);
   } else {
-    selectedTables.value.push(table);
+    selectedOrderIds.value.push(orderId);
   }
 };
 
 // 确认执行操作
 const confirmAction = async () => {
   // 订单 tab 模式下必须有选中的订单
-  if (activeTab.value.startsWith('order-') && !activeOrderId.value) {
-    alert("请先选择一个订单");
+  if (activeTab.value.startsWith("order-") && !activeOrderId.value) {
+    showError("请先选择一个订单");
     return;
   }
 
-  // 总览 tab 模式下必须选择台号
-  if (!activeTab.value.startsWith('order-') && selectedTables.value.length === 0) {
-    alert("请至少选择一个台号");
+  // 非订单 tab 模式下必须有选中的订单 ID
+  if (!activeTab.value.startsWith("order-") && selectedOrderIds.value.length === 0) {
+    showError("请至少选择一个订单");
     return;
   }
 
   // 订单 tab 模式下的验证
-  if (activeTab.value.startsWith('order-')) {
+  if (activeTab.value.startsWith("order-")) {
     // 验证订单是否存在
     const order = orders.value.find((o) => o.id === activeOrderId.value);
     if (!order) {
-      alert("订单不存在");
+      showError("订单不存在");
       return;
     }
 
@@ -772,19 +745,19 @@ const confirmAction = async () => {
     switch (currentActionType.value) {
       case "start":
         if (order.status !== "started") {
-          alert("只有待起菜状态的订单才能起菜");
+          showError("只有待起菜状态的订单才能起菜");
           return;
         }
         break;
       case "urgent":
         if (order.status !== "serving") {
-          alert("只有出餐中的订单才能催菜");
+          showError("只有出餐中的订单才能催菜");
           return;
         }
         break;
       case "pause":
         if (order.status !== "serving" && order.status !== "urged") {
-          alert("只有出餐中或催菜状态的订单才能暂停");
+          showError("只有出餐中或催菜状态的订单才能暂停");
           return;
         }
         break;
@@ -810,7 +783,7 @@ const confirmAction = async () => {
           urgent: "催菜",
           pause: "暂停",
         };
-        alert(`${actionNames[currentActionType.value]}成功`);
+        showSuccess(`${actionNames[currentActionType.value]}成功`);
 
         // 刷新订单列表
         await loadOrders();
@@ -825,17 +798,66 @@ const confirmAction = async () => {
         // 关闭弹窗
         closeActionModal();
       } else {
-        alert(result.message);
+        showError(result.message);
       }
     } catch (error) {
       console.error("操作失败:", error);
-      alert("操作失败：" + error.message);
+      showError("操作失败：" + error.message);
     }
   } else {
-    // 总览 tab 模式 - TODO: 实现批量操作逻辑
-    alert(`将在选中的台号执行${currentActionType.value === 'start' ? '起菜' : currentActionType.value === 'urgent' ? '催菜' : '暂停'}操作：${selectedTables.value.join(', ')}`);
-    // 这里后续可以添加对选中台号的批量操作逻辑
-    closeActionModal();
+    // 总览 tab 模式 - 批量操作
+    try {
+      let successCount = 0;
+      const actionNames = {
+        start: "起菜",
+        urgent: "催菜",
+        pause: "暂停",
+      };
+
+      // 遍历所有选中的订单 ID
+      for (const orderId of selectedOrderIds.value) {
+        const order = orders.value.find((o) => o.id === orderId);
+        if (!order) continue;
+
+        try {
+          let result;
+          switch (currentActionType.value) {
+            case "start":
+              if (order.status !== "started") continue; // 跳过不符合状态的订单
+              result = await OrderService.startOrder(orderId);
+              break;
+            case "urgent":
+              if (order.status !== "serving") continue;
+              result = await OrderService.urgeOrder(orderId);
+              break;
+            case "pause":
+              if (order.status !== "serving" && order.status !== "urged") continue;
+              result = await OrderService.pauseOrder(orderId);
+              break;
+          }
+
+          if (result && result.success) {
+            successCount++;
+          }
+        } catch (error) {
+          console.error(`订单 ${orderId} 操作失败:`, error);
+        }
+      }
+
+      if (successCount > 0) {
+        showSuccess(`成功${actionNames[currentActionType.value]}${successCount}个订单`);
+        // 刷新订单列表
+        await loadOrders();
+      } else {
+        showError("没有可操作的订单或操作全部失败");
+      }
+
+      // 关闭弹窗
+      closeActionModal();
+    } catch (error) {
+      console.error("批量操作失败:", error);
+      showError("操作失败：" + error.message);
+    }
   }
 };
 
