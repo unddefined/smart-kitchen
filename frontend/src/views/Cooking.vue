@@ -281,7 +281,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
 import OverviewView from "./OverviewView.vue";
 import OrderView from "./OrderView.vue";
 import OrderInputModal from "../components/OrderInputModal.vue";
@@ -291,6 +291,10 @@ import { useToast } from "@/composables/useToast";
 
 // 使用 toast 组合式函数
 const { toast, showToast, showSuccess, showError, showInfo } = useToast();
+
+// 自动刷新定时器
+let refreshTimer = null;
+const REFRESH_INTERVAL = 5000; // 5 秒刷新一次
 
 // 根据当前时间获取用餐类型
 const getDefaultMealType = () => {
@@ -634,11 +638,6 @@ const checkHasUrgentItems = (order) => {
   return false;
 };
 
-// 刷新订单数据
-const refreshOrders = async () => {
-  await loadOrders();
-};
-
 // 处理订单删除后的刷新逻辑
 const handleOrderDeleted = async () => {
   // 等待一小段时间确保后端删除完成后再刷新
@@ -647,9 +646,49 @@ const handleOrderDeleted = async () => {
   }, 300);
 };
 
+// 定时刷新订单数据（静默刷新，不显示 loading）
+const refreshOrders = async () => {
+  try {
+    const filterParams = {
+      date: selectedDate.value,
+      mealType: mealType.value,
+    };
+
+    const orderList = await OrderService.getOrders(filterParams);
+    
+    orders.value = orderList.map((order) => ({
+      id: order.id,
+      hallNumber: order.hallNumber,
+      peopleCount: order.peopleCount,
+      tableCount: order.tableCount,
+      status: order.status,
+      createdAt: order.createdAt,
+      mealType: order.mealType,
+      mealTime: order.mealTime,
+      orderItems: order.orderItems || [],
+    }));
+    
+    console.log('[自动刷新] 成功更新订单数据，数量:', orders.value.length);
+  } catch (err) {
+    console.error('[自动刷新] 失败:', err);
+    // 静默失败，不显示错误提示，避免频繁打扰用户
+  }
+};
+
 // 组件挂载时加载数据
 onMounted(() => {
   loadOrders();
+
+  // 启动自动刷新定时器
+  refreshTimer = setInterval(refreshOrders, REFRESH_INTERVAL);
+});
+
+// 组件卸载时清除定时器
+onUnmounted(() => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
 });
 
 // 处理起菜逻辑（已改为弹窗表单方式）
