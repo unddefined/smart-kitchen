@@ -133,7 +133,7 @@ const switchToModule = (module) => {
   background: white;
   border-top: 1px solid #e0e0e0;
   padding-top: 8px;
-  /* z-index: 100; */
+  z-index: 10;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
 }
 
