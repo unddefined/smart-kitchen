@@ -22,7 +22,7 @@ async function bootstrap() {
   console.log('Starting server on port:', port);
   console.log('Host:', host);
   console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
-  
+
   await app.listen(port, host);
 }
 bootstrap();

@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
   constructor(private prisma: PrismaService) {}
 
   /**
@@ -389,11 +390,22 @@ export class OrdersService {
 
   /**
    * 起菜 - 将订单状态更新为 serving 并设置起菜时间
-   * 只有 started 状态的订单可以起菜
+   * 同时初始化菜品优先级：前菜 3 级，中菜 2 级，后菜/尾菜 1 级
    */
   async startServing(id: number) {
     const order = await this.prisma.order.findUnique({
       where: { id },
+      include: {
+        orderItems: {
+          include: {
+            dish: {
+              include: {
+                category: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!order) {
@@ -405,13 +417,54 @@ export class OrdersService {
       throw new Error('只有待起菜状态的订单可以起菜');
     }
 
-    return await this.prisma.order.update({
-      where: { id },
-      data: {
-        status: 'serving',
-        startTime: new Date(),
-        updatedAt: new Date(),
-      },
+    // 使用事务更新订单状态和菜品优先级
+    return await this.prisma.$transaction(async (tx) => {
+      // 1. 更新订单状态
+      const updatedOrder = await tx.order.update({
+        where: { id },
+        data: {
+          status: 'serving',
+          startTime: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+      // 2. 初始化所有菜品的优先级
+      const priorityMap: Record<string, number> = {
+        前菜: 3,
+        中菜: 2,
+        点心: 2,
+        蒸菜: 2,
+        后菜: 1,
+        尾菜: 1,
+        凉菜: 3,
+      };
+
+      // 更新每个订单项的优先级
+      for (const item of order.orderItems) {
+        if (item.dish?.category?.name) {
+          const categoryName = item.dish.category.name;
+          const priority = priorityMap[categoryName] || 0;
+
+          await tx.orderItem.update({
+            where: { id: item.id },
+            data: { priority },
+          });
+
+          this.logger.log(
+            `订单${id}的${item.dish.name}( ${categoryName}) 设置优先级为 ${priority}`,
+            {
+              orderId: id,
+              itemId: item.id,
+              dishName: item.dish.name,
+              categoryName,
+              priority,
+            },
+          );
+        }
+      }
+
+      return updatedOrder;
     });
   }
 
