@@ -90,8 +90,6 @@
 
               <!-- 菜品详细标注 -->
               <div class="text-lg text-gray-800 leading-relaxed font-medium flex flex-col items-center justify-center">
-                <!-- 催菜提示 - 基于订单状态显示，而不是优先级 -->
-                <div v-if="dish.orderStatus === 'urged'" class="text-red-600 font-bold text-center mb-1">{{ dish.hallNumber }}催菜</div>
                 <div v-for="(detail, idx) in dish.displayDetails" :key="idx" class="text-center break-all min-w-[80px]">
                   {{ detail }}
                 </div>
@@ -212,6 +210,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { OrderService } from "@/services";
 import { ServingService } from "@/services";
+import { api } from "@/services/api";
 import Toast from "@/components/Toast.vue";
 import { useToast } from "@/composables/useToast";
 
@@ -354,6 +353,7 @@ const extractDishesFromOrders = () => {
         details: dishDetails,
         weight: item.weight,
         countable: item.dish.countable,
+        needPrep: item.dish.needPrep ?? false, // 是否需要预处理，默认不需要
         orderId: order.id,
         hallNumber: order.hallNumber,
         needsProcessing: item.status === "pending" || item.status === "preparing",
@@ -378,34 +378,42 @@ const extractDishesFromOrders = () => {
   return allDishes;
 };
 
-// 已出菜品
+// 已出菜品 - 只显示状态为 served 且优先级为 -1 的菜品
 const servedDishes = computed(() => {
   const allDishes = extractDishesFromOrders();
-  return allDishes.filter((dish) => dish.status === "served");
+  return allDishes.filter((dish) => 
+    dish.status === "served" && 
+    dish.priority === -1 &&
+    (dish.orderStatus === "started" || dish.orderStatus === "serving" || dish.orderStatus === "urged" || dish.orderStatus === "done")
+  );
 });
 
 // 未起菜菜品列表 - 根据 MVP文档，筛选出优先级为 0 的菜品（灰色卡片）
 const unstartedDishes = computed(() => {
   const allDishes = extractDishesFromOrders();
   return allDishes
-    .filter((dish) => dish.priority === 0)
+    .filter((dish) => 
+      dish.priority === 0 && 
+      (dish.orderStatus === "started")
+    )
     .map((dish) => ({
       ...dish,
       displayDetails: dish.details?.filter((detail) => detail && detail.trim() !== "" && !detail.includes("正常")) || [],
     }));
 });
 
-// 待处理菜品（所有优先级大于 0 的菜品，用于待上区域显示）
+// 待上菜品列表 - 筛选出优先级大于 0 的菜品（红/黄/绿色卡片）
 const pendingDishes = computed(() => {
   const allDishes = extractDishesFromOrders();
-  return allDishes.filter(
-    (dish) =>
-      dish.priority > 0 && // 只显示优先级大于 0 的菜品
-      dish.status !== "served", // 排除已上菜的
-  ).map((dish) => ({
-    ...dish,
-    displayDetails: dish.details?.filter((detail) => detail && detail.trim() !== "" && !detail.includes("正常")) || [],
-  }));
+  return allDishes
+    .filter((dish) => 
+      dish.priority > 0 && 
+      (dish.orderStatus === "serving" || dish.orderStatus === "urged")
+    )
+    .map((dish) => ({
+      ...dish,
+      displayDetails: dish.details?.filter((detail) => detail && detail.trim() !== "" && !detail.includes("正常")) || [],
+    }));
 });
 
 // 合并相同菜品的逻辑 - 按照 MVP文档要求合并同名同状态同优先级的菜品
@@ -504,7 +512,6 @@ const mergedPendingDishes = computed(() => {
     return a.name.localeCompare(b.name);
   });
 
-  console.log("合并并排序后的菜品:", result);
   return result;
 });
 
@@ -542,23 +549,39 @@ const getPriorityLabel = (priority) => {
 
 // 事件处理 - 点击菜品卡片实现状态流转
 const handleDishClick = async (dish) => {
-  console.log("点击菜品:", dish.name, "当前状态:", dish.status);
+  console.log("点击菜品:", dish.name, "当前状态:", dish.status, "优先级:", dish.priority, "needPrep:", dish.needPrep);
 
-  // 根据当前状态执行不同的流转逻辑
+  // 根据 need_prep 字段和当前状态执行不同的流转逻辑
+  // need_prep=true: pending → preparing → ready → served
+  // need_prep=false: pending → ready → served（跳过 preparing 阶段）
   let result;
   let message;
 
   try {
     if (dish.status === "pending") {
-      // pending → prep: 标记完成切配
-      result = await ServingService.completePreparation(dish.id);
-      message = `已将"${dish.name}"标记为待处理`;
+      // 检查是否需要预处理
+      if (dish.needPrep === false) {
+        // 不需要预处理，直接从 pending → ready
+        // 需要先更新状态为 ready，然后才能上菜
+        result = await api.orderItems.update(dish.id, { status: "ready" });
+        if (result) {
+          result = { success: true, message: "已跳过预处理", data: { status: "ready" } };
+        }
+        message = `已将"${dish.name}"标记为准备下锅（跳过预处理）`;
+      } else {
+        // 需要预处理，pending → preparing
+        result = await ServingService.completePreparation(dish.id);
+        message = `已将"${dish.name}"标记为待处理`;
+      }
     } else if (dish.status === "preparing") {
-      // preparing → ready → served: 直接标记为上菜
-      result = await ServingService.serveDish(dish.id);
-      message = `已将"${dish.name}"标记为已上菜`;
+      // preparing → ready: 准备下锅
+      result = await api.orderItems.update(dish.id, { status: "ready" });
+      if (result) {
+        result = { success: true, message: "准备下锅成功", data: { status: "ready" } };
+      }
+      message = `已将"${dish.name}"标记为准备下锅`;
     } else if (dish.status === "ready") {
-      // ready → served: 上菜
+      // ready → served: 上菜（同时自动将优先级设为 -1）
       result = await ServingService.serveDish(dish.id);
       message = `已将"${dish.name}"标记为已上菜`;
     } else if (dish.status === "served") {
@@ -576,7 +599,7 @@ const handleDishClick = async (dish) => {
     console.log(message, result);
 
     // 操作成功后刷新数据
-    if (result.success) {
+    if (result?.success) {
       showSuccess(message);
 
       // 等待一小段时间再刷新，让用户看到提示
@@ -587,15 +610,17 @@ const handleDishClick = async (dish) => {
       emit("dish-action", "status-changed", {
         dish,
         newStatus: result.data?.status || dish.status,
+        newPriority: result.data?.priority || dish.priority,
         message,
       });
     } else {
       // 操作失败显示错误提示
-      showError(result.message || message);
+      showError(result?.message || message);
     }
   } catch (error) {
     console.error("状态更新失败:", error);
-    showError("状态更新失败：" + error.message);
+    // 显示后端返回的具体错误信息（如"还未起菜，无法上菜"）
+    showError(error.message || "状态更新失败");
   }
 };
 
@@ -721,5 +746,4 @@ onMounted(() => {
 onUnmounted(() => {
   cancelCollapseTimer();
 });
-
 </script>

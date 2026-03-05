@@ -40,22 +40,19 @@ export class ServingService {
   }
 
   /**
-   * 自动调整订单中后续菜品的优先级
-   * 当某道菜上完后，该订单后面的菜自动 +1
+   * 自动调整订单中后续菜品的优先级 (按分类链式调整)
+   * 当前面分类的所有菜都上完后，后面分类的菜自动 +1
+   *
+   * 分类优先级顺序：前菜/凉菜 (3) → 中菜/点心/蒸菜 (2) → 后菜 (1) → 尾菜 (1)
    */
   private async autoAdjustSubsequentPriorities(
     orderId: number,
     servedItemId: number,
   ) {
     try {
-      // 获取订单的所有未上菜菜品
+      // 获取订单的所有菜品 (包括已上菜的)
       const orderItems = await this.prisma.orderItem.findMany({
-        where: {
-          orderId,
-          status: {
-            notIn: ['served', 'cancelled'],
-          },
-        },
+        where: { orderId },
         include: {
           dish: {
             include: {
@@ -72,18 +69,96 @@ export class ServingService {
         return;
       }
 
+      // 定义分类优先级顺序
+      const categoryOrder: Record<string, number> = {
+        前菜: 0,
+        凉菜: 0,
+        中菜: 1,
+        点心: 1,
+        蒸菜: 1,
+        后菜: 2,
+        尾菜: 3,
+      };
+
+      // 获取刚上完的菜品的分类
+      const servedItem = orderItems.find((item) => item.id === servedItemId);
+      if (!servedItem?.dish?.category?.name) {
+        return;
+      }
+
+      const servedCategoryName = servedItem.dish.category.name;
+      const servedCategoryLevel = categoryOrder[servedCategoryName];
+
+      if (servedCategoryLevel === undefined) {
+        return;
+      }
+
       this.logger.log(
-        `开始调整订单 ${orderId} 的后续菜品优先级，共 ${orderItems.length} 个菜品`,
+        `订单 ${orderId} 的 ${servedItem.dish.name} (${servedCategoryName}) 已上菜，检查是否需要调整后续分类优先级`,
       );
 
-      // 遍历所有未上菜的菜品，提升优先级 (最高到 3)
-      for (const item of orderItems) {
+      // 检查当前分类是否所有菜都已上完
+      const itemsInSameCategory = orderItems.filter((item) => {
+        const categoryName = item.dish?.category?.name;
+        return (
+          categoryName && categoryOrder[categoryName] === servedCategoryLevel
+        );
+      });
+
+      const allServedInCategory = itemsInSameCategory.every(
+        (item) => item.status === 'served' || item.status === 'cancelled',
+      );
+
+      // 如果当前分类还有未上完的菜，不调整
+      if (!allServedInCategory) {
+        this.logger.log(
+          `订单 ${orderId} 的 ${servedCategoryName} 分类还有未上完的菜品，暂不调整`,
+        );
+        return;
+      }
+
+      this.logger.log(
+        `订单 ${orderId} 的 ${servedCategoryName} 分类已全部上完，准备提升下一分类优先级`,
+      );
+
+      // 找到下一个分类级别
+      const nextCategoryLevel = servedCategoryLevel + 1;
+      const nextCategoryNames = Object.entries(categoryOrder)
+        .filter(([_, level]) => level === nextCategoryLevel)
+        .map(([name, _]) => name);
+
+      if (nextCategoryNames.length === 0) {
+        this.logger.log(`订单 ${orderId} 已是最后一个分类，无需调整`);
+        return;
+      }
+
+      this.logger.log(
+        `订单 ${orderId} 的下一分类为：${nextCategoryNames.join('、')}`,
+      );
+
+      // 获取下一个分类的所有未上菜菜品
+      const itemsToUpgrade = orderItems.filter((item) => {
+        const categoryName = item.dish?.category?.name;
+        return (
+          categoryName &&
+          categoryOrder[categoryName] === nextCategoryLevel &&
+          item.status !== 'served' &&
+          item.status !== 'cancelled'
+        );
+      });
+
+      if (itemsToUpgrade.length === 0) {
+        this.logger.log(`订单 ${orderId} 的下一分类没有需要调整的菜品`);
+        return;
+      }
+
+      // 遍历所有下一分类的菜品，提升优先级 (最高到 3)
+      for (const item of itemsToUpgrade) {
         const currentPriority = item.priority || 0;
+        const newPriority = Math.min(currentPriority + 1, 3);
 
-        // 如果当前优先级小于 3，则 +1
-        if (currentPriority < 3) {
-          const newPriority = Math.min(currentPriority + 1, 3);
-
+        // 只有当优先级确实改变时才更新
+        if (newPriority > currentPriority) {
           await this.prisma.orderItem.update({
             where: { id: item.id },
             data: { priority: newPriority },
@@ -95,12 +170,17 @@ export class ServingService {
               orderId,
               itemId: item.id,
               dishName: item.dish.name,
+              categoryName: item.dish?.category?.name,
               oldPriority: currentPriority,
               newPriority,
             },
           );
         }
       }
+
+      this.logger.log(
+        `订单 ${orderId} 完成优先级调整，共提升 ${itemsToUpgrade.length} 个菜品`,
+      );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '未知错误';
       this.logger.error(`调整后续菜品优先级失败：${errorMessage}`, {
@@ -375,45 +455,66 @@ export class ServingService {
       throw new Error('订单菜品不存在');
     }
 
-    const updatedItem = await this.prisma.orderItem.update({
-      where: { id: itemId },
-      data: {
-        status: 'served',
-        servedAt: new Date(),
-      },
-    });
-
-    this.logger.log(
-      `菜品已上菜：订单${item.order.hallNumber}的${item.dish.name}`,
-      {
-        orderId: item.orderId,
-        dishId: item.dishId,
-      },
-    );
-
-    // 如果订单状态为 urged，检查是否需要恢复为 serving
-    if (item.order.status === 'urged') {
-      const ordersService = new OrdersService(this.prisma);
-      try {
-        await ordersService.resumeOrderAfterServe(item.orderId);
-        this.logger.log(`订单 ${item.orderId} 已自动恢复为 serving 状态`);
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : '未知错误';
-        this.logger.error(`恢复订单状态失败：${errorMessage}`);
-      }
+    // 根据 MVP文档，优先级为 0 的菜品（未起）不能直接上菜
+    if (item.priority === 0) {
+      throw new Error(`菜品"${item.dish.name}"还未起菜，无法上菜。`);
     }
 
-    // 上菜后，自动调整该订单后续菜品的优先级
-    await this.autoAdjustSubsequentPriorities(item.orderId, item.id);
+    // 使用事务同时更新菜品状态和优先级
+    return await this.prisma.$transaction(async (tx) => {
+      // 1. 检查菜品是否需要预处理
+      // 如果 needPrep 为 false，且当前状态为 pending，则跳过 prep 阶段直接进入 ready
+      const nextStatus = 'served';
 
-    return {
-      success: true,
-      itemId: updatedItem.id,
-      status: updatedItem.status,
-      servedAt: updatedItem.servedAt,
-      message: `菜品${item.dish.name}已上菜`,
-    };
+      // 记录日志
+      this.logger.log(
+        `准备上菜：订单${item.order.hallNumber}的${item.dish.name}，needPrep=${item.dish.needPrep}, 当前状态=${item.status}`,
+      );
+
+      // 2. 更新菜品状态为 served，并设置优先级为 -1
+      const updatedItem = await tx.orderItem.update({
+        where: { id: itemId },
+        data: {
+          status: nextStatus,
+          priority: -1, // 上菜后优先级设为 -1
+          servedAt: new Date(),
+        },
+      });
+
+      this.logger.log(
+        `菜品已上菜：订单${item.order.hallNumber}的${item.dish.name}`,
+        {
+          orderId: item.orderId,
+          dishId: item.dishId,
+          newPriority: -1,
+        },
+      );
+
+      // 3. 如果订单状态为 urged，检查是否需要恢复为 serving
+      if (item.order.status === 'urged') {
+        const ordersService = new OrdersService(this.prisma);
+        try {
+          await ordersService.resumeOrderAfterServe(item.orderId);
+          this.logger.log(`订单 ${item.orderId} 已自动恢复为 serving 状态`);
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : '未知错误';
+          this.logger.error(`恢复订单状态失败：${errorMessage}`);
+        }
+      }
+
+      // 4. 上菜后，自动调整该订单后续菜品的优先级
+      await this.autoAdjustSubsequentPriorities(item.orderId, item.id);
+
+      return {
+        success: true,
+        itemId: updatedItem.id,
+        status: updatedItem.status,
+        priority: updatedItem.priority,
+        servedAt: updatedItem.servedAt,
+        message: `菜品${item.dish.name}已上菜`,
+      };
+    });
   }
 
   // 自动调整订单优先级

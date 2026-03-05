@@ -55,15 +55,11 @@
           </div>
           <div v-if="orderDetail.mealTime" class="flex justify-between">
             <span class="text-gray-600 text-base">用餐时间:</span>
-            <span class="text-gray-800 font-medium text-base">{{ formatDate(orderDetail.mealTime) }}</span>
-          </div>
-          <div v-if="orderDetail.remark" class="flex justify-between">
-            <span class="text-gray-600 text-base">备注:</span>
-            <span class="text-gray-800 font-medium text-base">{{ orderDetail.remark }}</span>
+            <span class="text-gray-800 font-medium text-base">{{ formatMealTime(orderDetail.mealTime, orderDetail.mealType) }}</span>
           </div>
           <div v-if="orderDetail.startTime" class="flex justify-between">
             <span class="text-gray-600 text-base">起菜时间:</span>
-            <span class="text-gray-800 font-medium text-base">{{ orderDetail.startTime }}</span>
+            <span class="text-gray-800 font-medium text-base">{{ formatDateTime(orderDetail.startTime) }}</span>
           </div>
         </div>
       </div>
@@ -250,12 +246,30 @@
           </div>
 
           <!-- 用餐时间输入 -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">用餐时间</label>
-            <input
-              v-model="editForm.mealTimeDisplay"
-              type="datetime-local"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+          <div class="flex space-x-4 items-center">
+            <label class="text-xl font-medium text-gray-700 whitespace-nowrap">用餐时间</label>
+            <div class="flex space-x-2 items-center flex-nowrap">
+              <input
+                v-model="mealDate"
+                type="date"
+                class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]" />
+              <span class="flex rounded overflow-hidden">
+                <button
+                  :class="[
+                    'px-3 py-1 border-r border-gray-300 text-xl cursor-pointer transition-all duration-200',
+                    mealTime === '午餐' ? 'bg-blue-500 text-white' : 'hover:bg-gray-100',
+                  ]"
+                  @click="mealTime = '午餐'">午
+                </button>
+                <button
+                  :class="[
+                    'px-3 py-1 border-gray-300 text-xl cursor-pointer transition-all duration-200',
+                    mealTime === '晚餐' ? 'bg-blue-500 text-white' : 'hover:bg-gray-100',
+                  ]"
+                  @click="mealTime = '晚餐'">晚
+                </button>
+              </span>
+            </div>
           </div>
 
           <!-- 状态选择 -->
@@ -298,6 +312,8 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import { OrderService } from "@/services";
+import { ServingService } from "@/services/servingService";
+import { api } from "@/services/api";
 import Toast from "@/components/Toast.vue";
 import ConfirmModal from "@/components/ConfirmModal.vue";
 import { useToast } from "@/composables/useToast";
@@ -331,11 +347,12 @@ const isCancelling = ref(false);
 const isDeleting = ref(false);
 const isCompleting = ref(false);
 const isEditing = ref(false);
+const mealDate = ref(new Date().toISOString().split("T")[0]);
+const mealTime = ref("午餐");
 const editForm = ref({
   hallNumber: "",
   peopleCount: 1,
   tableCount: 1,
-  mealTimeDisplay: "",
   status: "created",
 });
 
@@ -411,7 +428,64 @@ const loadOrderDetail = async () => {
 
 const handleDishClick = (dish) => {
   console.log("点击菜品:", dish);
-  // 可以在这里添加菜品操作逻辑
+  
+  // 根据 MVP文档和 need_prep 字段实现状态流转逻辑
+  // 如果不需要预处理（needPrep=false），则跳过 prep 阶段
+  
+  // 检查当前状态，决定下一步操作
+  if (dish.status === "pending") {
+    // pending → prep 或 pending → ready（如果不需要预处理）
+    const nextStatus = dish.dish?.needPrep === false ? "ready" : "preparing";
+    const actionText = dish.dish?.needPrep === false ? "切配完成（跳过预处理）" : "开始处理";
+    
+    // 调用 API 更新状态
+    updateDishStatus(dish.id, nextStatus, actionText);
+  } else if (dish.status === "preparing") {
+    // preparing → ready
+    updateDishStatus(dish.id, "ready", "准备下锅");
+  } else if (dish.status === "ready") {
+    // ready → served
+    updateDishStatus(dish.id, "served", "已上菜");
+  } else {
+    showInfo(`菜品"${dish.name}"当前状态为${getOrderItemStatusText(dish.status)}，无需操作`);
+  }
+};
+
+// 更新菜品状态的辅助函数
+const updateDishStatus = async (itemId, newStatus, actionText) => {
+  try {
+    let result;
+    
+    // 根据新状态调用不同的 API
+    if (newStatus === "served") {
+      // 直接标记为已上菜
+      result = await ServingService.serveDish(itemId);
+    } else {
+      // 其他状态转换（pending → preparing/ready, preparing → ready）
+      // 需要根据后端 API 实现来调整
+      result = await api.orderItems.update(itemId, { status: newStatus });
+      
+      if (result) {
+        result = {
+          success: true,
+          message: `${actionText}成功`,
+        };
+      }
+    }
+    
+    if (result?.success) {
+      // 显示成功提示
+      showSuccess(result.message || `${actionText}成功`);
+      
+      // 重新加载订单详情
+      await loadOrderDetail();
+    } else {
+      throw new Error(result?.message || "操作失败");
+    }
+  } catch (error) {
+    console.error("更新菜品状态失败:", error);
+    showError(error.message || "操作失败");
+  }
 };
 
 const getOrderStatusText = (status) => {
@@ -425,6 +499,44 @@ const getOrderItemStatusText = (status) => {
 const formatDate = (dateString) => {
   if (!dateString) return "未知";
   return new Date(dateString).toLocaleString("zh-CN");
+};
+
+// 格式化用餐时间：日期 + 餐型（不显示时分）
+const formatMealTime = (dateString, mealType) => {
+  if (!dateString) return "";
+
+  // 获取日期部分（YYYY-MM-DD）
+  const date = new Date(dateString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const dateStr = `${year}-${month}-${day}`;
+
+  // 根据 mealType 转换为中文
+  let typeStr = "";
+  if (mealType === "lunch") {
+    typeStr = "午餐";
+  } else if (mealType === "dinner") {
+    typeStr = "晚餐";
+  } else if (mealType === "breakfast") {
+    typeStr = "早餐";
+  } else {
+    typeStr = "其他";
+  }
+
+  return `${dateStr} ${typeStr}`;
+};
+
+// 格式化完整日期时间（包含时分）
+const formatDateTime = (dateString) => {
+  if (!dateString) return "未知";
+  return new Date(dateString).toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
 
 // 取消订单相关方法
@@ -566,14 +678,49 @@ watch(
 const showEditModal = () => {
   if (!orderDetail.value) return;
 
+  // 从后端返回的 mealTime 和 mealType 解析出日期和餐型
+  let parsedDate = new Date().toISOString().split("T")[0];
+  let parsedMealType = "午餐";
+
+  // 优先使用 mealType 字段
+  if (orderDetail.value.mealType) {
+    if (orderDetail.value.mealType === 'lunch') {
+      parsedMealType = "午餐";
+    } else if (orderDetail.value.mealType === 'dinner') {
+      parsedMealType = "晚餐";
+    }
+  }
+
+  // 如果有 mealTime，使用其日期部分
+  if (orderDetail.value.mealTime) {
+    const dateObj = new Date(orderDetail.value.mealTime);
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const day = String(dateObj.getDate()).padStart(2, "0");
+    parsedDate = `${year}-${month}-${day}`;
+    
+    // 如果 mealType 为空，尝试根据小时数推断餐型
+    if (!orderDetail.value.mealType) {
+      const hours = dateObj.getHours();
+      if (hours >= 9 && hours < 15) {
+        parsedMealType = "午餐"; // 9:00-15:00 视为午餐
+      } else if (hours >= 15 && hours < 21) {
+        parsedMealType = "晚餐"; // 15:00-21:00 视为晚餐
+      }
+    }
+  }
+
   // 初始化表单数据
   editForm.value = {
     hallNumber: orderDetail.value.hallNumber || "",
     peopleCount: orderDetail.value.peopleCount || 1,
     tableCount: orderDetail.value.tableCount || 1,
-    mealTimeDisplay: formatDateTimeLocal(orderDetail.value.mealTime),
     status: orderDetail.value.status || "created",
   };
+
+  // 设置用餐时间
+  mealDate.value = parsedDate;
+  mealTime.value = parsedMealType;
 
   showEditModalVisible.value = true;
 };
@@ -582,23 +729,6 @@ const hideEditModal = () => {
   showEditModalVisible.value = false;
 };
 
-// 格式化日期时间为 datetime-local 格式
-const formatDateTimeLocal = (dateString) => {
-  if (!dateString) return "";
-  const date = new Date(dateString);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-};
-
-// 将 datetime-local 字符串转换为后端格式
-const parseDateTimeLocal = (dateTimeString) => {
-  if (!dateTimeString) return null;
-  return new Date(dateTimeString).toISOString();
-};
 
 const confirmEditOrder = async () => {
   if (isEditing.value) return;
@@ -617,7 +747,11 @@ const confirmEditOrder = async () => {
       hallNumber: editForm.value.hallNumber,
       peopleCount: parseInt(editForm.value.peopleCount),
       tableCount: parseInt(editForm.value.tableCount),
-      mealTime: parseDateTimeLocal(editForm.value.mealTimeDisplay),
+      // 根据餐型设置默认时间：午餐 12 点，晚餐 18 点
+      mealTime: mealTime.value === '午餐' 
+        ? new Date(`${mealDate.value}T12:00:00`).toISOString()
+        : new Date(`${mealDate.value}T18:00:00`).toISOString(),
+      mealType: mealTime.value === '午餐' ? 'lunch' : 'dinner',
       status: editForm.value.status,
     };
 

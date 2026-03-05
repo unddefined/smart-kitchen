@@ -146,8 +146,8 @@
             :class="[
               'w-full p-2 border-none cursor-pointer text-xl transition-all duration-200 text-left ',
               activeTab === `order-${order.id}` ? 'bg-gray-100 text-black' : '',
-              order.hasUrgentItems ? 'text-red-500 font-bold' : '',
-              order.isNotServing ? 'text-gray-400' : '',
+              order.status === 'urged' ? 'text-red-500 font-bold' : '',
+              order.status !== 'serving' ? 'text-gray-400' : '',
             ]"
             @click="activeTab = `order-${order.id}`">
             {{ order.hallNumber }}
@@ -605,8 +605,6 @@ const loadOrders = async () => {
       mealType: order.mealType,
       mealTime: order.mealTime,
       orderItems: order.orderItems || [], // 保留订单菜品数据
-      hasUrgentItems: checkHasUrgentItems(order),
-      isNotServing: order.status !== "serving" && order.status !== "urged",
     }));
 
     console.log("=== Cooking.vue 加载完成的订单 ===");
@@ -629,13 +627,6 @@ const loadOrders = async () => {
   } finally {
     loading.value = false;
   }
-};
-
-// 检查订单是否有催菜项
-const checkHasUrgentItems = (order) => {
-  // 这里可以根据实际业务逻辑判断是否有催菜项
-  // 暂时返回false，后续可以完善
-  return false;
 };
 
 // 处理订单删除后的刷新逻辑

@@ -183,14 +183,10 @@
 
           <div>
             <label class="block text-xs font-medium text-gray-700 mb-2">重量</label>
-            <select
-              v-model="currentDish.weight"
-              class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option :value="null" disabled>请选择重量</option>
-              <option v-for="option in WEIGHT_OPTIONS" :key="option.value" :value="option.value">
-                {{ option.label }}
-              </option>
-            </select>
+            <WeightInput
+              ref="dishWeightInputRef"
+              v-model="currentDish.weightValue"
+              v-model:unit="currentDish.weightUnit" />
           </div>
 
           <div>
@@ -274,14 +270,10 @@
 
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">重量</label>
-                <select
-                  v-model="newDish.weight"
-                  class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option :value="null" disabled>请选择重量</option>
-                  <option v-for="option in WEIGHT_OPTIONS" :key="option.value" :value="option.value">
-                    {{ option.label }}
-                  </option>
-                </select>
+                <WeightInput
+                  ref="newDishWeightInputRef"
+                  v-model="newDish.weightValue"
+                  v-model:unit="newDish.weightUnit" />
               </div>
             </div>
 
@@ -334,30 +326,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from "vue";
 import { DishService, OrderService } from "@/services";
-
-// 重量选项常量 - 在两个弹窗中复用
-const WEIGHT_OPTIONS = [
-  { value: "1 两", label: "1 两" },
-  { value: "2 两", label: "2 两" },
-  { value: "3 两", label: "3 两" },
-  { value: "4 两", label: "4 两" },
-  { value: "5 两", label: "5 两" },
-  { value: "6 两", label: "6 两" },
-  { value: "7 两", label: "7 两" },
-  { value: "8 两", label: "8 两" },
-  { value: "9 两", label: "9 两" },
-  { value: "1 斤", label: "1 斤" },
-  { value: "1 斤 1 两", label: "1 斤 1 两" },
-  { value: "1 斤 2 两", label: "1 斤 2 两" },
-  { value: "1 斤 3 两", label: "1 斤 3 两" },
-  { value: "1 斤 4 两", label: "1 斤 4 两" },
-  { value: "1 斤 5 两", label: "1 斤 5 两" },
-  { value: "1 斤 6 两", label: "1 斤 6 两" },
-  { value: "1 斤 7 两", label: "1 斤 7 两" },
-  { value: "1 斤 8 两", label: "1 斤 8 两" },
-  { value: "1 斤 9 两", label: "1 斤 9 两" },
-  { value: "2 斤", label: "2 斤" },
-];
+import WeightInput from "@/components/WeightInput.vue";
 
 // Props
 const props = defineProps({
@@ -408,6 +377,10 @@ const showAddDishModal = ref(false);
 
 // 当前编辑的菜品
 const currentDish = ref(null);
+
+// WeightInput 组件引用
+const dishWeightInputRef = ref(null);
+const newDishWeightInputRef = ref(null);
 
 // 新增菜品表单
 const newDish = ref({
@@ -520,7 +493,13 @@ const closeDishDetailModal = () => {
 const confirmDishEdit = () => {
   const index = selectedDishes.value.findIndex((d) => d.id === currentDish.value.id);
   if (index >= 0) {
-    selectedDishes.value[index] = { ...currentDish.value };
+    // 使用组件暴露的 weightString 计算属性
+    const weightString = dishWeightInputRef.value?.weightString || '';
+    
+    selectedDishes.value[index] = { 
+      ...currentDish.value,
+      weight: weightString // 添加组合后的重量字符串
+    };
   }
   closeDishDetailModal();
 };
@@ -558,12 +537,15 @@ const confirmAddDish = async () => {
     });
 
     if (result.success) {
+      // 使用组件暴露的 weightString 计算属性
+      const weightString = newDishWeightInputRef.value?.weightString || '';
+      
       // 添加到菜品列表
       const newDishItem = {
         id: result.data.id,
         name: newDish.value.name,
         quantity: newDish.value.quantity,
-        weight: "",
+        weight: weightString, // 添加组合后的重量字符串
         remark: newDish.value.remark,
         countable: newDish.value.countable,
       };
@@ -656,7 +638,11 @@ const submit = async () => {
       hallNumber: hallNumber.value,
       peopleCount: personCount.value,
       tableCount: tableCount.value, // 使用桌数字段
-      mealTime: `${mealDate.value} ${mealTime.value}`,
+      // 根据餐型设置默认用餐时间：午餐 12 点，晚餐 18 点
+      mealTime: mealTime.value === '午餐' 
+        ? new Date(`${mealDate.value}T12:00:00`).toISOString()
+        : new Date(`${mealDate.value}T18:00:00`).toISOString(),
+      mealType: mealTime.value === '午餐' ? 'lunch' : 'dinner', // 餐型：lunch/dinner
     });
 
     if (orderResult.success) {

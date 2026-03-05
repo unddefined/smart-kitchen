@@ -158,6 +158,8 @@ const handleCancel = () => {
 const handleConfirm = () => {
   if (!props.loading) {
     emit('confirm');
+    // 如果不是 loading 状态，确认后自动关闭弹窗
+    emit('update:visible', false);
   }
 };
 </script>

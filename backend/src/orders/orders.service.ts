@@ -110,49 +110,31 @@ export class OrdersService {
 
   async create(createOrderDto: any) {
     // 解析 mealTime 和 mealType
-    // 前端传递的 mealTime 格式："2026-03-03 午餐" 或 "2026-03-03 晚餐"
+    // 前端现在直接传递 mealTime (ISO 日期字符串) 和 mealType ('lunch'/'dinner')
     let mealTimeDate = null;
     let mealTypeValue = null;
 
+    // 处理 mealTime（日期时间）
     if (createOrderDto.mealTime) {
-      const mealTimeStr = createOrderDto.mealTime.toString();
-
-      // 尝试提取日期部分和餐型
-      const dateParts = mealTimeStr.split(' ');
-      if (dateParts.length >= 1) {
-        // 解析日期部分（格式：YYYY-MM-DD）
-        const dateStr = dateParts[0];
-
-        // 尝试多种日期格式解析
-        try {
-          // 如果是标准日期格式 YYYY-MM-DD
-          if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-            mealTimeDate = new Date(dateStr);
-
-            // 如果有时分信息，也解析出来
-            if (dateParts.length >= 2 && /^\d{2}:\d{2}/.test(dateParts[1])) {
-              const timeStr = dateParts[1];
-              const [hours, minutes] = timeStr.split(':').map(Number);
-              mealTimeDate.setHours(hours, minutes, 0, 0);
-            } else {
-              // 默认设置为中午 12 点
-              mealTimeDate.setHours(12, 0, 0, 0);
-            }
-          } else {
-            // 尝试直接解析整个字符串
-            mealTimeDate = new Date(mealTimeStr);
-          }
-
-          // 验证日期是否有效
-          if (isNaN(mealTimeDate.getTime())) {
-            throw new Error('无效的用餐时间格式');
-          }
-        } catch (error) {
-          throw new Error(`用餐时间格式错误：${mealTimeStr}`);
+      try {
+        // 如果是 ISO 字符串或 Date 对象，直接创建 Date
+        mealTimeDate = new Date(createOrderDto.mealTime);
+        
+        // 验证日期是否有效
+        if (isNaN(mealTimeDate.getTime())) {
+          throw new Error('无效的用餐时间格式');
         }
+      } catch (error) {
+        throw new Error(`用餐时间格式错误：${createOrderDto.mealTime}`);
       }
+    }
 
-      // 提取餐型（午餐/晚餐/其他）
+    // 处理 mealType（餐型）
+    if (createOrderDto.mealType) {
+      mealTypeValue = createOrderDto.mealType; // 'lunch', 'dinner', 'breakfast', 'other'
+    } else if (createOrderDto.mealTime) {
+      // 兼容旧格式：从 mealTime 字符串中解析餐型
+      const mealTimeStr = createOrderDto.mealTime.toString();
       if (mealTimeStr.includes('午餐')) {
         mealTypeValue = 'lunch';
       } else if (mealTimeStr.includes('晚餐')) {
