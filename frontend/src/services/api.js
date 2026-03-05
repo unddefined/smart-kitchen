@@ -2,6 +2,9 @@
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://8.145.34.30:3001";
 
+// 导入 WebSocket 工具
+import { useWebSocket } from "@/utils/websocket";
+
 // 通用请求函数
 async function request(url, options = {}) {
   const config = {
@@ -20,11 +23,90 @@ async function request(url, options = {}) {
     }
 
     const data = await response.json();
+    
+    // 📢 写操作自动触发 WebSocket 广播
+    const writeMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
+    if (writeMethods.includes(options.method?.toUpperCase())) {
+      broadcastWriteOperation(url, options.method, data);
+    }
+    
     return data;
   } catch (error) {
-    console.error("API请求失败:", error);
+    console.error("API 请求失败:", error);
     throw error;
   }
+}
+
+// 广播写操作到 WebSocket
+function broadcastWriteOperation(url, method, responseData) {
+  try {
+    const ws = useWebSocket();
+    
+    // 确定资源类型和事件名称
+    const resourceInfo = extractResourceInfo(url);
+    const eventType = `${resourceInfo.resource}-${methodToEvent(method)}`;
+    
+    // 广播到特定资源房间
+    ws.broadcast(resourceInfo.room, eventType, {
+      type: eventType,
+      method: method.toUpperCase(),
+      url: url,
+      timestamp: new Date().toISOString(),
+      data: responseData.data || responseData,
+    });
+    
+    // 广播全局变更到 all 房间
+    ws.broadcast('all', 'global-change', {
+      resource: resourceInfo.resource,
+      action: methodToEvent(method),
+      timestamp: new Date().toISOString(),
+      data: responseData.data || responseData,
+    });
+    
+    console.log('📢 广播数据变更:', {
+      type: eventType,
+      method: method.toUpperCase(),
+      url: url,
+      data: responseData.data || responseData,
+    });
+  } catch (error) {
+    console.warn('⚠️ WebSocket 广播失败:', error.message);
+  }
+}
+
+// 从 URL 提取资源信息
+function extractResourceInfo(url) {
+  // 匹配 /api/orders/123/items 或 /api/orders/123 等
+  const patterns = [
+    { regex: /^\/api\/orders\/(\d+)\/items/, resource: 'order-items', room: 'order-items' },
+    { regex: /^\/api\/orders\/(\d+)/, resource: 'orders', room: 'orders' },
+    { regex: /^\/api\/dishes\/(\d+)/, resource: 'dishes', room: 'dishes' },
+    { regex: /^\/api\/users\/(\d+)/, resource: 'users', room: 'users' },
+    { regex: /^\/api\/serving\/(.*)/, resource: 'serving', room: 'serving' },
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern.regex);
+    if (match) {
+      return { resource: pattern.resource, room: pattern.room, id: match[1] };
+    }
+  }
+  
+  // 默认情况
+  const parts = url.split('/').filter(Boolean);
+  const resource = parts[parts.length - 1] || 'unknown';
+  return { resource, room: resource };
+}
+
+// HTTP 方法转换为事件后缀
+function methodToEvent(method) {
+  const map = {
+    'POST': 'created',
+    'PUT': 'updated',
+    'PATCH': 'updated',
+    'DELETE': 'deleted',
+  };
+  return map[method.toUpperCase()] || 'changed';
 }
 
 // API服务对象
@@ -118,11 +200,11 @@ export const api = {
         body: JSON.stringify(itemData),
       }),
 
-    // 更新订单菜品
+    // 更新订单菜品 - 使用 serving 模块的接口
     update: (itemId, itemData) =>
-      request(`/api/order-items/${itemId}`, {
+      request(`/api/serving/items/${itemId}/priority`, {
         method: "PUT",
-        body: JSON.stringify(itemData),
+        body: JSON.stringify({ priority: itemData.priority, reason: itemData.remark }),
       }),
 
     // 删除订单菜品

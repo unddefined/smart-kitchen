@@ -1,23 +1,22 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { PrismaModule } from './prisma/prisma.module';
+import { EventsGateway } from './events.gateway';
 import { UsersModule } from './users/users.module';
-import { ServingModule } from './serving/serving.module';
 import { DishesModule } from './dishes/dishes.module';
 import { OrdersModule } from './orders/orders.module';
-import { TestController } from './test.controller';
-import { MockDataService } from './mock-data.service';
+import { ServingModule } from './serving/serving.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
-    PrismaModule,
     UsersModule,
-    ServingModule,
     DishesModule,
     OrdersModule,
+    ServingModule,
+    PrismaModule,
   ],
-  controllers: [AppController, TestController],
-  providers: [AppService, MockDataService],
+  controllers: [AppController],
+  providers: [AppService, EventsGateway],
 })
 export class AppModule {}

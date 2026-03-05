@@ -8,7 +8,7 @@
       :min="min"
       :placeholder="placeholder"
       :disabled="disabled"
-      class="flex-1 px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed" />
+      class="w-2 flex-1 px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed" />
     <div class="flex rounded-lg overflow-hidden border border-gray-200">
       <button
         :class="[

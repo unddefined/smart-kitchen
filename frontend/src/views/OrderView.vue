@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col h-full bg-gray-100 p-3 overflow-y-auto">
     <!-- Toast 提示 -->
-    <Toast v-model:visible="toastVisible" :message="toastMessage" :type="toastType" :duration="3000" />
+    <Toast v-model:visible="toast.visible" :message="toast.message" :type="toast.type" :duration="toast.duration" />
 
     <!-- 加载状态 -->
     <div v-if="loading" class="flex flex-col items-center justify-center h-full p-5">
@@ -259,14 +259,16 @@
                     'px-3 py-1 border-r border-gray-300 text-xl cursor-pointer transition-all duration-200',
                     mealTime === '午餐' ? 'bg-blue-500 text-white' : 'hover:bg-gray-100',
                   ]"
-                  @click="mealTime = '午餐'">午
+                  @click="mealTime = '午餐'">
+                  午
                 </button>
                 <button
                   :class="[
                     'px-3 py-1 border-gray-300 text-xl cursor-pointer transition-all duration-200',
                     mealTime === '晚餐' ? 'bg-blue-500 text-white' : 'hover:bg-gray-100',
                   ]"
-                  @click="mealTime = '晚餐'">晚
+                  @click="mealTime = '晚餐'">
+                  晚
                 </button>
               </span>
             </div>
@@ -311,12 +313,12 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
-import { OrderService } from "@/services";
-import { ServingService } from "@/services/servingService";
-import { api } from "@/services/api";
+import { useOrderAutoRefresh } from "@/composables/useOrderAutoRefresh";
 import Toast from "@/components/Toast.vue";
+import { OrderService } from "@/services";
 import ConfirmModal from "@/components/ConfirmModal.vue";
 import { useToast } from "@/composables/useToast";
+import { api } from "@/services/api";
 
 // 使用 toast 组合式函数
 const { toast, showToast, showSuccess, showError, showInfo } = useToast();
@@ -428,16 +430,22 @@ const loadOrderDetail = async () => {
 
 const handleDishClick = (dish) => {
   console.log("点击菜品:", dish);
-  
+
+  // 根据 MVP文档，优先级为 0 的菜品（未起）不能直接上菜
+  if (dish.priority === 0 && dish.status === "ready") {
+    showError(`菜品"${dish.dish?.name || "未知菜品"}"还未起菜，无法上菜。请先提升优先级。`);
+    return;
+  }
+
   // 根据 MVP文档和 need_prep 字段实现状态流转逻辑
   // 如果不需要预处理（needPrep=false），则跳过 prep 阶段
-  
+
   // 检查当前状态，决定下一步操作
   if (dish.status === "pending") {
     // pending → prep 或 pending → ready（如果不需要预处理）
     const nextStatus = dish.dish?.needPrep === false ? "ready" : "preparing";
     const actionText = dish.dish?.needPrep === false ? "切配完成（跳过预处理）" : "开始处理";
-    
+
     // 调用 API 更新状态
     updateDishStatus(dish.id, nextStatus, actionText);
   } else if (dish.status === "preparing") {
@@ -447,7 +455,7 @@ const handleDishClick = (dish) => {
     // ready → served
     updateDishStatus(dish.id, "served", "已上菜");
   } else {
-    showInfo(`菜品"${dish.name}"当前状态为${getOrderItemStatusText(dish.status)}，无需操作`);
+    showInfo(`菜品"${dish.dish?.name || "未知菜品"}"当前状态为${getOrderItemStatusText(dish.status)}，无需操作`);
   }
 };
 
@@ -455,16 +463,16 @@ const handleDishClick = (dish) => {
 const updateDishStatus = async (itemId, newStatus, actionText) => {
   try {
     let result;
-    
+
     // 根据新状态调用不同的 API
     if (newStatus === "served") {
       // 直接标记为已上菜
-      result = await ServingService.serveDish(itemId);
+      result = await api.orderItems.serve(itemId);
     } else {
       // 其他状态转换（pending → preparing/ready, preparing → ready）
       // 需要根据后端 API 实现来调整
       result = await api.orderItems.update(itemId, { status: newStatus });
-      
+
       if (result) {
         result = {
           success: true,
@@ -472,11 +480,11 @@ const updateDishStatus = async (itemId, newStatus, actionText) => {
         };
       }
     }
-    
+
     if (result?.success) {
       // 显示成功提示
       showSuccess(result.message || `${actionText}成功`);
-      
+
       // 重新加载订单详情
       await loadOrderDetail();
     } else {
@@ -684,9 +692,9 @@ const showEditModal = () => {
 
   // 优先使用 mealType 字段
   if (orderDetail.value.mealType) {
-    if (orderDetail.value.mealType === 'lunch') {
+    if (orderDetail.value.mealType === "lunch") {
       parsedMealType = "午餐";
-    } else if (orderDetail.value.mealType === 'dinner') {
+    } else if (orderDetail.value.mealType === "dinner") {
       parsedMealType = "晚餐";
     }
   }
@@ -698,7 +706,7 @@ const showEditModal = () => {
     const month = String(dateObj.getMonth() + 1).padStart(2, "0");
     const day = String(dateObj.getDate()).padStart(2, "0");
     parsedDate = `${year}-${month}-${day}`;
-    
+
     // 如果 mealType 为空，尝试根据小时数推断餐型
     if (!orderDetail.value.mealType) {
       const hours = dateObj.getHours();
@@ -729,7 +737,6 @@ const hideEditModal = () => {
   showEditModalVisible.value = false;
 };
 
-
 const confirmEditOrder = async () => {
   if (isEditing.value) return;
 
@@ -748,10 +755,9 @@ const confirmEditOrder = async () => {
       peopleCount: parseInt(editForm.value.peopleCount),
       tableCount: parseInt(editForm.value.tableCount),
       // 根据餐型设置默认时间：午餐 12 点，晚餐 18 点
-      mealTime: mealTime.value === '午餐' 
-        ? new Date(`${mealDate.value}T12:00:00`).toISOString()
-        : new Date(`${mealDate.value}T18:00:00`).toISOString(),
-      mealType: mealTime.value === '午餐' ? 'lunch' : 'dinner',
+      mealTime:
+        mealTime.value === "午餐" ? new Date(`${mealDate.value}T12:00:00`).toISOString() : new Date(`${mealDate.value}T18:00:00`).toISOString(),
+      mealType: mealTime.value === "午餐" ? "lunch" : "dinner",
       status: editForm.value.status,
     };
 
@@ -795,4 +801,11 @@ const confirmEditOrder = async () => {
     isEditing.value = false;
   }
 };
+
+// 使用订单自动刷新 Composable（详情页模式）
+useOrderAutoRefresh({
+  refreshFn: loadOrderDetail,
+  mode: "detail",
+  orderId: props.orderId,
+});
 </script>

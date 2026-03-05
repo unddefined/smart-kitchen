@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col h-full bg-gray-100">
     <!-- Toast 提示 -->
-    <Toast v-model:visible="toastVisible" :message="toastMessage" :type="toastType" :duration="3000" />
+    <Toast v-model:visible="toast.visible" :message="toast.message" :type="toast.type" :duration="toast.duration" />
 
     <!-- 加载状态 -->
     <div v-if="loading" class="flex items-center justify-center h-full">
@@ -14,7 +14,7 @@
     <!-- 错误提示 -->
     <div v-else-if="error" class="p-4 bg-red-100 rounded-lg m-4">
       <p class="text-red-700">{{ error }}</p>
-      <button @click="loadDishes" class="mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">重新加载</button>
+      <button @click="$emit('dish-action', 'refresh')" class="mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">重新加载</button>
     </div>
 
     <!-- 正常内容 -->
@@ -23,7 +23,7 @@
       <div v-if="false" class="p-4 bg-yellow-100 rounded-lg m-4">
         <p>Pending dishes: {{ pendingDishes?.length || 0 }}</p>
         <p>Served dishes: {{ servedDishes?.length || 0 }}</p>
-        <p>Merged dishes: {{ mergedPendingDishes.length }}</p>
+        <p>Unstarted dishes: {{ unstartedDishes?.length || 0 }}</p>
       </div>
 
       <div class="flex-1 overflow-y-auto p-4">
@@ -59,8 +59,8 @@
           <h3 class="text-lg font-medium text-gray-800">待上</h3>
           <div ref="waterfallContainer" class="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-1.5">
             <div
-              v-for="(dish, index) in mergedPendingDishes"
-              :key="`${dish.name}-${dish.priority}`"
+              v-for="(dish, index) in pendingDishes"
+              :key="`pending-${dish.itemId}`"
               :ref="
                 (el) => {
                   if (el) cardRefs[index] = el;
@@ -104,14 +104,14 @@
           <div ref="unstartedWaterfallContainer" class="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-2">
             <div
               v-for="(dish, index) in unstartedDishes"
-              :key="`${dish.name}-${dish.priority}`"
+              :key="`unstarted-${dish.itemId}`"
               :ref="
                 (el) => {
                   if (el) unstartedCardRefs[index] = el;
                 }
               "
               :class="[
-                'break-inside-avoid mb-3 rounded-xl p-2 shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg cursor-pointer relative border-2',
+                'break-inside-avoid mb-3 rounded-xl p-1 shadow transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg cursor-pointer relative border-2',
                 getPriorityClass(dish.priority),
                 dish.needsProcessing ? 'border-4 border-blue-500' : '',
               ]"
@@ -127,9 +127,9 @@
 
               <!-- 菜品主信息 -->
               <div class="flex items-center justify-center text-base font-medium text-gray-700 leading-tight w-full mb-1">
-                <span class="truncate max-w-[100px] text-center">{{ truncateDishName(dish.name) }}</span>
+                <span class="text-xl truncate max-w-[100px] text-center">{{ truncateDishName(dish.name) }}</span>
                 <span class="text-gray-600 mx-1">×</span>
-                <span class="font-semibold text-gray-800">{{ dish.quantity }}</span>
+                <span class="font-semibold text-gray-800 text-xl">{{ dish.quantity }}</span>
               </div>
 
               <!-- 菜品详细标注 -->
@@ -213,6 +213,7 @@ import { ServingService } from "@/services";
 import { api } from "@/services/api";
 import Toast from "@/components/Toast.vue";
 import { useToast } from "@/composables/useToast";
+import { useOrderAutoRefresh } from "@/composables/useOrderAutoRefresh";
 
 // 定义 Props - 接收父组件传递的 orders 数据
 const props = defineProps({
@@ -225,9 +226,6 @@ const props = defineProps({
 
 // 使用 toast 组合式函数
 const { toast, showToast, showSuccess, showError, showInfo } = useToast();
-const toastVisible = ref(false);
-const toastMessage = ref("");
-const toastType = ref("success");
 
 // 状态管理
 const loading = ref(false);
@@ -239,31 +237,9 @@ const tempPriority = ref(2);
 const isServedCollapsed = ref(true);
 const collapseTimer = ref(null);
 
-// 数据
-const localOrders = ref([]);
+// 数据 - 不再本地存储 orders，直接使用 props.orders
 const cardRefs = ref([]);
 const unstartedCardRefs = ref([]);
-
-// 监听父组件传递的 orders 变化，更新本地数据
-watch(() => props.orders, (newOrders) => {
-  console.log("=== OverviewView watch 触发 ===");
-  console.log("收到父组件传递的 orders:", newOrders);
-  console.log("orders 数量:", newOrders.length);
-  
-  if (newOrders && newOrders.length > 0) {
-    newOrders.forEach((order, index) => {
-      console.log(`订单 ${index + 1}:`, {
-        id: order.id,
-        hallNumber: order.hallNumber,
-        status: order.status,
-        itemCount: order.orderItems?.length
-      });
-    });
-  }
-  
-  localOrders.value = newOrders;
-  console.log("localOrders 已更新，数量:", localOrders.value.length);
-}, { immediate: true });
 
 // 获取优先级对应的 CSS 类
 const getPriorityClass = (priority) => {
@@ -296,224 +272,99 @@ const getPriorityButtonClass = (priority, isActive) => {
   return isActive ? activeClasses[priority] : baseClasses[priority];
 };
 
-// 从订单数据中提取菜品列表
+// 计算属性 - 直接使用 props.orders
 const extractDishesFromOrders = () => {
-  const allDishes = [];
+  const result = [];
 
-  console.log("=== OverviewView 提取菜品开始 ===");
-  console.log("localOrders 数量:", localOrders.value.length);
-  
-  localOrders.value.forEach((order, index) => {
-    console.log(`\n订单 ${index + 1}:`, {
-      id: order.id,
-      hallNumber: order.hallNumber,
-      status: order.status,
-      itemCount: order.orderItems?.length || 0,
-      orderItems: order.orderItems
-    });
-    
-    if (!order.orderItems) {
-      console.warn(`订单 ${order.id} 没有 orderItems 数据`);
+  if (!props.orders || props.orders.length === 0) {
+    return result;
+  }
+
+  props.orders.forEach((order) => {
+    if (!order.orderItems || order.orderItems.length === 0) {
       return;
     }
 
     order.orderItems.forEach((item) => {
-      if (!item.dish) {
-        console.warn(`订单项 ${item.id} 没有 dish 数据`);
+      if (!item.dish) return;
+
+      // 跳过已取消的菜品
+      if (item.status === "cancelled") {
         return;
       }
 
-      // 根据 MVP文档计算实际数量
-      let actualQuantity = parseFloat(item.quantity) || 1;
-      const tableCount = order.tableCount || 1;
-
-      // 如果 countable = true，数量 = 人数 / 桌数
-      if (item.dish.countable) {
-        actualQuantity = Math.ceil(order.peopleCount / tableCount);
-      } else {
-        // 否则数量 = quantity × tableCount
-        actualQuantity = actualQuantity * tableCount;
+      // 跳过未开始的订单中的菜品
+      if (order.status !== "started") {
+        return;
       }
 
-      // 构建菜品详情数组
-      const dishDetails = item.remark ? [item.remark] : [];
-      
-      // 根据 MVP文档：若某订单被催菜，该订单的status = 'urged'，然后在order_items 的 details ui 中增加"[台号] 催菜"
-      if (order.status === 'urged') {
-        dishDetails.push(`${order.hallNumber}催菜`);
-      }
-
-      const dishData = {
-        id: item.id,
-        name: item.dish.name,
-        quantity: actualQuantity,
-        priority: item.priority || 0,
-        status: item.status,
-        orderStatus: order.status,
-        details: dishDetails,
-        weight: item.weight,
-        countable: item.dish.countable,
-        needPrep: item.dish.needPrep ?? false, // 是否需要预处理，默认不需要
+      const dish = {
+        ...item.dish,
+        itemId: item.id,
+        id: item.id, // 确保有 id 字段
         orderId: order.id,
+        status: item.status,
+        quantity: item.quantity,
+        totalQuantity: item.quantity,
+        priority: item.priority,
+        remark: item.remark,
         hallNumber: order.hallNumber,
-        needsProcessing: item.status === "pending" || item.status === "preparing",
-        processType: item.status === "pending" ? "待切配" : "待处理",
+        peopleCount: order.peopleCount,
+        tableCount: order.tableCount,
+        orderStatus: order.status,
+        needPrep: item.dish.needPrep,
+        details: [],
       };
 
-      console.log(`  - 菜品：${dishData.name}, orderStatus: ${dishData.orderStatus}, priority: ${dishData.priority}`);
-      
-      allDishes.push(dishData);
+      // 处理备注信息
+      if (dish.remark && dish.remark.trim() !== "") {
+        dish.details.push(dish.remark);
+      }
+
+      result.push(dish);
     });
-  });
-
-  console.log("\n提取到的菜品总数:", allDishes.length);
-  
-  const startedDishes = allDishes.filter(d => d.orderStatus === "started");
-  const unstartedDishes = allDishes.filter(d => d.orderStatus === "started" && d.priority === 0);
-  
-  console.log("状态为 started 的菜品数:", startedDishes.length);
-  console.log("未起菜品 (started 且 priority=0) 数:", unstartedDishes.length);
-  console.log("=== OverviewView 提取菜品结束 ===");
-
-  return allDishes;
-};
-
-// 已出菜品 - 只显示状态为 served 且优先级为 -1 的菜品
-const servedDishes = computed(() => {
-  const allDishes = extractDishesFromOrders();
-  return allDishes.filter((dish) => 
-    dish.status === "served" && 
-    dish.priority === -1 &&
-    (dish.orderStatus === "started" || dish.orderStatus === "serving" || dish.orderStatus === "urged" || dish.orderStatus === "done")
-  );
-});
-
-// 未起菜菜品列表 - 根据 MVP文档，筛选出优先级为 0 的菜品（灰色卡片）
-const unstartedDishes = computed(() => {
-  const allDishes = extractDishesFromOrders();
-  return allDishes
-    .filter((dish) => 
-      dish.priority === 0 && 
-      (dish.orderStatus === "started")
-    )
-    .map((dish) => ({
-      ...dish,
-      displayDetails: dish.details?.filter((detail) => detail && detail.trim() !== "" && !detail.includes("正常")) || [],
-    }));
-});
-
-// 待上菜品列表 - 筛选出优先级大于 0 的菜品（红/黄/绿色卡片）
-const pendingDishes = computed(() => {
-  const allDishes = extractDishesFromOrders();
-  return allDishes
-    .filter((dish) => 
-      dish.priority > 0 && 
-      (dish.orderStatus === "serving" || dish.orderStatus === "urged")
-    )
-    .map((dish) => ({
-      ...dish,
-      displayDetails: dish.details?.filter((detail) => detail && detail.trim() !== "" && !detail.includes("正常")) || [],
-    }));
-});
-
-// 合并相同菜品的逻辑 - 按照 MVP文档要求合并同名同状态同优先级的菜品
-const mergedPendingDishes = computed(() => {
-  console.log("原始待处理菜品:", pendingDishes.value);
-
-  const dishMap = new Map();
-
-  pendingDishes.value.forEach((dish) => {
-    // 按照名称、优先级、状态合并
-    const key = `${dish.name}-${dish.priority}-${dish.status}`;
-
-    if (dishMap.has(key)) {
-      const existing = dishMap.get(key);
-      existing.totalQuantity += dish.quantity;
-      existing.quantities.push(dish.quantity);
-      // 合并标注信息
-      if (dish.details && dish.details.length > 0) {
-        dish.details.forEach((detail) => {
-          if (!existing.allDetails.includes(detail)) {
-            existing.allDetails.push(detail);
-          }
-        });
-      }
-      // 记录来源订单
-      if (!existing.orderIds.includes(dish.orderId)) {
-        existing.orderIds.push(dish.orderId);
-      }
-    } else {
-      dishMap.set(key, {
-        ...dish,
-        totalQuantity: dish.quantity,
-        quantities: [dish.quantity],
-        allDetails: dish.details || [],
-        orderIds: [dish.orderId],
-        needsProcessing: dish.status === "pending" || dish.status === "preparing",
-        processType: dish.status === "pending" ? "待切配" : "待处理",
-      });
-    }
-  });
-
-  // 处理显示的标注信息 - 按照 MVP文档要求分别处理份量和备注
-  let result = Array.from(dishMap.values()).map((dish) => {
-    // 分离份量信息和备注信息
-    const quantityDetails = []; // 存储份量信息
-    const remarkDetails = []; // 存储备注信息
-
-    dish.allDetails.forEach((detail) => {
-      if (!detail || detail.trim() === "") return;
-
-      // 判断是否为份量信息（包含数字 + 单位的格式）
-      if (detail.match(/^\d+(个 | 份 | 斤 | 两)$/)) {
-        quantityDetails.push(detail);
-      }
-      // 判断是否为备注信息（排除无意义的默认状态）
-      else if (!detail.includes("正常") && !detail.match(/^标准？$/)) {
-        remarkDetails.push(detail);
-      }
-    });
-
-    // 构建显示的标注信息
-    const displayDetails = [];
-
-    // 如果有份量信息，按格式显示（如"12 个·2 份"）
-    if (quantityDetails.length > 0) {
-      // 统计每种份量的数量
-      const quantityMap = new Map();
-      quantityDetails.forEach((qty) => {
-        quantityMap.set(qty, (quantityMap.get(qty) || 0) + 1);
-      });
-
-      // 生成格式化的份量显示
-      quantityMap.forEach((count, qty) => {
-        displayDetails.push(`${qty}·${count}份`);
-      });
-    }
-
-    // 如果有备注信息，直接显示
-    remarkDetails.forEach((remark) => {
-      displayDetails.push(`${remark}·1 份`);
-    });
-
-    return {
-      ...dish,
-      displayDetails: displayDetails,
-    };
-  });
-
-  // 按优先级排序：3(红) > 2(黄) > 1(绿) > 0/-1(灰)
-  result.sort((a, b) => {
-    // 优先按优先级降序排列
-    if (b.priority !== a.priority) {
-      return b.priority - a.priority;
-    }
-    // 优先级相同时按名称排序
-    return a.name.localeCompare(b.name);
   });
 
   return result;
+};
+
+// 已出菜品 - 筛选出状态为 served 的菜品
+const servedDishes = computed(() => {
+  const allDishes = extractDishesFromOrders();
+  return allDishes
+    .filter((dish) => dish.status === "served" && dish.priority === -1)
+    .map((dish) => ({
+      ...dish,
+      displayDetails: dish.details?.filter((detail) => detail && detail.trim() !== "" && !detail.includes("正常")) || [],
+    }));
 });
+
+// 待处理菜品列表 - 包括准备中和待切配的菜品（优先级 > 0 且非 served）
+const pendingDishes = computed(() => {
+  const allDishes = extractDishesFromOrders();
+  return allDishes
+    .filter((dish) => dish.priority > 0 && dish.orderStatus === "serving")
+    .map((dish) => ({
+      ...dish,
+      needsProcessing: dish.status === "pending" || dish.status === "preparing",
+      processType: dish.status === "pending" ? "待切配" : dish.status === "preparing" ? "待处理" : "",
+      displayDetails: dish.details?.filter((detail) => detail && detail.trim() !== "" && !detail.includes("正常")) || [],
+    }));
+});
+
+// 未起菜菜品列表 - 筛选出订单状态为 started 且优先级为 0 的菜品（可能处于备菜的任何阶段）
+const unstartedDishes = computed(() => {
+  const allDishes = extractDishesFromOrders();
+  return allDishes
+    .filter((dish) => dish.orderStatus === "started" && dish.priority === 0)
+    .map((dish) => ({
+      ...dish,
+      needsProcessing: dish.status === "pending" || dish.status === "preparing",
+      processType: dish.status === "pending" ? "待切配" : dish.status === "preparing" ? "待处理" : "",
+      displayDetails: dish.details?.filter((detail) => detail && detail.trim() !== "" && !detail.includes("正常")) || [],
+    }));
+});
+
 
 // 优先级选项 - 严格按照 MVP文档要求
 const priorityOptions = [
@@ -551,6 +402,12 @@ const getPriorityLabel = (priority) => {
 const handleDishClick = async (dish) => {
   console.log("点击菜品:", dish.name, "当前状态:", dish.status, "优先级:", dish.priority, "needPrep:", dish.needPrep);
 
+  // 根据 MVP文档，优先级为 0 的菜品（未起）不能直接上菜
+  if (dish.priority === 0 && (dish.status === "ready" || dish.status === "preparing")) {
+    showError(`菜品"${dish.name}"还未起菜，无法上菜。`);
+    return;
+  }
+
   // 根据 need_prep 字段和当前状态执行不同的流转逻辑
   // need_prep=true: pending → preparing → ready → served
   // need_prep=false: pending → ready → served（跳过 preparing 阶段）
@@ -561,12 +418,8 @@ const handleDishClick = async (dish) => {
     if (dish.status === "pending") {
       // 检查是否需要预处理
       if (dish.needPrep === false) {
-        // 不需要预处理，直接从 pending → ready
-        // 需要先更新状态为 ready，然后才能上菜
-        result = await api.orderItems.update(dish.id, { status: "ready" });
-        if (result) {
-          result = { success: true, message: "已跳过预处理", data: { status: "ready" } };
-        }
+        // 不需要预处理，直接从 pending → ready（通过标记完成切配实现）
+        result = await api.serving.completePrep(dish.id);
         message = `已将"${dish.name}"标记为准备下锅（跳过预处理）`;
       } else {
         // 需要预处理，pending → preparing
@@ -575,10 +428,7 @@ const handleDishClick = async (dish) => {
       }
     } else if (dish.status === "preparing") {
       // preparing → ready: 准备下锅
-      result = await api.orderItems.update(dish.id, { status: "ready" });
-      if (result) {
-        result = { success: true, message: "准备下锅成功", data: { status: "ready" } };
-      }
+      result = await api.serving.completePrep(dish.id);
       message = `已将"${dish.name}"标记为准备下锅`;
     } else if (dish.status === "ready") {
       // ready → served: 上菜（同时自动将优先级设为 -1）
@@ -688,62 +538,30 @@ const cancelCollapseTimer = () => {
   }
 };
 
-// 定义 emits
+// 定义事件
 const emit = defineEmits(["dish-action"]);
 
-// 生命周期钩子
-const loadDishes = async () => {
-  try {
-    loading.value = true;
-    error.value = null;
-    
-    // 获取当前日期和餐型（从父组件或默认值）
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    const today = `${year}-${month}-${day}`;
-    
-    const hour = now.getHours();
-    const defaultMealType = (hour >= 9 && hour < 15) ? "lunch" : (hour >= 15 && hour < 24) ? "dinner" : "lunch";
-    
-    // 构建筛选参数
-    const filterParams = {
-      date: today,
-      mealType: defaultMealType,
-    };
-    
-    console.log("OverviewView 加载订单，筛选条件:", filterParams);
-    
-    const orderList = await OrderService.getOrders(filterParams);
-    orders.value = orderList.map((order) => ({
-      id: order.id,
-      hallNumber: order.hallNumber,
-      peopleCount: order.peopleCount,
-      tableCount: order.tableCount,
-      status: order.status,
-      createdAt: order.createdAt,
-      mealType: order.mealType,
-      mealTime: order.mealTime,
-      orderItems: order.orderItems || [],
-    }));
-    
-    console.log("OverviewView 加载完成的订单数:", orders.value.length);
-  } catch (err) {
-    console.error("加载订单失败:", err);
-    error.value = "加载菜品数据失败，请检查网络连接";
-    showError("加载失败：" + err.message);
-  } finally {
-    loading.value = false;
-  }
-};
+// 监听父组件传递的 orders 变化，更新本地数据（用于调试日志）
+watch(
+  () => props.orders,
+  (newOrders) => {
+    console.log("=== OverviewView watch 触发 ===");
+    console.log("收到父组件传递的 orders:", newOrders);
+    console.log("orders 数量:", newOrders.length);
 
-onMounted(() => {
-  console.log("OverviewView mounted");
-  startCollapseTimer();
-});
+    if (newOrders && newOrders.length > 0) {
+      newOrders.forEach((order, index) => {
+        console.log(`订单 ${index + 1}:`, {
+          id: order.id,
+          hallNumber: order.hallNumber,
+          status: order.status,
+          itemCount: order.orderItems?.length,
+        });
+      });
+    }
+  },
+  { immediate: true },
+);
 
-onUnmounted(() => {
-  cancelCollapseTimer();
-});
+// 移除 loadDishes 方法，数据由父组件管理
 </script>

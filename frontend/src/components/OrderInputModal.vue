@@ -183,10 +183,7 @@
 
           <div>
             <label class="block text-xs font-medium text-gray-700 mb-2">重量</label>
-            <WeightInput
-              ref="dishWeightInputRef"
-              v-model="currentDish.weightValue"
-              v-model:unit="currentDish.weightUnit" />
+            <WeightInput ref="dishWeightInputRef" v-model="currentDish.weightValue" v-model:unit="currentDish.weightUnit" />
           </div>
 
           <div>
@@ -224,7 +221,7 @@
               v-model="newDish.name"
               type="text"
               placeholder="请输入菜品名称"
-              class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
 
           <div v-if="loadingOptions" class="text-center py-2">
@@ -239,7 +236,7 @@
                 <select
                   v-model.number="newDish.categoryId"
                   @change="handleCategoryChange"
-                  class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option :value="null" disabled>请选择分类</option>
                   <option v-for="category in categories" :key="category.id" :value="category.id">
                     {{ category.name }}
@@ -253,7 +250,7 @@
                   type="text"
                   :value="getStationName(newDish.stationId)"
                   readonly
-                  class="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-lg text-gray-600 cursor-not-allowed" />
+                  class="w-full p-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-600 cursor-not-allowed" />
               </div>
             </div>
 
@@ -265,15 +262,12 @@
                   type="number"
                   min="1"
                   placeholder="请输入份量"
-                  class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
 
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">重量</label>
-                <WeightInput
-                  ref="newDishWeightInputRef"
-                  v-model="newDish.weightValue"
-                  v-model:unit="newDish.weightUnit" />
+                <WeightInput ref="newDishWeightInputRef" v-model="newDish.weightValue" v-model:unit="newDish.weightUnit" />
               </div>
             </div>
 
@@ -283,7 +277,7 @@
                 v-model="newDish.remark"
                 rows="3"
                 placeholder="特殊要求..."
-                class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
             </div>
 
             <div>
@@ -405,11 +399,11 @@ const dishesError = ref(null); // 添加错误状态
 
 // 计算属性
 const canSubmit = computed(() => {
-  // 基础表单验证
+  // 基础表单验证 - 更严格的检查
   const basicFormValid =
-    personCount.value > 0 &&
-    tableCount.value > 0 && // 桌数验证
-    hallNumber.value &&
+    personCount.value && personCount.value > 0 &&
+    tableCount.value && tableCount.value > 0 &&
+    hallNumber.value && hallNumber.value.trim() !== '' &&
     selectedDishes.value.length > 0;
 
   // 如果没有选中菜品，直接返回 false
@@ -494,11 +488,11 @@ const confirmDishEdit = () => {
   const index = selectedDishes.value.findIndex((d) => d.id === currentDish.value.id);
   if (index >= 0) {
     // 使用组件暴露的 weightString 计算属性
-    const weightString = dishWeightInputRef.value?.weightString || '';
-    
-    selectedDishes.value[index] = { 
+    const weightString = dishWeightInputRef.value?.weightString || "";
+
+    selectedDishes.value[index] = {
       ...currentDish.value,
-      weight: weightString // 添加组合后的重量字符串
+      weight: weightString, // 添加组合后的重量字符串
     };
   }
   closeDishDetailModal();
@@ -538,8 +532,8 @@ const confirmAddDish = async () => {
 
     if (result.success) {
       // 使用组件暴露的 weightString 计算属性
-      const weightString = newDishWeightInputRef.value?.weightString || '';
-      
+      const weightString = newDishWeightInputRef.value?.weightString || "";
+
       // 添加到菜品列表
       const newDishItem = {
         id: result.data.id,
@@ -633,17 +627,45 @@ const submit = async () => {
   if (!canSubmit.value) return;
 
   try {
+    // 打印调试信息
+    console.log('=== 订单提交调试信息 ===');
+    console.log('hallNumber:', hallNumber.value, 'trimmed:', hallNumber.value?.trim());
+    console.log('personCount:', personCount.value);
+    console.log('tableCount:', tableCount.value);
+    console.log('selectedDishes count:', selectedDishes.value.length);
+
+    // 更严格的验证
+    if (!hallNumber.value || !hallNumber.value.trim()) {
+      alert('台号不能为空');
+      return;
+    }
+    if (!personCount.value || personCount.value < 1) {
+      alert('人数必须大于 0');
+      return;
+    }
+    if (!tableCount.value || tableCount.value < 1) {
+      alert('桌数必须大于 0');
+      return;
+    }
+    if (selectedDishes.value.length === 0) {
+      alert('请选择至少一个菜品');
+      return;
+    }
+
     // 创建订单
-    const orderResult = await OrderService.createOrder({
-      hallNumber: hallNumber.value,
+    const orderData = {
+      hallNumber: hallNumber.value.trim(),
       peopleCount: personCount.value,
       tableCount: tableCount.value, // 使用桌数字段
       // 根据餐型设置默认用餐时间：午餐 12 点，晚餐 18 点
-      mealTime: mealTime.value === '午餐' 
-        ? new Date(`${mealDate.value}T12:00:00`).toISOString()
-        : new Date(`${mealDate.value}T18:00:00`).toISOString(),
-      mealType: mealTime.value === '午餐' ? 'lunch' : 'dinner', // 餐型：lunch/dinner
-    });
+      mealTime:
+        mealTime.value === "午餐" ? new Date(`${mealDate.value}T12:00:00`).toISOString() : new Date(`${mealDate.value}T18:00:00`).toISOString(),
+      mealType: mealTime.value === "午餐" ? "lunch" : "dinner", // 餐型：lunch/dinner
+    };
+    
+    console.log('准备发送到后端的订单数据:', orderData);
+
+    const orderResult = await OrderService.createOrder(orderData);
 
     if (orderResult.success) {
       // 添加菜品到订单
@@ -667,8 +689,9 @@ const submit = async () => {
         hallNumber: hallNumber.value,
         mealDate: mealDate.value,
         mealTime: mealTime.value,
+        mealType: mealTime.value === "午餐" ? "lunch" : "dinner", // 添加餐型字段用于筛选
         dishes: selectedDishes.value,
-        selectedDishIds: selectedDishes.value.map((d) => d.id), // 传递已选菜品ID用于保持状态
+        selectedDishIds: selectedDishes.value.map((d) => d.id), // 传递已选菜品 ID 用于保持状态
       });
 
       resetForm();

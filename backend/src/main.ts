@@ -15,13 +15,18 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   // 启用 CORS - 完整的跨域配置
-  app.enableCors();
+  app.enableCors({
+    origin: '*', // 生产环境应该配置具体的域名
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  });
 
   const port = process.env.PORT ?? 3001;
   const host = process.env.HOST ?? '0.0.0.0'; // 监听所有网络接口
   console.log('Starting server on port:', port);
   console.log('Host:', host);
   console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+  console.log('WebSocket will be available at ws://' + host + ':' + port + '/ws');
 
   await app.listen(port, host);
 }

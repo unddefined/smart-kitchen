@@ -288,6 +288,7 @@ import OrderInputModal from "../components/OrderInputModal.vue";
 import Toast from "@/components/Toast.vue";
 import { OrderService } from "@/services";
 import { useToast } from "@/composables/useToast";
+import { useOrderAutoRefresh } from "@/composables/useOrderAutoRefresh";
 
 // 使用 toast 组合式函数
 const { toast, showToast, showSuccess, showError, showInfo } = useToast();
@@ -593,6 +594,17 @@ const loadOrders = async () => {
     console.log("后端返回的订单数:", orderList.length);
     if (orderList.length > 0) {
       console.log("第一个订单详情:", JSON.stringify(orderList[0], null, 2));
+      console.log("第一个订单的 mealType:", orderList[0].mealType);
+      console.log("筛选条件 mealType:", filterParams.mealType);
+      console.log("筛选条件 date:", filterParams.date);
+      
+      // 检查所有订单的 mealType
+      orderList.forEach((order, idx) => {
+        console.log(`订单${idx + 1} - id:${order.id}, hallNumber:${order.hallNumber}, mealType:${order.mealType}, mealTime:${order.mealTime}`);
+      });
+    } else {
+      console.log("后端返回了 0 个订单");
+      console.log("当前筛选条件:", filterParams);
     }
     
     orders.value = orderList.map((order) => ({
@@ -669,9 +681,6 @@ const refreshOrders = async () => {
 // 组件挂载时加载数据
 onMounted(() => {
   loadOrders();
-
-  // 启动自动刷新定时器
-  refreshTimer = setInterval(refreshOrders, REFRESH_INTERVAL);
 });
 
 // 组件卸载时清除定时器
@@ -680,6 +689,12 @@ onUnmounted(() => {
     clearInterval(refreshTimer);
     refreshTimer = null;
   }
+});
+
+// 使用订单自动刷新 Composable（列表页模式）
+useOrderAutoRefresh({
+  refreshFn: loadOrders,
+  mode: 'list',
 });
 
 // 处理起菜逻辑（已改为弹窗表单方式）
@@ -711,18 +726,11 @@ const handleDishAction = (action, dish) => {
 };
 
 const handleOrderSubmit = async (orderData) => {
-  try {
-    const result = await OrderService.createOrder(orderData);
-    if (result.success) {
-      showOrderModal.value = false;
-      // 重新加载订单列表
-      await loadOrders();
-    } else {
-      console.error("订单创建失败:", result.message);
-    }
-  } catch (error) {
-    console.error("订单提交错误:", error);
-  }
+  console.log('=== handleOrderSubmit 接收到的数据 ===', orderData);
+  // 订单已在 OrderInputModal 组件中创建，这里只需要刷新订单列表
+  showOrderModal.value = false;
+  // 重新加载订单列表
+  await loadOrders();
 };
 
 // 显示操作弹窗
@@ -926,3 +934,7 @@ const filterOrders = (status) => {
   return orders.value.filter((order) => order.status === status);
 };
 </script>
+
+
+
+

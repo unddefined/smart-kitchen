@@ -4,8 +4,6 @@ import Store from "@/views/Store.vue";
 import Todo from "@/views/Todo.vue";
 import History from "@/views/History.vue";
 import RecipeView from "@/views/RecipeView.vue";
-import OrderInputTest from "@/views/OrderInputTest.vue";
-import OrderDataTest from "@/views/OrderDataTest.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -40,16 +38,6 @@ const router = createRouter({
       name: "recipe",
       component: RecipeView,
       props: true,
-    },
-    {
-      path: "/order-input-test",
-      name: "order-input-test",
-      component: OrderInputTest,
-    },
-    {
-      path: "/order-test",
-      name: "OrderDataTest",
-      component: OrderDataTest,
     },
   ],
 });
