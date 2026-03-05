@@ -12,21 +12,103 @@ export class ServingService {
   }
 
   /**
-   * 计算菜品优先级（与数据库函数保持一致）
+   * 计算菜品优先级 (与数据库函数保持一致)
    */
   private calculateDishPriority(
     categoryName: string,
     isAddedLater: boolean = false,
     basePriority: number = 0,
   ): number {
-    // 如果是后来加菜的，优先级为3级（催菜级别）
+    // 如果是后来加菜的，优先级为 3 级 (催菜级别)
     if (isAddedLater) {
       return 3;
     }
 
-    // 订单未起菜时，所有菜品优先级都为0
-    // 不再根据菜品分类设置不同的默认优先级
-    return 0;
+    // 根据菜品分类设置默认优先级
+    // 前菜：3 级，中菜：2 级，后菜：1 级，尾菜：1 级
+    const priorityMap: Record<string, number> = {
+      前菜: 3,
+      中菜: 2,
+      点心: 2, // 点心按中菜处理
+      蒸菜: 2, // 蒸菜按中菜处理
+      后菜: 1,
+      尾菜: 1,
+      凉菜: 3, // 凉菜按前菜处理
+    };
+
+    return priorityMap[categoryName] || basePriority;
+  }
+
+  /**
+   * 自动调整订单中后续菜品的优先级
+   * 当某道菜上完后，该订单后面的菜自动 +1
+   */
+  private async autoAdjustSubsequentPriorities(
+    orderId: number,
+    servedItemId: number,
+  ) {
+    try {
+      // 获取订单的所有未上菜菜品
+      const orderItems = await this.prisma.orderItem.findMany({
+        where: {
+          orderId,
+          status: {
+            notIn: ['served', 'cancelled'],
+          },
+        },
+        include: {
+          dish: {
+            include: {
+              category: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      });
+
+      if (orderItems.length === 0) {
+        return;
+      }
+
+      this.logger.log(
+        `开始调整订单 ${orderId} 的后续菜品优先级，共 ${orderItems.length} 个菜品`,
+      );
+
+      // 遍历所有未上菜的菜品，提升优先级 (最高到 3)
+      for (const item of orderItems) {
+        const currentPriority = item.priority || 0;
+
+        // 如果当前优先级小于 3，则 +1
+        if (currentPriority < 3) {
+          const newPriority = Math.min(currentPriority + 1, 3);
+
+          await this.prisma.orderItem.update({
+            where: { id: item.id },
+            data: { priority: newPriority },
+          });
+
+          this.logger.log(
+            `订单${orderId}的${item.dish.name}优先级从 ${currentPriority} 提升到 ${newPriority}`,
+            {
+              orderId,
+              itemId: item.id,
+              dishName: item.dish.name,
+              oldPriority: currentPriority,
+              newPriority,
+            },
+          );
+        }
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      this.logger.error(`调整后续菜品优先级失败：${errorMessage}`, {
+        orderId,
+        servedItemId,
+      });
+      // 不抛出异常，避免影响主流程
+    }
   }
 
   // 获取订单详情
@@ -207,7 +289,7 @@ export class ServingService {
       items: order.orderItems.map((item) => ({
         id: item.id,
         dishName: item.dish.name,
-        quantity: Number(item.quantity), // 转换为number类型以便前端处理
+        quantity: Number(item.quantity), // 转换为 number 类型
         status: item.status,
         priority: item.priority,
         createdAt: item.createdAt,
@@ -316,10 +398,14 @@ export class ServingService {
         await ordersService.resumeOrderAfterServe(item.orderId);
         this.logger.log(`订单 ${item.orderId} 已自动恢复为 serving 状态`);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : '未知错误';
+        const errorMessage =
+          error instanceof Error ? error.message : '未知错误';
         this.logger.error(`恢复订单状态失败：${errorMessage}`);
       }
     }
+
+    // 上菜后，自动调整该订单后续菜品的优先级
+    await this.autoAdjustSubsequentPriorities(item.orderId, item.id);
 
     return {
       success: true,
@@ -404,7 +490,7 @@ export class ServingService {
       createdAt: item.createdAt,
       isOverdue:
         Date.now() - new Date(item.createdAt).getTime() > 30 * 60 * 1000,
-      quantity: Number(item.quantity) // 转换为number类型
+      quantity: Number(item.quantity), // 转换为 number 类型
     }));
   }
 
@@ -430,7 +516,7 @@ export class ServingService {
       priority: item.priority,
       status: item.status,
       createdAt: item.createdAt,
-      quantity: Number(item.quantity) // 转换为number类型
+      quantity: Number(item.quantity), // 转换为 number 类型
     }));
   }
 }
