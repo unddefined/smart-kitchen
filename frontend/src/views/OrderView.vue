@@ -204,6 +204,94 @@
       loading-text="删除中..."
       confirm-text="确认删除"
       @confirm="confirmDeleteOrder" />
+    <!-- 编辑订单信息弹窗 -->
+    <div v-if="showEditModalVisible" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+        <div class="text-center mb-6">
+          <h3 class="text-xl font-bold text-gray-800 mb-2">编辑订单信息</h3>
+        </div>
+
+        <div class="space-y-4">
+          <!-- 台号输入 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">台号</label>
+            <input
+              v-model="editForm.hallNumber"
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="请输入台号" />
+          </div>
+
+          <!-- 人数和桌数在同一行 -->
+          <div class="flex gap-4">
+            <!-- 人数输入 -->
+            <div class="flex-1">
+              <label class="block text-sm font-medium text-gray-700 mb-2">人数</label>
+              <input
+                v-model.number="editForm.peopleCount"
+                type="number"
+                min="1"
+                max="20"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="人数" />
+            </div>
+
+            <!-- 桌数输入 -->
+            <div class="flex-1">
+              <label class="block text-sm font-medium text-gray-700 mb-2">桌数</label>
+              <input
+                v-model.number="editForm.tableCount"
+                type="number"
+                min="1"
+                max="10"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="桌数" />
+            </div>
+          </div>
+
+          <!-- 用餐时间输入 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">用餐时间</label>
+            <input
+              v-model="editForm.mealTimeDisplay"
+              type="datetime-local"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+          </div>
+
+          <!-- 状态选择 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">订单状态</label>
+            <select
+              v-model="editForm.status"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="created">已创建</option>
+              <option value="started">待起菜</option>
+              <option value="serving">出餐中</option>
+              <option value="urged">已催菜</option>
+              <option value="done">已完成</option>
+              <option value="cancelled">已取消</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+          <button
+            @click="hideEditModal"
+            class="flex-1 py-3 px-4 border border-gray-300 rounded-lg bg-white text-gray-800 text-base cursor-pointer transition-all duration-200 hover:bg-gray-50">
+            取消
+          </button>
+          <button
+            @click="confirmEditOrder"
+            :disabled="isEditing"
+            :class="[
+              'flex-1 py-3 px-4 rounded-lg text-white text-base cursor-pointer transition-all duration-200',
+              isEditing ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 hover:-translate-y-0.5',
+            ]">
+            {{ isEditing ? "保存中..." : "保存修改" }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
