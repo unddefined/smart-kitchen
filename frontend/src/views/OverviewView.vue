@@ -90,8 +90,8 @@
 
               <!-- 菜品详细标注 -->
               <div class="text-lg text-gray-800 leading-relaxed font-medium flex flex-col items-center justify-center">
-                <!-- 催菜提示 - 当优先级为 3 时显示 -->
-                <div v-if="dish.priority === 3" class="text-red-600 font-bold text-center mb-1">催菜</div>
+                <!-- 催菜提示 - 基于订单状态显示，而不是优先级 -->
+                <div v-if="dish.orderStatus === 'urged'" class="text-red-600 font-bold text-center mb-1">{{ dish.hallNumber }}催菜</div>
                 <div v-for="(detail, idx) in dish.displayDetails" :key="idx" class="text-center break-all min-w-[80px]">
                   {{ detail }}
                 </div>
@@ -136,6 +136,8 @@
 
               <!-- 菜品详细标注 -->
               <div class="text-lg text-gray-800 leading-relaxed font-medium flex flex-col items-center justify-center">
+                <!-- 催菜提示 - 基于订单状态显示，而不是优先级 -->
+                <div v-if="dish.orderStatus === 'urged'" class="text-red-600 font-bold text-center mb-1">{{ dish.hallNumber }}催菜</div>
                 <div v-for="(detail, idx) in dish.displayDetails" :key="idx" class="text-center break-all min-w-[80px]">
                   {{ detail }}
                 </div>
