@@ -67,7 +67,7 @@ watch(
   (newVal) => {
     // 先清除之前的定时器
     clearTimer();
-    
+
     // 如果显示且 duration > 0，设置新的定时器
     if (newVal && props.duration > 0) {
       timer = setTimeout(() => {

@@ -5,16 +5,33 @@ export class OrderService {
   // 创建新订单
   static async createOrder(orderData) {
     try {
-      // 验证必要字段
-      if (!orderData.hallNumber || !orderData.peopleCount) {
-        throw new Error("台号和人数为必填项");
+      // 打印调试信息
+      console.log('=== OrderService 接收到的订单数据 ===');
+      console.log('orderData:', orderData);
+      console.log('hallNumber:', orderData?.hallNumber, 'type:', typeof orderData?.hallNumber);
+      console.log('peopleCount:', orderData?.peopleCount, 'type:', typeof orderData?.peopleCount);
+      console.log('tableCount:', orderData?.tableCount, 'type:', typeof orderData?.tableCount);
+
+      // 验证必要字段 - 分别检查每个字段
+      const errors = [];
+      if (!orderData.hallNumber || !orderData.hallNumber.trim()) {
+        console.error('❌ hallNumber 验证失败');
+        errors.push("台号不能为空");
+      }
+      if (!orderData.peopleCount || orderData.peopleCount < 1) {
+        console.error('❌ peopleCount 验证失败');
+        errors.push("人数必须大于 0");
+      }
+      if (errors.length > 0) {
+        throw new Error(errors.join("; "));
       }
 
       const order = await api.orders.create({
-        hallNumber: orderData.hallNumber,
+        hallNumber: orderData.hallNumber.trim(),
         peopleCount: orderData.peopleCount,
         tableCount: orderData.tableCount || 1,
         mealTime: orderData.mealTime || this.getCurrentMealTime(),
+        mealType: orderData.mealType || this.getCurrentMealType(), // 添加餐型字段
         status: ORDER_STATUS.CREATED,
       });
 
@@ -280,6 +297,20 @@ export class OrderService {
     }
   }
 
+  // 获取当前餐型
+  static getCurrentMealType() {
+    const now = new Date();
+    const hour = now.getHours();
+
+    if (hour >= 11 && hour < 14) {
+      return "午餐";
+    } else if (hour >= 17 && hour < 21) {
+      return "晚餐";
+    } else {
+      return "其他";
+    }
+  }
+
   // 验证订单数据
   static validateOrderData(orderData) {
     const errors = [];
@@ -455,6 +486,25 @@ export class OrderService {
         success: false,
         message: "订单信息更新失败：" + error.message,
       };
+    }
+  }
+
+  // 获取当前餐型（根据当前时间判断）
+  static getCurrentMealType() {
+    const now = new Date();
+    const hour = now.getHours();
+
+    // 9:00-15:00 为午餐时段
+    if (hour >= 9 && hour < 15) {
+      return 'lunch';
+    }
+    // 15:00-24:00 为晚餐时段
+    else if (hour >= 15 && hour < 24) {
+      return 'dinner';
+    }
+    // 0:00-9:00 默认为午餐（第二天早餐时段）
+    else {
+      return 'lunch';
     }
   }
 }

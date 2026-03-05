@@ -109,6 +109,9 @@ export class OrdersService {
   }
 
   async create(createOrderDto: any) {
+    this.logger.log('=== 开始创建订单 ===');
+    this.logger.log('接收到的数据:', JSON.stringify(createOrderDto));
+    
     // 解析 mealTime 和 mealType
     // 前端现在直接传递 mealTime (ISO 日期字符串) 和 mealType ('lunch'/'dinner')
     let mealTimeDate = null;
@@ -125,6 +128,7 @@ export class OrdersService {
           throw new Error('无效的用餐时间格式');
         }
       } catch (error) {
+        this.logger.error('用餐时间解析失败:', error instanceof Error ? error.message : String(error), createOrderDto.mealTime);
         throw new Error(`用餐时间格式错误：${createOrderDto.mealTime}`);
       }
     }
@@ -146,11 +150,13 @@ export class OrdersService {
       }
     }
 
-    return await this.prisma.order.create({
+    this.logger.log('解析后的值 - mealTime:', mealTimeDate, 'mealType:', mealTypeValue);
+
+    const order = await this.prisma.order.create({
       data: {
         hallNumber: createOrderDto.hallNumber,
         peopleCount: createOrderDto.peopleCount,
-        tableCount: createOrderDto.tableCount,
+        tableCount: createOrderDto.tableCount || 1,
         mealTime: mealTimeDate,
         mealType: mealTypeValue,
         status: 'created',
@@ -158,52 +164,33 @@ export class OrdersService {
         updatedAt: new Date(),
       },
     });
+
+    this.logger.log('订单创建成功 - ID:', order.id);
+    return order;
   }
 
   async findAll(queryParams: any) {
+    // 第一步：查询所有订单及其订单项
     const orders = await this.prisma.order.findMany({
       include: {
-        orderItems: true, // 先只包含 orderItems，不包含 dish
+        orderItems: {
+          include: {
+            dish: {
+              include: {
+                station: true,
+                category: true,
+              },
+            },
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
       },
     });
 
-    // 检查并更新每个订单的状态，然后手动获取每个订单项的菜品信息
-    const updatedOrders = await Promise.all(
-      orders.map(async (order) => {
-        // 检查并可能更新订单状态
-        const updatedOrder = await this.checkAndUpdateOrderStatus(order);
-
-        const orderItemsWithDish = await Promise.all(
-          updatedOrder.orderItems.map(async (item) => {
-            const dish = item.dishId
-              ? await this.prisma.dish.findUnique({
-                  where: { id: item.dishId },
-                  include: {
-                    station: true,
-                    category: true,
-                  },
-                })
-              : null;
-
-            return {
-              ...item,
-              dish,
-            };
-          }),
-        );
-
-        return {
-          ...updatedOrder,
-          orderItems: orderItemsWithDish,
-        };
-      }),
-    );
-
-    // 应用筛选条件
-    let filteredOrders = updatedOrders;
+    // 第二步：应用筛选条件
+    let filteredOrders = orders;
 
     // 按日期筛选
     if (queryParams.date) {
@@ -213,14 +200,16 @@ export class OrdersService {
         if (!order.mealTime) return false;
 
         // mealTime 是 Date 对象或 ISO 字符串 "2026-03-03T04:00:00.000Z"
-        let orderDateStr;
+        let orderDateStr: string;
 
-        if (typeof order.mealTime === 'string') {
+        const mealTime = order.mealTime as Date | string;
+        
+        if (typeof mealTime === 'string') {
           // ISO 字符串格式：2026-03-03T04:00:00.000Z
-          orderDateStr = order.mealTime.split('T')[0];
-        } else if (order.mealTime instanceof Date) {
+          orderDateStr = mealTime.split('T')[0];
+        } else if (mealTime instanceof Date) {
           // Date 对象
-          const d = order.mealTime;
+          const d = mealTime;
           const year = d.getFullYear();
           const month = String(d.getMonth() + 1).padStart(2, '0');
           const day = String(d.getDate()).padStart(2, '0');
@@ -248,7 +237,16 @@ export class OrdersService {
     const order = await this.prisma.order.findUnique({
       where: { id },
       include: {
-        orderItems: true,
+        orderItems: {
+          include: {
+            dish: {
+              include: {
+                station: true,
+                category: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -256,33 +254,7 @@ export class OrdersService {
       return null;
     }
 
-    // 检查并可能更新订单状态
-    const updatedOrder = await this.checkAndUpdateOrderStatus(order);
-
-    // 手动获取每个订单项的菜品信息
-    const orderItemsWithDish = await Promise.all(
-      updatedOrder.orderItems.map(async (item) => {
-        const dish = item.dishId
-          ? await this.prisma.dish.findUnique({
-              where: { id: item.dishId },
-              include: {
-                station: true,
-                category: true,
-              },
-            })
-          : null;
-
-        return {
-          ...item,
-          dish,
-        };
-      }),
-    );
-
-    return {
-      ...updatedOrder,
-      orderItems: orderItemsWithDish,
-    };
+    return order;
   }
 
   async findOrderItems(orderId: number) {

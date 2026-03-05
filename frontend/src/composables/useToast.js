@@ -23,6 +23,7 @@ export function useToast() {
     toast.type = type;
     toast.duration = duration;
     toast.visible = true;
+    console.log('showToast', message, type, duration);
   };
 
   /**
