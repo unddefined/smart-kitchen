@@ -9,6 +9,9 @@ export class DishesService {
 
   async findAll() {
     return this.prisma.dish.findMany({
+      where: {
+        isActive: true, // 只返回活跃的菜品
+      },
       include: {
         station: true,
         category: true,
@@ -80,7 +83,7 @@ export class DishesService {
 
   async update(id: number, data: any) {
     return this.prisma.dish.update({
-      where: { id },
+      where: { id: Number(id) }, // 确保 id 是数字类型
       data,
       include: {
         station: true,
@@ -90,9 +93,30 @@ export class DishesService {
   }
 
   async remove(id: number) {
-    return this.prisma.dish.delete({
-      where: { id },
+    // 检查该菜品是否被订单关联
+    const orderItemCount = await this.prisma.orderItem.count({
+      where: {
+        dishId: Number(id), // 确保传入的是数字类型
+      },
     });
+
+    if (orderItemCount > 0) {
+      // 如果有关联订单，使用软删除：将 isActive 设置为 false
+      // 这样可以保留订单历史数据的完整性
+      return this.prisma.dish.update({
+        where: { id: Number(id) }, // 确保 id 是数字类型
+        data: { isActive: false },
+        include: {
+          station: true,
+          category: true,
+        },
+      });
+    } else {
+      // 如果没有关联订单，直接从数据库删除
+      return this.prisma.dish.delete({
+        where: { id: Number(id) }, // 确保 id 是数字类型
+      });
+    }
   }
 
   async searchByName(name: string) {

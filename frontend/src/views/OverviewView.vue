@@ -350,8 +350,14 @@ const extractDishesFromOrders = () => {
         return;
       }
 
-      // 跳过未开始的订单中的菜品
-      if (order.status !== "started") {
+      // 跳过已完成/已上菜的订单中的菜品（除了 priority=-1 的已出菜品）
+      if (order.status === "done" || order.status === "cancelled") {
+        return;
+      }
+
+      // 对于待上区域的菜品（priority > 0），要求订单状态必须是 started/serving/urged
+      // 对于未起菜品（priority = 0），允许在 created/started 状态下显示
+      if (item.priority > 0 && order.status !== "started" && order.status !== "serving" && order.status !== "urged") {
         return;
       }
 
@@ -510,7 +516,7 @@ const pendingDishes = computed(() => {
 // 未起菜菜品列表 - 筛选出订单状态为 started 且优先级为 0 的菜品（可能处于备菜的任何阶段）
 const unstartedDishes = computed(() => {
   const allDishes = extractDishesFromOrders();
-  const filtered = allDishes.filter((dish) => dish.orderStatus === "started" && dish.priority === 0);
+  const filtered = allDishes.filter((dish) => dish.priority === 0);
   const merged = mergeDishes(filtered);
   return merged.map((dish) => ({
     ...dish,

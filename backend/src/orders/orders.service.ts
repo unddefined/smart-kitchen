@@ -189,8 +189,16 @@ export class OrdersService {
       },
     });
 
-    // 第二步：应用筛选条件
-    let filteredOrders = orders;
+    // 第二步：检查并更新每个订单的状态
+    const updatedOrders = await Promise.all(
+      orders.map(async (order) => {
+        const updatedOrder = await this.checkAndUpdateOrderStatus(order);
+        return updatedOrder;
+      }),
+    );
+
+    // 第三步：应用筛选条件
+    let filteredOrders = updatedOrders;
 
     // 按日期筛选
     if (queryParams.date) {
@@ -254,7 +262,9 @@ export class OrdersService {
       return null;
     }
 
-    return order;
+    // 检查并可能更新订单状态
+    const updatedOrder = await this.checkAndUpdateOrderStatus(order);
+    return updatedOrder;
   }
 
   async findOrderItems(orderId: number) {
