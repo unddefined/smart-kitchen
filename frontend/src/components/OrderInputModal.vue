@@ -1,6 +1,9 @@
 <!-- eslint-disable prettier/prettier -->
 <template>
   <Teleport to="#modal-container">
+    <!-- Toast 提示 -->
+    <Toast v-model:visible="toast.visible" :message="toast.message" :type="toast.type" :duration="toast.duration" />
+    
     <!-- 主订单录入弹窗 -->
     <div v-if="visible" class="fixed inset-0 bg-black bg-opacity-50 flex items-end z-2000" @click.self="closeModal">
       <div class="bg-white w-full rounded-t-2xl max-h-[90vh] flex flex-col min-h-[400px]">
@@ -19,14 +22,14 @@
           <!-- 用餐信息输入（全部同一行） -->
           <div class="flex space-x-4">
             <div class="flex items-center space-x-3 flex-1">
-              <label class="text-xl text-gray-500 whitespace-nowrap">人数</label>
+              <label class="text-xl whitespace-nowrap">人数</label>
               <input
                 v-model.number="personCount"
                 type="number"
                 min="1"
                 placeholder="人数"
                 class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <label class="text-xl text-gray-500 whitespace-nowrap">桌数</label>
+              <label class="text-xl whitespace-nowrap">桌数</label>
               <input
                 v-model.number="tableCount"
                 type="number"
@@ -76,43 +79,19 @@
           </div>
 
           <!-- 菜品选择区域 -->
-          <div>
-            <div class="flex items-center justify-between mb-3">
-              <label class="block text-xl font-medium text-gray-700">菜品</label>
-              <button @click="showAddDishModal = true" class="text-blue-500 hover:text-blue-700 text-xl font-medium">+ 新增菜品</button>
-            </div>
-
-            <!-- 加载状态 -->
-            <div v-if="dishesLoading" class="text-center py-4">
-              <div class="inline-block w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              <p class="text-gray-500 mt-2">加载菜品中...</p>
-            </div>
-
-            <!-- 错误状态 -->
-            <div v-else-if="dishesError" class="text-center py-4">
-              <p class="text-red-500">{{ dishesError }}</p>
-              <button @click="loadDishes" class="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">重试</button>
-            </div>
-
-            <!-- 菜品按钮网格 -->
-            <div v-else class="flex flex-wrap gap-1">
-              <button
-                v-for="dish in allDishes"
-                :key="dish.id"
-                @click="toggleDishSelection(dish)"
-                :class="[
-                  'p-1 rounded-lg border-2 text-xl font-medium transition-all',
-                  isSelected(dish.id) ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
-                ]">
-                {{ dish.name }}
-              </button>
-            </div>
-
-            <!-- 无菜品提示 -->
-            <div v-if="!dishesLoading && !dishesError && allDishes.length === 0" class="text-center py-4">
-              <p class="text-gray-500">暂无菜品，请先添加菜品</p>
-            </div>
-          </div>
+          <!-- 使用新的 DishSelector 组件 -->
+          <DishSelector
+            :dishes="allDishes"
+            :selected-dishes="selectedDishes"
+            mode="select"
+            title="菜品"
+            :show-add-button="true"
+            :loading="dishesLoading"
+            :error="dishesError"
+            @update:selected-dishes="selectedDishes = $event"
+            @add-new="showAddDishModal = true"
+            @retry="loadDishes"
+            @delete-dish="handleDeleteDishFromDb" />
         </div>
 
         <!-- 底部按钮区域 -->
@@ -136,73 +115,6 @@
               完成
             </button>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 菜品详情编辑弹窗 -->
-    <div v-if="showDishDetailModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-2000 p-4">
-      <div class="bg-white rounded-xl w-full max-w-md">
-        <div class="p-4 border-b">
-          <h3 class="text-lg font-bold text-gray-900">编辑菜品</h3>
-        </div>
-
-        <div class="p-4 space-y-4">
-          <div class="text-gray-900 font-medium text-xl">
-            {{ currentDish?.name }}
-          </div>
-
-          <div>
-            <label class="block text-xs font-medium text-gray-700 mb-2">份量</label>
-            <div class="flex items-center space-x-3">
-              <button
-                @click="resetQuantity"
-                class="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm font-medium transition-colors">
-                清零
-              </button>
-              <button @click="decreaseQuantity" class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
-                </svg>
-              </button>
-              <span class="text-xl font-bold w-12 text-center">{{ currentDish?.quantity }}</span>
-              <button
-                @click="increaseQuantity"
-                class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-              </button>
-              <button
-                @click="addHalfQuantity"
-                class="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm font-medium transition-colors">
-                +0.5
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-xs font-medium text-gray-700 mb-2">重量</label>
-            <WeightInput ref="dishWeightInputRef" v-model="currentDish.weightValue" v-model:unit="currentDish.weightUnit" />
-          </div>
-
-          <div>
-            <label class="block text-xs font-medium text-gray-700 mb-2">备注</label>
-            <textarea
-              v-model="currentDish.remark"
-              rows="3"
-              placeholder="特殊要求..."
-              class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-          </div>
-        </div>
-
-        <div class="p-4 border-t bg-gray-50 flex space-x-3">
-          <button @click="closeDishDetailModal" class="flex-1 py-3 bg-gray-200 text-black rounded-lg font-medium hover:bg-gray-300 transition-colors">
-            取消
-          </button>
-          <button @click="confirmDishEdit" class="flex-1 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors">
-            确认
-          </button>
         </div>
       </div>
     </div>
@@ -321,6 +233,13 @@
 import { ref, computed, watch, onMounted } from "vue";
 import { DishService, OrderService } from "@/services";
 import WeightInput from "@/components/WeightInput.vue";
+import DishSelector from "@/components/DishSelector.vue";
+import Toast from "@/components/Toast.vue";
+import { useToast } from "@/composables/useToast";
+import { useDishLoader } from "@/composables/useDishLoader";
+
+// 使用 toast 组合式函数
+const { toast, showToast, showSuccess, showError, showInfo } = useToast();
 
 // Props
 const props = defineProps({
@@ -369,9 +288,6 @@ const selectedDishes = ref([]);
 const showDishDetailModal = ref(false);
 const showAddDishModal = ref(false);
 
-// 当前编辑的菜品
-const currentDish = ref(null);
-
 // WeightInput 组件引用
 const dishWeightInputRef = ref(null);
 const newDishWeightInputRef = ref(null);
@@ -392,18 +308,24 @@ const stations = ref([]);
 const categories = ref([]);
 const loadingOptions = ref(false); // 加载选项状态
 
-// 菜品数据
-const allDishes = ref([]);
-const dishesLoading = ref(false); // 添加加载状态
-const dishesError = ref(null); // 添加错误状态
+// 使用菜品加载 Composable
+const { 
+  dishes: allDishes,
+  loading: dishesLoading,
+  error: dishesError,
+  loadDishes,
+} = useDishLoader();
 
 // 计算属性
 const canSubmit = computed(() => {
   // 基础表单验证 - 更严格的检查
   const basicFormValid =
-    personCount.value && personCount.value > 0 &&
-    tableCount.value && tableCount.value > 0 &&
-    hallNumber.value && hallNumber.value.trim() !== '' &&
+    personCount.value &&
+    personCount.value > 0 &&
+    tableCount.value &&
+    tableCount.value > 0 &&
+    hallNumber.value &&
+    hallNumber.value.trim() !== "" &&
     selectedDishes.value.length > 0;
 
   // 如果没有选中菜品，直接返回 false
@@ -424,78 +346,6 @@ const hasSelectedDishes = computed(() => {
 const closeModal = () => {
   emit("update:visible", false);
   emit("close");
-};
-
-const toggleDishSelection = (dish) => {
-  const index = selectedDishes.value.findIndex((d) => d.id === dish.id);
-  if (index >= 0) {
-    // 如果已选中，打开编辑弹窗
-    currentDish.value = { ...selectedDishes.value[index] };
-    showDishDetailModal.value = true;
-  } else {
-    // 如果未选中，添加到选中列表（不打开弹窗）
-    const newSelectedDish = {
-      ...dish,
-      quantity: 1,
-      weight: "",
-      remark: "",
-    };
-    selectedDishes.value.push(newSelectedDish);
-  }
-};
-
-const isSelected = (dishId) => {
-  return selectedDishes.value.some((d) => d.id === dishId);
-};
-
-const decreaseQuantity = () => {
-  if (currentDish.value.quantity > 1) {
-    currentDish.value.quantity--;
-  } else {
-    // 数量为0时删除菜品并关闭弹窗
-    const index = selectedDishes.value.findIndex((d) => d.id === currentDish.value.id);
-    if (index >= 0) {
-      selectedDishes.value.splice(index, 1);
-    }
-    closeDishDetailModal();
-  }
-};
-
-const increaseQuantity = () => {
-  currentDish.value.quantity++;
-};
-
-// 新增的方法
-const addHalfQuantity = () => {
-  currentDish.value.quantity = parseFloat((currentDish.value.quantity + 0.5).toFixed(1));
-};
-
-const resetQuantity = () => {
-  // 从已选列表中移除该菜品
-  const index = selectedDishes.value.findIndex((d) => d.id === currentDish.value.id);
-  if (index >= 0) {
-    selectedDishes.value.splice(index, 1);
-  }
-  closeDishDetailModal();
-};
-
-const closeDishDetailModal = () => {
-  showDishDetailModal.value = false;
-  currentDish.value = null;
-};
-
-const confirmDishEdit = () => {
-  const index = selectedDishes.value.findIndex((d) => d.id === currentDish.value.id);
-  if (index >= 0) {
-    // 使用组件暴露的 weightString 计算属性
-    const weightString = dishWeightInputRef.value?.weightString || "";
-
-    selectedDishes.value[index] = {
-      ...currentDish.value,
-      weight: weightString, // 添加组合后的重量字符串
-    };
-  }
-  closeDishDetailModal();
 };
 
 const closeAddDishModal = () => {
@@ -522,18 +372,21 @@ const confirmAddDish = async () => {
   }
 
   try {
-    // 创建新菜品
+    // 使用组件暴露的 weightString 计算属性
+    const weightString = newDishWeightInputRef.value?.weightString || "";
+
+    // 创建新菜品 - 包含所有字段（份量、重量、备注都是选填）
     const result = await DishService.createDish({
       name: newDish.value.name,
-      stationId: Number(newDish.value.stationId), // 确保是数字类型
-      categoryId: Number(newDish.value.categoryId), // 确保是数字类型
+      stationId: Number(newDish.value.stationId),
+      categoryId: Number(newDish.value.categoryId),
       countable: newDish.value.countable,
+      defaultQuantity: newDish.value.quantity || 1, // 默认份量
+      defaultWeight: weightString || null, // 默认重量（可选）
+      defaultRemark: newDish.value.remark || "", // 默认备注（可选）
     });
 
     if (result.success) {
-      // 使用组件暴露的 weightString 计算属性
-      const weightString = newDishWeightInputRef.value?.weightString || "";
-
       // 添加到菜品列表
       const newDishItem = {
         id: result.data.id,
@@ -602,8 +455,31 @@ const getStationName = (stationId) => {
 
 const cancel = () => {
   console.log("取消按钮被点击");
-  resetForm();
-  closeModal();
+};
+
+// 从数据库删除菜品
+const handleDeleteDishFromDb = async (dishId) => {
+  try {
+    const result = await DishService.deleteDish(dishId);
+    
+    if (result.success) {
+      // 从选中列表中移除该菜品
+      selectedDishes.value = selectedDishes.value.filter(d => d.id !== dishId);
+      
+      // 刷新菜品列表
+      await loadDishes();
+      
+      // 关闭编辑弹窗
+      showEditDishModal.value = false;
+      
+      showSuccess("菜品已删除");
+    } else {
+      showError("删除失败：" + result.message);
+    }
+  } catch (error) {
+    console.error("删除菜品失败:", error);
+    showError("删除菜品时发生错误");
+  }
 };
 
 // 处理取消或清空按钮点击
@@ -628,27 +504,27 @@ const submit = async () => {
 
   try {
     // 打印调试信息
-    console.log('=== 订单提交调试信息 ===');
-    console.log('hallNumber:', hallNumber.value, 'trimmed:', hallNumber.value?.trim());
-    console.log('personCount:', personCount.value);
-    console.log('tableCount:', tableCount.value);
-    console.log('selectedDishes count:', selectedDishes.value.length);
+    console.log("=== 订单提交调试信息 ===");
+    console.log("hallNumber:", hallNumber.value, "trimmed:", hallNumber.value?.trim());
+    console.log("personCount:", personCount.value);
+    console.log("tableCount:", tableCount.value);
+    console.log("selectedDishes count:", selectedDishes.value.length);
 
     // 更严格的验证
     if (!hallNumber.value || !hallNumber.value.trim()) {
-      alert('台号不能为空');
+      alert("台号不能为空");
       return;
     }
     if (!personCount.value || personCount.value < 1) {
-      alert('人数必须大于 0');
+      alert("人数必须大于 0");
       return;
     }
     if (!tableCount.value || tableCount.value < 1) {
-      alert('桌数必须大于 0');
+      alert("桌数必须大于 0");
       return;
     }
     if (selectedDishes.value.length === 0) {
-      alert('请选择至少一个菜品');
+      alert("请选择至少一个菜品");
       return;
     }
 
@@ -662,8 +538,8 @@ const submit = async () => {
         mealTime.value === "午餐" ? new Date(`${mealDate.value}T12:00:00`).toISOString() : new Date(`${mealDate.value}T18:00:00`).toISOString(),
       mealType: mealTime.value === "午餐" ? "lunch" : "dinner", // 餐型：lunch/dinner
     };
-    
-    console.log('准备发送到后端的订单数据:', orderData);
+
+    console.log("准备发送到后端的订单数据:", orderData);
 
     const orderResult = await OrderService.createOrder(orderData);
 
@@ -709,29 +585,6 @@ const resetForm = () => {
   mealDate.value = new Date().toISOString().split("T")[0];
   mealTime.value = getDefaultMealTime();
   // 注意：不重置 selectedDishes，以保持已选菜品状态用于下一张订单
-};
-
-// 初始化加载菜品数据
-const loadDishes = async () => {
-  dishesLoading.value = true;
-  dishesError.value = null;
-  try {
-    // 使用按上菜顺序排序的菜品数据
-    const dishes = await DishService.getAllDishesInServingOrder();
-    allDishes.value = dishes;
-  } catch (error) {
-    console.error("加载菜品数据失败:", error);
-    dishesError.value = "加载菜品失败，请稍后重试";
-    // 回退到字母排序
-    try {
-      const fallbackDishes = await DishService.getAllDishes();
-      allDishes.value = fallbackDishes;
-    } catch (fallbackError) {
-      allDishes.value = [];
-    }
-  } finally {
-    dishesLoading.value = false;
-  }
 };
 
 // 监听 visible 变化

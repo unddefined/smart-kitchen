@@ -122,6 +122,13 @@
           添加备注
         </button>
         <button
+          @click="showModifyDishesModal"
+          class="flex-1 py-2 px-3 border border-purple-300 rounded-lg bg-purple-50 text-purple-700 text-base cursor-pointer transition-all duration-200 hover:bg-purple-100 hover:border-purple-400 whitespace-nowrap">
+          修改菜品
+        </button>
+      </div>
+      <div class="flex gap-2 mt-3 justify-between w-full">
+        <button
           @click="showEditModal"
           class="flex-1 py-2 px-3 border border-blue-300 rounded-lg bg-blue-50 text-blue-700 text-base cursor-pointer transition-all duration-200 hover:bg-blue-100 hover:border-blue-400 whitespace-nowrap">
           编辑订单信息
@@ -308,6 +315,69 @@
         </div>
       </div>
     </div>
+
+    <!-- 修改菜品弹窗 -->
+    <div v-if="showModifyModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" @click.stop>
+        <div class="p-4 border-b sticky top-0 bg-white rounded-t-xl z-10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xl font-bold text-gray-800">修改菜品</h3>
+            <button @click="hideModifyModal" class="text-gray-400 hover:text-gray-600">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <p class="text-sm text-gray-600 mt-2">灰色为已上菜（不可点击），其他为未上菜（可退选）</p>
+        </div>
+
+        <div class="p-4">
+          <!-- 加载状态 -->
+          <div v-if="loadingDishes" class="text-center py-8">
+            <div class="inline-block w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <p class="text-gray-500 mt-2">加载菜品中...</p>
+          </div>
+
+          <!-- 错误状态 -->
+          <div v-else-if="loadDishesError" class="text-center py-8">
+            <p class="text-red-500">{{ loadDishesError }}</p>
+            <button @click="loadDishes" class="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">重试</button>
+          </div>
+
+          <!-- 菜品选择器 -->
+          <div v-else>
+            <DishSelector
+              ref="dishSelectorRef"
+              :dishes="availableDishes"
+              :selected-dishes="selectedOrderItems"
+              :served-dish-ids="servedDishIds"
+              mode="edit"
+              title="菜品库"
+              :show-add-button="false"
+              :show-weight-input="false"
+              :readonly="false"
+              @update:selected-dishes="handleSelectedDishesChange"
+              @dish-click="handleDishSelectorClick"
+              @dish-edit="handleDishEdit" />
+          </div>
+        </div>
+
+        <div class="p-4 border-t bg-gray-50 flex gap-3 sticky bottom-0">
+          <button @click="hideModifyModal" class="flex-1 py-3 bg-gray-200 text-black rounded-lg font-medium hover:bg-gray-300 transition-colors">
+            取消
+          </button>
+          <button
+            @click="confirmModifyDishes"
+            :disabled="isModifying"
+            :class="[
+              'flex-1 py-3 rounded-lg text-white font-medium transition-all duration-200',
+              isModifying ? 'bg-purple-300 cursor-not-allowed' : 'bg-purple-500 hover:bg-purple-600 hover:-translate-y-0.5',
+            ]">
+            {{ isModifying ? "保存中..." : "保存修改" }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -319,12 +389,11 @@ import { OrderService } from "@/services";
 import ConfirmModal from "@/components/ConfirmModal.vue";
 import { useToast } from "@/composables/useToast";
 import { api } from "@/services/api";
+import DishSelector from "@/components/DishSelector.vue";
+import { useDishLoader } from "@/composables/useDishLoader";
 
 // 使用 toast 组合式函数
 const { toast, showToast, showSuccess, showError, showInfo } = useToast();
-const toastVisible = ref(false);
-const toastMessage = ref("");
-const toastType = ref("success");
 
 // Props
 const props = defineProps({
@@ -344,7 +413,6 @@ const error = ref(null);
 const showCancelModal = ref(false);
 const showDeleteModal = ref(false);
 const showCompleteModal = ref(false);
-const showEditModalVisible = ref(false);
 const isCancelling = ref(false);
 const isDeleting = ref(false);
 const isCompleting = ref(false);
@@ -357,6 +425,17 @@ const editForm = ref({
   tableCount: 1,
   status: "created",
 });
+
+// 修改菜品相关状态
+const showModifyModal = ref(false);
+const dishSelectorRef = ref(null);
+const isModifying = ref(false);
+
+// 使用菜品加载 Composable
+const { dishes: availableDishes, loading: loadingDishes, error: loadDishesError, loadDishes, resetDishes } = useDishLoader();
+
+// 订单中的菜品（未上菜的）
+const selectedOrderItems = ref([]);
 
 // 计算属性 - 判断取消按钮是否禁用
 const isCancelButtonDisabled = computed(() => {
@@ -372,6 +451,14 @@ const canCompleteOrder = computed(() => {
   const isServingStatus = orderDetail.value.status === "serving" || orderDetail.value.status === "urged";
   const allItemsServed = pendingDishes.value.length === 0;
   return isServingStatus && allItemsServed;
+});
+
+// 计算已上菜的菜品 ID 列表（用于禁用这些菜品）
+const servedDishIds = computed(() => {
+  if (!orderDetail.value?.items) return [];
+  return orderDetail.value.items
+    .filter((item) => item.status === "served")
+    .map((item) => item.dishId);
 });
 
 // 获取菜品优先级对应的CSS类
@@ -733,9 +820,6 @@ const showEditModal = () => {
   showEditModalVisible.value = true;
 };
 
-const hideEditModal = () => {
-  showEditModalVisible.value = false;
-};
 
 const confirmEditOrder = async () => {
   if (isEditing.value) return;
@@ -808,4 +892,94 @@ useOrderAutoRefresh({
   mode: "detail",
   orderId: props.orderId,
 });
+
+// ========== 修改菜品相关方法 ==========
+
+// 显示修改菜品弹窗
+const showModifyDishesModal = async () => {
+  if (!orderDetail.value) return;
+  
+  showModifyModal.value = true;
+  await loadDishes(); // 使用 useDishLoader 提供的 loadDishes 方法
+  initializeSelectedOrderItems(); // 初始化已选中的订单菜品
+};
+
+// 隐藏修改菜品弹窗
+const hideModifyModal = () => {
+  showModifyModal.value = false;
+  selectedOrderItems.value = [];
+  resetDishes(); // 使用 useDishLoader 提供的 resetDishes 方法
+};
+
+// 初始化已选中的订单菜品
+const initializeSelectedOrderItems = () => {
+  if (!orderDetail.value?.items) return;
+
+  selectedOrderItems.value = orderDetail.value.items.map((item) => ({
+    id: item.dishId,
+    orderItemId: item.id,
+    name: item.dish?.name || "未知菜品",
+    quantity: item.quantity || 1,
+    remark: item.remark || "",
+    weightValue: item.weightValue || null,
+    weightUnit: item.weightUnit || "两",
+    dish: item.dish,
+  }));
+};
+
+// 处理选中菜品的变化
+const handleSelectedDishesChange = (newSelectedDishes) => {
+  // 这里可以记录变化，但实际删除操作在确认时执行
+  console.log("选中的菜品:", newSelectedDishes);
+};
+
+// 处理菜品选择器中的菜品点击
+const handleDishSelectorClick = (dish) => {
+  console.log("点击菜品选择器中的菜品:", dish);
+  // DishSelector 组件会自动处理选中/取消选中逻辑
+};
+
+// 处理菜品编辑事件（DishSelector 内部会自动打开编辑弹窗）
+const handleDishEdit = (dish) => {
+  console.log("编辑菜品:", dish);
+  // 无需任何操作，DishSelector 组件内部会处理编辑弹窗的显示
+};
+
+// 确认修改菜品
+const confirmModifyDishes = async () => {
+  if (isModifying.value) return;
+
+  try {
+    isModifying.value = true;
+
+    // 找出被移除的菜品（原来选中但现在没有的）
+    const originalIds = selectedOrderItems.value.map((item) => item.orderItemId).filter((id) => id);
+    const currentIds = dishSelectorRef.value?.selectedDishes?.map((item) => item.orderItemId).filter((id) => id) || [];
+
+    const removedIds = originalIds.filter((id) => !currentIds.includes(id));
+
+    // 批量删除被移除的菜品
+    if (removedIds.length > 0) {
+      for (const itemId of removedIds) {
+        await api.orderItems.delete(itemId);
+      }
+
+      showSuccess(`成功删除 ${removedIds.length} 个菜品`);
+    }
+
+    // 隐藏弹窗
+    hideModifyModal();
+
+    // 重新加载订单详情
+    await loadOrderDetail();
+
+    // 通知父组件订单已更新
+    emit("orderCancelled", props.orderId);
+  } catch (error) {
+    console.error("修改菜品失败:", error);
+    showError("修改菜品失败：" + (error.message || "操作失败"));
+  } finally {
+    isModifying.value = false;
+  }
+};
 </script>

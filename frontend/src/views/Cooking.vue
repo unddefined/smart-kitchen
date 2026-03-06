@@ -77,7 +77,7 @@
         </div>
       </div>
 
-      <!-- 功能按钮区域：起菜、催菜、加菜、暂停、退菜、录入订单 -->
+      <!-- 功能按钮区域：起菜、催菜、暂停、更改订单菜品、录入订单 -->
       <div class="flex w-full justify-between text-black gap-1">
         <button
           :class="[
@@ -98,11 +98,6 @@
           催菜
         </button>
         <button
-          class="py-1.5 border-none rounded-lg text-xl font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
-          @click="handleAddDish">
-          加菜
-        </button>
-        <button
           :class="[
             'py-1.5 border-none rounded-lg text-xl font-medium cursor-pointer transition-all duration-200 text-center flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]',
             canPauseDish || activeTab === 'overview' ? ' text-black hover:bg-yellow-600 bg-gray-300' : 'bg-gray-300 text-gray-400 cursor-not-allowed',
@@ -110,11 +105,6 @@
           @click="showActionModal('pause')"
           :disabled="!canPauseDish && activeTab !== 'overview'">
           暂停
-        </button>
-        <button
-          class="py-1.5 border-none rounded-lg text-xl font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]"
-          @click="handleReturnDish">
-          退菜
         </button>
         <button
           class="py-1.5 border-none rounded-lg text-xl font-medium text-black cursor-pointer transition-all duration-200 text-center bg-gray-300 hover:bg-gray-400 flex-grow-[1.6] md:flex-grow-[1.6] sm:flex-grow-[1.2]"
