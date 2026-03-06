@@ -1,9 +1,6 @@
 <!-- eslint-disable prettier/prettier -->
 <template>
   <Teleport to="#modal-container">
-    <!-- Toast 提示 -->
-    <Toast v-model:visible="toast.visible" :message="toast.message" :type="toast.type" :duration="toast.duration" />
-    
     <!-- 主订单录入弹窗 -->
     <div v-if="visible" class="fixed inset-0 bg-black bg-opacity-50 flex items-end z-2000" @click.self="closeModal">
       <div class="bg-white w-full rounded-t-2xl max-h-[90vh] flex flex-col min-h-[400px]">
@@ -234,12 +231,11 @@ import { ref, computed, watch, onMounted } from "vue";
 import { DishService, OrderService } from "@/services";
 import WeightInput from "@/components/WeightInput.vue";
 import DishSelector from "@/components/DishSelector.vue";
-import Toast from "@/components/Toast.vue";
 import { useToast } from "@/composables/useToast";
 import { useDishLoader } from "@/composables/useDishLoader";
 
-// 使用 toast 组合式函数
-const { toast, showToast, showSuccess, showError, showInfo } = useToast();
+// 使用 toast 组合式函数（现在会自动注入全局实例）
+const { showToast, showSuccess, showError, showInfo } = useToast();
 
 // Props
 const props = defineProps({
@@ -309,12 +305,7 @@ const categories = ref([]);
 const loadingOptions = ref(false); // 加载选项状态
 
 // 使用菜品加载 Composable
-const { 
-  dishes: allDishes,
-  loading: dishesLoading,
-  error: dishesError,
-  loadDishes,
-} = useDishLoader();
+const { dishes: allDishes, loading: dishesLoading, error: dishesError, loadDishes } = useDishLoader();
 
 // 计算属性
 const canSubmit = computed(() => {
@@ -455,23 +446,24 @@ const getStationName = (stationId) => {
 
 const cancel = () => {
   console.log("取消按钮被点击");
+  closeModal(); // 添加关闭弹窗逻辑
 };
 
 // 从数据库删除菜品
 const handleDeleteDishFromDb = async (dishId) => {
   try {
     const result = await DishService.deleteDish(dishId);
-    
+
     if (result.success) {
       // 从选中列表中移除该菜品
-      selectedDishes.value = selectedDishes.value.filter(d => d.id !== dishId);
-      
+      selectedDishes.value = selectedDishes.value.filter((d) => d.id !== dishId);
+
       // 刷新菜品列表
       await loadDishes();
-      
+
       // 关闭编辑弹窗
       showEditDishModal.value = false;
-      
+
       showSuccess("菜品已删除");
     } else {
       showError("删除失败：" + result.message);
@@ -512,19 +504,19 @@ const submit = async () => {
 
     // 更严格的验证
     if (!hallNumber.value || !hallNumber.value.trim()) {
-      alert("台号不能为空");
+      showError("台号不能为空");
       return;
     }
     if (!personCount.value || personCount.value < 1) {
-      alert("人数必须大于 0");
+      showError("人数必须大于 0");
       return;
     }
     if (!tableCount.value || tableCount.value < 1) {
-      alert("桌数必须大于 0");
+      showError("桌数必须大于 0");
       return;
     }
     if (selectedDishes.value.length === 0) {
-      alert("请选择至少一个菜品");
+      showError("请选择至少一个菜品");
       return;
     }
 
@@ -543,38 +535,61 @@ const submit = async () => {
 
     const orderResult = await OrderService.createOrder(orderData);
 
-    if (orderResult.success) {
-      // 添加菜品到订单
-      const dishPromises = selectedDishes.value.map((dish) =>
-        OrderService.addDishToOrder(orderResult.data.id, {
-          dishId: dish.id,
-          quantity: dish.quantity,
-          weight: dish.weight || null,
-          remark: dish.remark || null,
-          countable: dish.countable || false,
-        }),
-      );
+    console.log("订单创建结果:", orderResult);
 
-      await Promise.all(dishPromises);
-
-      // 发送提交事件
-      emit("submit", {
-        orderId: orderResult.data.id,
-        personCount: personCount.value,
-        tableCount: tableCount.value,
-        hallNumber: hallNumber.value,
-        mealDate: mealDate.value,
-        mealTime: mealTime.value,
-        mealType: mealTime.value === "午餐" ? "lunch" : "dinner", // 添加餐型字段用于筛选
-        dishes: selectedDishes.value,
-        selectedDishIds: selectedDishes.value.map((d) => d.id), // 传递已选菜品 ID 用于保持状态
-      });
-
-      resetForm();
-      closeModal();
+    if (!orderResult.success) {
+      console.error("订单创建失败:", orderResult.message);
+      showError("订单创建失败：" + orderResult.message);
+      return;
     }
+
+    if (!orderResult.data || !orderResult.data.id) {
+      console.error("订单数据异常:", orderResult);
+      showError("订单创建成功但返回数据异常");
+      return;
+    }
+
+    // 添加菜品到订单
+    const dishPromises = selectedDishes.value.map((dish) =>
+      OrderService.addDishToOrder(orderResult.data.id, {
+        dishId: dish.id,
+        quantity: dish.quantity,
+        weight: dish.weight || null,
+        remark: dish.remark || null,
+        countable: dish.countable || false,
+      }),
+    );
+
+    try {
+      await Promise.all(dishPromises);
+    } catch (dishError) {
+      console.error("添加菜品失败:", dishError);
+      showError("订单创建成功，但添加菜品失败：" + dishError.message);
+      // 这里可以选择回滚已创建的订单，或者提示用户手动处理
+      return;
+    }
+
+    // 发送提交事件
+    emit("submit", {
+      orderId: orderResult.data.id,
+      personCount: personCount.value,
+      tableCount: tableCount.value,
+      hallNumber: hallNumber.value,
+      mealDate: mealDate.value,
+      mealTime: mealTime.value,
+      mealType: mealTime.value === "午餐" ? "lunch" : "dinner", // 添加餐型字段用于筛选
+      dishes: selectedDishes.value,
+      selectedDishIds: selectedDishes.value.map((d) => d.id), // 传递已选菜品 ID 用于保持状态
+    });
+
+    // 显示成功提示
+    showSuccess(`订单创建成功！台号：${hallNumber.value}，共${selectedDishes.value.length}道菜品`);
+
+    resetForm();
+    closeModal();
   } catch (error) {
     console.error("提交订单失败:", error);
+    showError("提交订单失败：" + error.message);
   }
 };
 

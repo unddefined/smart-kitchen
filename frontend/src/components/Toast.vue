@@ -1,7 +1,7 @@
 <template>
-  <div v-if="visible && message" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300">
+  <div v-if="visible && message" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 w-10/12">
     <div
-      class="px-6 py-3 rounded-lg shadow-lg text-white text-base flex items-center gap-2"
+      class="p-2 rounded-lg shadow-lg text-white text-xl flex items-center gap-2"
       :class="{
         'bg-green-500': type === 'success',
         'bg-red-500': type === 'error',

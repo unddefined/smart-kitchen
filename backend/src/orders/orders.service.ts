@@ -1,5 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import type { Order } from '@prisma/client';
+
+// 查询参数类型
+export interface FindAllQueryParams {
+  status?: string;
+  mealType?: string;
+  startDate?: string;
+  endDate?: string;
+  date?: string;
+  page?: number;
+  size?: number;
+}
 
 @Injectable()
 export class OrdersService {
@@ -12,7 +24,7 @@ export class OrdersService {
    * 午餐：9:00-14:00
    * 晚餐：15:00-21:00
    */
-  private async checkAndUpdateOrderStatus(order: any) {
+  private async checkAndUpdateOrderStatus(order: Order) {
     // 只有 created 或 started 状态的订单才需要检查
     if (order.status !== 'created' && order.status !== 'started') {
       return order;
@@ -108,34 +120,46 @@ export class OrdersService {
     return order;
   }
 
-  async create(createOrderDto: any) {
+  async create(createOrderDto: Order) {
     this.logger.log('=== 开始创建订单 ===');
     this.logger.log('接收到的数据:', JSON.stringify(createOrderDto));
-    
+
     // 解析 mealTime 和 mealType
     // 前端现在直接传递 mealTime (ISO 日期字符串) 和 mealType ('lunch'/'dinner')
-    let mealTimeDate = null;
-    let mealTypeValue = null;
+    let mealTimeDate: Date | null = null;
+    let mealTypeValue: 'lunch' | 'dinner' | 'breakfast' | 'other' | null = null;
 
     // 处理 mealTime（日期时间）
     if (createOrderDto.mealTime) {
       try {
         // 如果是 ISO 字符串或 Date 对象，直接创建 Date
         mealTimeDate = new Date(createOrderDto.mealTime);
-        
+
         // 验证日期是否有效
         if (isNaN(mealTimeDate.getTime())) {
           throw new Error('无效的用餐时间格式');
         }
       } catch (error) {
-        this.logger.error('用餐时间解析失败:', error instanceof Error ? error.message : String(error), createOrderDto.mealTime);
-        throw new Error(`用餐时间格式错误：${createOrderDto.mealTime}`);
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        this.logger.error(
+          '用餐时间解析失败:',
+          errorMessage,
+          createOrderDto.mealTime,
+        );
+        throw new Error(
+          `用餐时间格式错误：${typeof createOrderDto.mealTime === 'string' ? createOrderDto.mealTime : 'invalid date'}`,
+        );
       }
     }
 
     // 处理 mealType（餐型）
     if (createOrderDto.mealType) {
-      mealTypeValue = createOrderDto.mealType; // 'lunch', 'dinner', 'breakfast', 'other'
+      mealTypeValue = createOrderDto.mealType as
+        | 'lunch'
+        | 'dinner'
+        | 'breakfast'
+        | 'other';
     } else if (createOrderDto.mealTime) {
       // 兼容旧格式：从 mealTime 字符串中解析餐型
       const mealTimeStr = createOrderDto.mealTime.toString();
@@ -150,7 +174,12 @@ export class OrdersService {
       }
     }
 
-    this.logger.log('解析后的值 - mealTime:', mealTimeDate, 'mealType:', mealTypeValue);
+    this.logger.log(
+      '解析后的值 - mealTime:',
+      mealTimeDate,
+      'mealType:',
+      mealTypeValue,
+    );
 
     const order = await this.prisma.order.create({
       data: {
@@ -169,7 +198,7 @@ export class OrdersService {
     return order;
   }
 
-  async findAll(queryParams: any) {
+  async findAll(queryParams: FindAllQueryParams) {
     // 第一步：查询所有订单及其订单项
     const orders = await this.prisma.order.findMany({
       include: {
@@ -211,7 +240,7 @@ export class OrdersService {
         let orderDateStr: string;
 
         const mealTime = order.mealTime as Date | string;
-        
+
         if (typeof mealTime === 'string') {
           // ISO 字符串格式：2026-03-03T04:00:00.000Z
           orderDateStr = mealTime.split('T')[0];
@@ -537,7 +566,7 @@ export class OrdersService {
     }
 
     // 使用事务同时删除订单及其关联项
-    return this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx) => {
       // 删除所有订单项
       await tx.orderItem.deleteMany({
         where: { orderId: id },
@@ -548,6 +577,9 @@ export class OrdersService {
         where: { id },
       });
     });
+
+    // 返回成功消息
+    return { success: true, message: '订单已删除', id };
   }
 
   /**
@@ -581,6 +613,45 @@ export class OrdersService {
         status: 'done',
         updatedAt: new Date(),
       },
+    });
+  }
+
+  /**
+   * 删除订单中的某个菜品项
+   * @param orderId 订单 ID
+   * @param itemId 订单项 ID
+   */
+  async removeOrderItem(orderId: number, itemId: number) {
+    // 首先验证订单是否存在
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) {
+      throw new Error('订单不存在');
+    }
+
+    // 验证订单项是否存在且属于该订单
+    const orderItem = await this.prisma.orderItem.findUnique({
+      where: { id: itemId },
+    });
+
+    if (!orderItem) {
+      throw new Error('订单项不存在');
+    }
+
+    if (orderItem.orderId !== orderId) {
+      throw new Error('订单项不属于该订单');
+    }
+
+    // 检查订单项状态，已上菜的菜品不能删除
+    if (orderItem.status === 'served') {
+      throw new Error('已上菜的菜品不能删除');
+    }
+
+    // 删除订单项
+    return await this.prisma.orderItem.delete({
+      where: { id: itemId },
     });
   }
 }

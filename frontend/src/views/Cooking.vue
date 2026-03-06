@@ -1,9 +1,6 @@
 <!-- eslint-disable prettier/prettier -->
 <template>
   <div class="flex flex-col h-full bg-gray-100 relative">
-    <!-- Toast 提示 -->
-    <Toast v-model:visible="toast.visible" :message="toast.message" :type="toast.type" :duration="toast.duration" />
-
     <!-- 加载状态覆盖层 -->
     <div v-if="loading" class="absolute inset-0 bg-white bg-opacity-90 flex justify-center items-center z-50">
       <div class="text-center p-5 bg-white rounded-xl shadow-lg">
@@ -274,13 +271,12 @@ import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
 import OverviewView from "./OverviewView.vue";
 import OrderView from "./OrderView.vue";
 import OrderInputModal from "../components/OrderInputModal.vue";
-import Toast from "@/components/Toast.vue";
 import { OrderService } from "@/services";
 import { useToast } from "@/composables/useToast";
 import { useOrderAutoRefresh } from "@/composables/useOrderAutoRefresh";
 
-// 使用 toast 组合式函数
-const { toast, showToast, showSuccess, showError, showInfo } = useToast();
+// 使用 toast 组合式函数（使用全局注入）
+const { showToast, showSuccess, showError, showInfo } = useToast();
 
 // 自动刷新定时器
 let refreshTimer = null;
@@ -562,26 +558,7 @@ const loadOrders = async () => {
       mealType: mealType.value,
     };
 
-    console.log("加载订单，筛选条件:", filterParams);
-
     const orderList = await OrderService.getOrders(filterParams);
-
-    console.log("=== Cooking.vue 从后端获取的订单 ===");
-    console.log("后端返回的订单数:", orderList.length);
-    if (orderList.length > 0) {
-      console.log("第一个订单详情:", JSON.stringify(orderList[0], null, 2));
-      console.log("第一个订单的 mealType:", orderList[0].mealType);
-      console.log("筛选条件 mealType:", filterParams.mealType);
-      console.log("筛选条件 date:", filterParams.date);
-
-      // 检查所有订单的 mealType
-      orderList.forEach((order, idx) => {
-        console.log(`订单${idx + 1} - id:${order.id}, hallNumber:${order.hallNumber}, mealType:${order.mealType}, mealTime:${order.mealTime}`);
-      });
-    } else {
-      console.log("后端返回了 0 个订单");
-      console.log("当前筛选条件:", filterParams);
-    }
 
     orders.value = orderList.map((order) => ({
       id: order.id,
@@ -595,8 +572,6 @@ const loadOrders = async () => {
       orderItems: order.orderItems || [], // 保留订单菜品数据
     }));
 
-    console.log("=== Cooking.vue 加载完成的订单 ===");
-    console.log("订单总数:", orders.value.length);
     orders.value.forEach((order, index) => {
       console.log(`订单 ${index + 1}:`, {
         id: order.id,
@@ -607,7 +582,6 @@ const loadOrders = async () => {
         itemCount: order.orderItems?.length,
       });
     });
-    console.log("===============================");
   } catch (err) {
     console.error("加载订单失败:", err);
     error.value = "加载订单数据失败，请检查网络连接";

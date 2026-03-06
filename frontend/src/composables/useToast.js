@@ -1,10 +1,31 @@
-import { ref, reactive } from 'vue';
+import { ref, reactive, inject } from 'vue';
 
 /**
  * Toast 提示组合式函数
  * 提供统一的 toast 提示管理功能
  */
 export function useToast() {
+  // 尝试注入全局 toast 方法
+  const globalToast = inject('toast', null);
+  
+  // 如果存在全局 toast，直接使用；否则创建本地实例
+  if (globalToast) {
+    return {
+      toast: reactive({
+        visible: false, // 占位，实际不使用
+        message: '',
+        type: 'success',
+        duration: 3000,
+      }),
+      showToast: globalToast.showToast,
+      showSuccess: globalToast.showSuccess,
+      showError: globalToast.showError,
+      showInfo: globalToast.showInfo,
+      hideToast: () => {}, // 占位
+    };
+  }
+  
+  // 本地实例（仅 App.vue 使用）
   const toast = reactive({
     visible: false,
     message: '',

@@ -15,7 +15,7 @@
     <!-- 菜品选择区域 -->
     <div v-else>
       <!-- 头部操作栏 -->
-      <div v-if="showAddButton || showSearch" class="flex items-center justify-between mb-3">
+      <div v-if="showAddButton" class="flex items-center justify-between mb-3">
         <label class="block text-lg font-medium text-gray-700">{{ title }}</label>
         <div class="flex items-center gap-2">
           <button v-if="showAddButton" @click="$emit('add-new')" class="text-blue-500 hover:text-blue-700 text-lg font-medium transition-colors">
@@ -207,6 +207,11 @@ const emit = defineEmits([
   "delete-dish", // 删除菜品事件
 ]);
 
+// 暴露 selectedDishes 给父组件访问
+defineExpose({
+  selectedDishes: computed(() => props.selectedDishes),
+});
+
 // 本地状态
 const currentDish = ref(null);
 const weightInputRef = ref(null);
@@ -315,12 +320,14 @@ const handleDishClick = (dish) => {
 // 增加数量
 const increaseQuantity = () => {
   if (!currentDish.value) return;
+  currentDish.value.quantity = Number(currentDish.value.quantity) || 1;
   currentDish.value.quantity++;
 };
 
 // 减少数量
 const decreaseQuantity = () => {
   if (!currentDish.value) return;
+  currentDish.value.quantity = Number(currentDish.value.quantity) || 1;
   if (currentDish.value.quantity > 1) {
     currentDish.value.quantity--;
   } else {
@@ -333,7 +340,8 @@ const decreaseQuantity = () => {
 // 增加 0.5 份量
 const addHalfQuantity = () => {
   if (!currentDish.value) return;
-  currentDish.value.quantity = parseFloat((currentDish.value.quantity + 0.5).toFixed(1));
+  const currentQuantity = Number(currentDish.value.quantity) || 0;
+  currentDish.value.quantity = parseFloat((currentQuantity + 0.5).toFixed(1));
 };
 
 // 重置数量（移除）
@@ -374,20 +382,42 @@ const closeEditModal = () => {
 const confirmEdit = () => {
   if (!currentDish.value) return;
 
+  console.log('=== confirmEdit 被调用 ===');
+  console.log('currentDish.value:', currentDish.value);
+  
   const index = props.selectedDishes.findIndex((d) => d.id === currentDish.value.id);
+  console.log('找到的索引:', index);
+  
   if (index >= 0) {
     const newSelected = [...props.selectedDishes];
-
+    
     // 使用组件暴露的 weightString 计算属性
     const weightString = weightInputRef.value?.weightString || "";
+    
+    console.log('原始数据:', newSelected[index]);
+    console.log('要更新的字段:', {
+      quantity: currentDish.value.quantity,
+      remark: currentDish.value.remark || '',
+      weightValue: currentDish.value.weightValue,
+      weightUnit: currentDish.value.weightUnit,
+      weight: weightString,
+    });
 
+    // 更新当前菜品信息 - 优先使用编辑后的值，同时保留原始对象中的其他字段
     newSelected[index] = {
-      ...currentDish.value,
+      ...newSelected[index], // 保留原有字段（包括 orderItemId 等）
+      quantity: currentDish.value.quantity,
+      remark: currentDish.value.remark || '',
+      weightValue: currentDish.value.weightValue,
+      weightUnit: currentDish.value.weightUnit,
       weight: weightString,
     };
 
+    console.log('更新后的数据:', newSelected[index]);
+    console.log('触发 update:selectedDishes 事件，发送', newSelected.length, '个菜品');
+    
+    // 触发更新事件，让父组件同步状态
     emit("update:selectedDishes", newSelected);
-    emit("dish-edit", newSelected[index]);
   }
 
   closeEditModal();
