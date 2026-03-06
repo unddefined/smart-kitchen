@@ -102,4 +102,16 @@ export class OrdersController {
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.ordersService.remove(id);
   }
+
+  /**
+   * 删除订单中的某个菜品项
+   * DELETE /api/orders/:orderId/items/:itemId
+   */
+  @Delete(':orderId/items/:itemId')
+  async removeOrderItem(
+    @Param('orderId', ParseIntPipe) orderId: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+  ) {
+    return await this.ordersService.removeOrderItem(orderId, itemId);
+  }
 }

@@ -1,8 +1,5 @@
 <template>
   <div v-if="visible" class="fixed inset-0 bg-black bg-opacity-50 flex items-end z-50">
-    <!-- Toast 提示 -->
-    <Toast v-model:visible="toast.visible" :message="toast.message" :type="toast.type" :duration="toast.duration" />
-    
     <div class="bg-white w-full rounded-t-2xl max-h-[90vh] flex flex-col">
       <!-- 头部 -->
       <div class="p-4 border-b flex items-center justify-between">
@@ -203,7 +200,6 @@ import { ref, computed, watch } from "vue";
 import { DishService, OrderService } from "@/services";
 import DishSelector from "@/components/DishSelector.vue";
 import WeightInput from "@/components/WeightInput.vue";
-import Toast from "@/components/Toast.vue";
 import { useToast } from "@/composables/useToast";
 
 // Props
@@ -240,8 +236,8 @@ const currentEditingDish = ref(null);
 // 弹窗状态
 const showAddNewDish = ref(false);
 
-// Toast 提示
-const { toast, showSuccess, showError } = useToast();
+// Toast 提示（使用全局注入）
+const { showSuccess, showError } = useToast();
 
 // 新增菜品表单
 const newDish = ref({

@@ -8,8 +8,17 @@
       <main class="main-content" :class="{ 'with-test-nav': false }">
         <router-view />
       </main>
-      <!-- 模态框容器 - 用于Teleport目标 -->
+      
+      <!-- 模态框容器 - 用于 Teleport 目标 -->
       <div id="modal-container" class="fixed inset-0 pointer-events-none"></div>
+
+      <!-- 全局 Toast 组件 -->
+      <Toast 
+        v-model:visible="globalToast.visible" 
+        :message="globalToast.message" 
+        :type="globalToast.type" 
+        :duration="globalToast.duration" 
+      />
 
       <!-- 全局底部导航栏 - 烹调/库存/待办/历史 -->
       <nav class="global-bottom-nav safe-area-bottom">
@@ -47,15 +56,23 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, provide } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import TestNavigation from "./components/TestNavigation.vue";
+import Toast from "./components/Toast.vue";
+import { useToast } from "@/composables/useToast";
 
 const router = useRouter();
 const route = useRoute();
 
 // 开发环境检测
 const isDevelopment = import.meta.env.DEV;
+
+// 使用全局 toast
+const { toast: globalToast, showToast, showSuccess, showError, showInfo, hideToast } = useToast();
+
+// 提供全局 toast 方法给所有子组件
+provide("toast", { showToast, showSuccess, showError, showInfo });
 
 // 根据当前路由确定激活模块
 const activeModule = ref("cooking");

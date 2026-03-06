@@ -5,6 +5,10 @@ const API_BASE_URL =
 // 导入 WebSocket 工具
 import { useWebSocket } from "@/utils/websocket";
 
+// 📡 广播防抖机制 - 避免批量操作时频繁广播
+const broadcastDebounceTimers = {};
+const BROADCAST_DEBOUNCE_DELAY = 1000; // 1000ms 防抖延迟
+
 // 通用请求函数
 async function request(url, options = {}) {
   const config = {
@@ -22,14 +26,21 @@ async function request(url, options = {}) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json();
-    
-    // 📢 写操作自动触发 WebSocket 广播
+    // 处理空响应（特别是 DELETE 请求可能返回 204 No Content）
+    const contentType = response.headers.get("content-type");
+    let data = null;
+
+    if (contentType && contentType.includes("application/json")) {
+      const text = await response.text();
+      data = text ? JSON.parse(text) : null;
+    }
+
+    // 📢 写操作自动触发 WebSocket 广播（带防抖）
     const writeMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
     if (writeMethods.includes(options.method?.toUpperCase())) {
-      broadcastWriteOperation(url, options.method, data);
+      debouncedBroadcast(url, options.method, data);
     }
-    
+
     return data;
   } catch (error) {
     console.error("API 请求失败:", error);
@@ -37,15 +48,37 @@ async function request(url, options = {}) {
   }
 }
 
-// 广播写操作到 WebSocket
-function broadcastWriteOperation(url, method, responseData) {
+// 防抖广播 - 合并短时间内的多次广播
+function debouncedBroadcast(url, method, responseData) {
+  const resourceInfo = extractResourceInfo(url);
+  const debounceKey = `${resourceInfo.resource}-${method}`;
+
+  // 清除之前的定时器
+  if (broadcastDebounceTimers[debounceKey]) {
+    clearTimeout(broadcastDebounceTimers[debounceKey]);
+  }
+
+  // 设置新的定时器
+  broadcastDebounceTimers[debounceKey] = setTimeout(() => {
+    performBroadcast(url, method, responseData);
+    delete broadcastDebounceTimers[debounceKey];
+  }, BROADCAST_DEBOUNCE_DELAY);
+
+  console.log('⏱️ 广播已防抖:', {
+    key: debounceKey,
+    delay: BROADCAST_DEBOUNCE_DELAY + 'ms',
+  });
+}
+
+// 执行广播
+function performBroadcast(url, method, responseData) {
   try {
     const ws = useWebSocket();
-    
+
     // 确定资源类型和事件名称
     const resourceInfo = extractResourceInfo(url);
     const eventType = `${resourceInfo.resource}-${methodToEvent(method)}`;
-    
+
     // 广播到特定资源房间
     ws.broadcast(resourceInfo.room, eventType, {
       type: eventType,
@@ -54,7 +87,7 @@ function broadcastWriteOperation(url, method, responseData) {
       timestamp: new Date().toISOString(),
       data: responseData.data || responseData,
     });
-    
+
     // 广播全局变更到 all 房间
     ws.broadcast('all', 'global-change', {
       resource: resourceInfo.resource,
@@ -62,7 +95,7 @@ function broadcastWriteOperation(url, method, responseData) {
       timestamp: new Date().toISOString(),
       data: responseData.data || responseData,
     });
-    
+
     console.log('📢 广播数据变更:', {
       type: eventType,
       method: method.toUpperCase(),
@@ -84,14 +117,14 @@ function extractResourceInfo(url) {
     { regex: /^\/api\/users\/(\d+)/, resource: 'users', room: 'users' },
     { regex: /^\/api\/serving\/(.*)/, resource: 'serving', room: 'serving' },
   ];
-  
+
   for (const pattern of patterns) {
     const match = url.match(pattern.regex);
     if (match) {
       return { resource: pattern.resource, room: pattern.room, id: match[1] };
     }
   }
-  
+
   // 默认情况
   const parts = url.split('/').filter(Boolean);
   const resource = parts[parts.length - 1] || 'unknown';
@@ -207,9 +240,9 @@ export const api = {
         body: JSON.stringify({ priority: itemData.priority, reason: itemData.remark }),
       }),
 
-    // 删除订单菜品
-    delete: (itemId) =>
-      request(`/api/order-items/${itemId}`, {
+    // 删除订单菜品 - 修改为正确的后端接口路径
+    delete: (itemId, orderId) =>
+      request(`/api/orders/${orderId}/items/${itemId}`, {
         method: "DELETE",
       }),
 
@@ -276,7 +309,7 @@ export const api = {
   categories: {
     // 获取分类列表
     list: () => request("/api/dishes/categories"),
-    
+
     // 获取分类详情
     get: (id) => request(`/api/dishes/categories/${id}`),
   },
