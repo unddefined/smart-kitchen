@@ -530,7 +530,7 @@ const unstartedDishes = computed(() => {
 const generateDisplayDetails = (dish) => {
   const details = [];
   
-  // 如果是按人头计数的菜品（countable = true），显示人数和桌数信息
+  // 如果是按人头计数的菜品（countable = true），显示人数分配信息
   if (dish.countable === true && dish.perTableGroups) {
     // 遍历所有不同的每桌数量分组
     Object.keys(dish.perTableGroups).forEach((perTableCount) => {
@@ -538,19 +538,8 @@ const generateDisplayDetails = (dish) => {
       // 格式：[人数÷桌数]个×[桌数]份
       details.push(`${perTableCount}个×${group.tableCount}份`);
     });
-  } else {
-    // 普通菜品，如果份量 > 1 或桌数 > 1，显示份量和桌数信息
-    if (dish.quantity > 1 || dish.tableCount > 1) {
-      const parts = [];
-      if (dish.quantity > 1) {
-        parts.push(`${dish.quantity}份`);
-      }
-      if (dish.tableCount > 1) {
-        parts.push(`${dish.tableCount}桌`);
-      }
-      details.push(parts.join('/'));
-    }
   }
+  // 普通菜品不在 details 中显示份数和桌数，这些信息已经在菜品名称后面显示
   
   // 添加催菜提示（基于订单状态）
   if (dish.orderStatus === 'urged' && dish.hallNumber) {
@@ -565,11 +554,6 @@ const generateDisplayDetails = (dish) => {
       }
     });
   }
-  
-  // 如果有多订单信息，显示厅号列表
-  // if (dish.hallNumbers && dish.hallNumbers.length > 1) {
-  //   details.push(`共${dish.hallNumbers.length}单`);
-  // }
   
   return details;
 };
