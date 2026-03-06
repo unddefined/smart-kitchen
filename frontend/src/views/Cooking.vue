@@ -158,10 +158,7 @@
       <!-- 右侧内容区域 -->
       <div class="flex-1 overflow-y-auto bg-gray-100">
         <!-- 总览视图 -->
-        <OverviewView
-          v-if="activeTab === 'overview'"
-          :orders="orders"
-          @dish-action="handleDishAction" />
+        <OverviewView v-if="activeTab === 'overview'" :orders="orders" @dish-action="handleDishAction" />
 
         <!-- 订单详情视图 -->
         <OrderView
@@ -219,7 +216,9 @@
                   selectedOrderIds.includes(order.id) ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
                 ]">
                 <span class="truncate">{{ order.displayName }}</span>
-                <span :class="selectedOrderIds.includes(order.id) ? 'text-blue-100 flex-shrink-0' : 'text-gray-400 flex-shrink-0'">{{ order.displayId }}</span>
+                <span :class="selectedOrderIds.includes(order.id) ? 'text-blue-100 flex-shrink-0' : 'text-gray-400 flex-shrink-0'">{{
+                  order.displayId
+                }}</span>
               </button>
             </div>
           </div>
@@ -536,19 +535,6 @@ const activeOrderId = computed(() => {
   return null;
 });
 
-// 订单相关计算属性
-const pendingCount = computed(() => {
-  return orders.value.filter((order) => order.status === "created").length;
-});
-
-const servingCount = computed(() => {
-  return orders.value.filter((order) => order.status === "serving").length;
-});
-
-const doneCount = computed(() => {
-  return orders.value.filter((order) => order.status === "done").length;
-});
-
 // 按钮状态计算属性
 const canStartDish = computed(() => {
   if (!activeOrderId.value) return false;
@@ -589,7 +575,7 @@ const loadOrders = async () => {
     console.log("加载订单，筛选条件:", filterParams);
 
     const orderList = await OrderService.getOrders(filterParams);
-    
+
     console.log("=== Cooking.vue 从后端获取的订单 ===");
     console.log("后端返回的订单数:", orderList.length);
     if (orderList.length > 0) {
@@ -597,7 +583,7 @@ const loadOrders = async () => {
       console.log("第一个订单的 mealType:", orderList[0].mealType);
       console.log("筛选条件 mealType:", filterParams.mealType);
       console.log("筛选条件 date:", filterParams.date);
-      
+
       // 检查所有订单的 mealType
       orderList.forEach((order, idx) => {
         console.log(`订单${idx + 1} - id:${order.id}, hallNumber:${order.hallNumber}, mealType:${order.mealType}, mealTime:${order.mealTime}`);
@@ -606,7 +592,7 @@ const loadOrders = async () => {
       console.log("后端返回了 0 个订单");
       console.log("当前筛选条件:", filterParams);
     }
-    
+
     orders.value = orderList.map((order) => ({
       id: order.id,
       hallNumber: order.hallNumber,
@@ -628,11 +614,10 @@ const loadOrders = async () => {
         status: order.status,
         peopleCount: order.peopleCount,
         tableCount: order.tableCount,
-        itemCount: order.orderItems?.length
+        itemCount: order.orderItems?.length,
       });
     });
     console.log("===============================");
-
   } catch (err) {
     console.error("加载订单失败:", err);
     error.value = "加载订单数据失败，请检查网络连接";
@@ -641,12 +626,10 @@ const loadOrders = async () => {
   }
 };
 
-// 处理订单删除后的刷新逻辑
+// 处理订单删除/取消后的刷新
 const handleOrderDeleted = async () => {
-  // 等待一小段时间确保后端删除完成后再刷新
-  setTimeout(async () => {
-    await loadOrders();
-  }, 300);
+  console.log("订单已删除/取消，刷新订单列表");
+  await loadOrders();
 };
 
 // 定时刷新订单数据（静默刷新，不显示 loading）
@@ -658,7 +641,7 @@ const refreshOrders = async () => {
     };
 
     const orderList = await OrderService.getOrders(filterParams);
-    
+
     orders.value = orderList.map((order) => ({
       id: order.id,
       hallNumber: order.hallNumber,
@@ -670,10 +653,10 @@ const refreshOrders = async () => {
       mealTime: order.mealTime,
       orderItems: order.orderItems || [],
     }));
-    
-    console.log('[自动刷新] 成功更新订单数据，数量:', orders.value.length);
+
+    console.log("[自动刷新] 成功更新订单数据，数量:", orders.value.length);
   } catch (err) {
-    console.error('[自动刷新] 失败:', err);
+    console.error("[自动刷新] 失败:", err);
     // 静默失败，不显示错误提示，避免频繁打扰用户
   }
 };
@@ -694,7 +677,7 @@ onUnmounted(() => {
 // 使用订单自动刷新 Composable（列表页模式）
 useOrderAutoRefresh({
   refreshFn: loadOrders,
-  mode: 'list',
+  mode: "list",
 });
 
 // 处理起菜逻辑（已改为弹窗表单方式）
@@ -720,13 +703,40 @@ const handleReturnDish = () => {
   // 实现退菜逻辑
 };
 
-const handleDishAction = (action, dish) => {
-  console.log("菜品操作:", action, dish);
-  // 处理菜品的各种操作
+const handleDishAction = async (action, data) => {
+  console.log("菜品操作:", action, data);
+  
+  // 处理不同类型的菜品操作
+  switch (action) {
+    case 'status-changed':
+      // 菜品状态变更后，刷新订单列表
+      console.log('菜品状态变更，刷新订单列表');
+      await loadOrders();
+      break;
+      
+    case 'double-click':
+      // 双击菜品，可以在这里添加更多交互逻辑
+      console.log('双击菜品:', data);
+      break;
+      
+    case 'adjust-priority':
+      // 调整优先级（通过弹窗表单）
+      console.log('调整优先级:', data);
+      // 优先级调整已在弹窗中处理，这里不需要额外操作
+      break;
+      
+    case 'served-click':
+      // 点击已出菜品
+      console.log('点击已出菜品:', data);
+      break;
+      
+    default:
+      console.log('未知的菜品操作类型:', action);
+  }
 };
 
 const handleOrderSubmit = async (orderData) => {
-  console.log('=== handleOrderSubmit 接收到的数据 ===', orderData);
+  console.log("=== handleOrderSubmit 接收到的数据 ===", orderData);
   // 订单已在 OrderInputModal 组件中创建，这里只需要刷新订单列表
   showOrderModal.value = false;
   // 重新加载订单列表
@@ -933,8 +943,16 @@ const filterOrders = (status) => {
   if (!status) return orders.value;
   return orders.value.filter((order) => order.status === status);
 };
+
+// 使用订单自动刷新 Composable
+const { cleanup: cleanupWebSocket } = useOrderAutoRefresh({
+  refreshFn: loadOrders,
+  mode: 'list',
+  autoConnect: true,
+});
+
+// 组件卸载时清理 WebSocket 连接
+onUnmounted(() => {
+  cleanupWebSocket();
+});
 </script>
-
-
-
-

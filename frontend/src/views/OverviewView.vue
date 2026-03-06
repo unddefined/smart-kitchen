@@ -73,7 +73,7 @@
               ]"
               @click="handleDishClick(dish)"
               @dblclick="handleDishDoubleClick(dish)"
-              @longpress="showPriorityAdjustModal(dish)">
+              @contextmenu.prevent="onLongPress(dish)">
               <!-- 待切配/待处理提示 -->
               <div
                 v-if="dish.needsProcessing"
@@ -117,7 +117,7 @@
               ]"
               @click="handleDishClick(dish)"
               @dblclick="handleDishDoubleClick(dish)"
-              @longpress="showPriorityAdjustModal(dish)">
+              @contextmenu.prevent="onLongPress(dish)">
               <!-- 待切配/待处理提示 -->
               <div
                 v-if="dish.needsProcessing"
@@ -215,6 +215,57 @@ import Toast from "@/components/Toast.vue";
 import { useToast } from "@/composables/useToast";
 import { useOrderAutoRefresh } from "@/composables/useOrderAutoRefresh";
 
+// 自定义 v-longpress 指令
+const vLongpress = {
+  beforeMount(el, binding) {
+    let timer = null;
+    const delay = binding.arg || 500; // 默认 500ms 触发长按
+    
+    const startHandler = (event) => {
+      // 防止触发点击事件
+      if (event.type === 'touchstart') {
+        event.preventDefault();
+      }
+      
+      timer = setTimeout(() => {
+        if (typeof binding.value === 'function') {
+          binding.value(event);
+        }
+        timer = null;
+      }, delay);
+    };
+    
+    const cancelHandler = () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
+    
+    // 存储处理函数以便在 unmounted 时清理
+    el._longpressHandlers = { startHandler, cancelHandler };
+    
+    el.addEventListener('mousedown', startHandler);
+    el.addEventListener('touchstart', startHandler, { passive: false });
+    el.addEventListener('mouseup', cancelHandler);
+    el.addEventListener('mouseleave', cancelHandler);
+    el.addEventListener('touchend', cancelHandler);
+    el.addEventListener('touchcancel', cancelHandler);
+  },
+  unmounted(el) {
+    if (el._longpressHandlers) {
+      const { startHandler, cancelHandler } = el._longpressHandlers;
+      el.removeEventListener('mousedown', startHandler);
+      el.removeEventListener('touchstart', startHandler);
+      el.removeEventListener('mouseup', cancelHandler);
+      el.removeEventListener('mouseleave', cancelHandler);
+      el.removeEventListener('touchend', cancelHandler);
+      el.removeEventListener('touchcancel', cancelHandler);
+      delete el._longpressHandlers;
+    }
+  }
+};
+
 // 定义 Props - 接收父组件传递的 orders 数据
 const props = defineProps({
   orders: {
@@ -240,6 +291,12 @@ const collapseTimer = ref(null);
 // 数据 - 不再本地存储 orders，直接使用 props.orders
 const cardRefs = ref([]);
 const unstartedCardRefs = ref([]);
+
+// 右键菜单功能
+const onLongPress = (dish) => {
+  console.log("右键点击菜品:", dish.name);
+  showPriorityAdjustModal(dish);
+};
 
 // 获取优先级对应的 CSS 类
 const getPriorityClass = (priority) => {
@@ -298,14 +355,28 @@ const extractDishesFromOrders = () => {
         return;
       }
 
+      // 计算实际数量：根据 countable 字段决定
+      let quantity = item.quantity;
+      let totalQuantity = item.quantity * (order.tableCount || 1);
+      
+      if (item.dish.countable === true) {
+        // 按人头计数：显示数量 = 人数
+        quantity = order.peopleCount || 1;
+        totalQuantity = order.peopleCount || 1;
+      } else {
+        // 普通菜品：数量 = 份量 × 桌数
+        quantity = item.quantity;
+        totalQuantity = item.quantity * (order.tableCount || 1);
+      }
+
       const dish = {
         ...item.dish,
         itemId: item.id,
         id: item.id, // 确保有 id 字段
         orderId: order.id,
         status: item.status,
-        quantity: item.quantity,
-        totalQuantity: item.quantity,
+        quantity: quantity, // 显示的数量
+        totalQuantity: totalQuantity, // 合并后的总数量
         priority: item.priority,
         remark: item.remark,
         hallNumber: order.hallNumber,
@@ -313,7 +384,10 @@ const extractDishesFromOrders = () => {
         tableCount: order.tableCount,
         orderStatus: order.status,
         needPrep: item.dish.needPrep,
+        countable: item.dish.countable,
         details: [],
+        orderIds: [order.id], // 记录包含此菜品的所有订单 ID
+        hallNumbers: [order.hallNumber], // 记录所有厅号
       };
 
       // 处理备注信息
@@ -328,43 +402,171 @@ const extractDishesFromOrders = () => {
   return result;
 };
 
+// 合并同名同状态同优先级的菜品
+const mergeDishes = (dishes) => {
+  const mergedMap = new Map();
+
+  dishes.forEach((dish) => {
+    // 使用"名称 + 状态 + 优先级"作为合并键
+    const mergeKey = `${dish.name}|${dish.status}|${dish.priority}`;
+
+    if (mergedMap.has(mergeKey)) {
+      // 已存在相同菜品，累加数量和信息
+      const existing = mergedMap.get(mergeKey);
+      existing.totalQuantity += dish.totalQuantity;
+      
+      // 合并订单信息（去重）
+      if (!existing.orderIds.includes(dish.orderId)) {
+        existing.orderIds.push(dish.orderId);
+      }
+      if (dish.hallNumber && !existing.hallNumbers.includes(dish.hallNumber)) {
+        existing.hallNumbers.push(dish.hallNumber);
+      }
+      
+      // 对于 countable 菜品，需要保留人数和桌数信息用于显示
+      if (dish.countable) {
+        existing.countable = true;
+        // 计算每桌分配数量
+        const perTableCount = Math.floor(dish.peopleCount / dish.tableCount);
+        
+        // 如果已有相同每桌数量的组，累加桌数
+        if (!existing.perTableGroups) {
+          existing.perTableGroups = {};
+        }
+        
+        if (existing.perTableGroups[perTableCount]) {
+          // 已有相同每桌数量的订单，累加桌数和人数
+          existing.perTableGroups[perTableCount].tableCount += dish.tableCount;
+          existing.perTableGroups[perTableCount].peopleCount += dish.peopleCount;
+        } else {
+          // 新的每桌数量，创建新组
+          existing.perTableGroups[perTableCount] = {
+            tableCount: dish.tableCount,
+            peopleCount: dish.peopleCount,
+          };
+        }
+      } else {
+        // 普通菜品，累加份量和桌数
+        existing.quantity = (existing.quantity || 0) + dish.quantity;
+        existing.tableCount = (existing.tableCount || 0) + dish.tableCount;
+      }
+      
+      // 合并备注信息（去重）
+      dish.details.forEach((detail) => {
+        if (detail && !existing.details.includes(detail)) {
+          existing.details.push(detail);
+        }
+      });
+    } else {
+      // 新菜品，直接添加
+      const newDish = { ...dish };
+      // 初始化 countable 菜品的分组信息
+      if (dish.countable) {
+        const quotient = Math.floor(dish.peopleCount / dish.tableCount);
+        const remainder = dish.peopleCount % dish.tableCount;
+        newDish.perTableGroups = {};
+        
+        // 有余数时，添加较多人数的组
+        if (remainder > 0) {
+          newDish.perTableGroups[quotient + 1] = remainder;
+        }
+        
+        // 添加较少人数的组
+        if (quotient > 0 && dish.tableCount - remainder > 0) {
+          newDish.perTableGroups[quotient] = dish.tableCount - remainder;
+        }
+      }
+      mergedMap.set(mergeKey, newDish);
+    }
+  });
+
+  return Array.from(mergedMap.values());
+};
+
 // 已出菜品 - 筛选出状态为 served 的菜品
 const servedDishes = computed(() => {
   const allDishes = extractDishesFromOrders();
-  return allDishes
-    .filter((dish) => dish.status === "served" && dish.priority === -1)
-    .map((dish) => ({
-      ...dish,
-      displayDetails: dish.details?.filter((detail) => detail && detail.trim() !== "" && !detail.includes("正常")) || [],
-    }));
+  const filtered = allDishes.filter((dish) => dish.status === "served" && dish.priority === -1);
+  const merged = mergeDishes(filtered);
+  return merged.map((dish) => ({
+    ...dish,
+    displayDetails: generateDisplayDetails(dish),
+  }));
 });
 
 // 待处理菜品列表 - 包括准备中和待切配的菜品（优先级 > 0 且非 served）
 const pendingDishes = computed(() => {
   const allDishes = extractDishesFromOrders();
-  return allDishes
-    .filter((dish) => dish.priority > 0 && dish.orderStatus === "serving")
-    .map((dish) => ({
-      ...dish,
-      needsProcessing: dish.status === "pending" || dish.status === "preparing",
-      processType: dish.status === "pending" ? "待切配" : dish.status === "preparing" ? "待处理" : "",
-      displayDetails: dish.details?.filter((detail) => detail && detail.trim() !== "" && !detail.includes("正常")) || [],
-    }));
+  const filtered = allDishes.filter((dish) => dish.priority > 0 && dish.orderStatus === "serving");
+  const merged = mergeDishes(filtered);
+  return merged.map((dish) => ({
+    ...dish,
+    needsProcessing: dish.status === "pending" || dish.status === "preparing",
+    processType: dish.status === "pending" ? "待切配" : dish.status === "preparing" ? "待处理" : "",
+    displayDetails: generateDisplayDetails(dish),
+  }));
 });
 
 // 未起菜菜品列表 - 筛选出订单状态为 started 且优先级为 0 的菜品（可能处于备菜的任何阶段）
 const unstartedDishes = computed(() => {
   const allDishes = extractDishesFromOrders();
-  return allDishes
-    .filter((dish) => dish.orderStatus === "started" && dish.priority === 0)
-    .map((dish) => ({
-      ...dish,
-      needsProcessing: dish.status === "pending" || dish.status === "preparing",
-      processType: dish.status === "pending" ? "待切配" : dish.status === "preparing" ? "待处理" : "",
-      displayDetails: dish.details?.filter((detail) => detail && detail.trim() !== "" && !detail.includes("正常")) || [],
-    }));
+  const filtered = allDishes.filter((dish) => dish.orderStatus === "started" && dish.priority === 0);
+  const merged = mergeDishes(filtered);
+  return merged.map((dish) => ({
+    ...dish,
+    needsProcessing: dish.status === "pending" || dish.status === "preparing",
+    processType: dish.status === "pending" ? "待切配" : dish.status === "preparing" ? "待处理" : "",
+    displayDetails: generateDisplayDetails(dish),
+  }));
 });
 
+// 生成菜品详细标注信息
+const generateDisplayDetails = (dish) => {
+  const details = [];
+  
+  // 如果是按人头计数的菜品（countable = true），显示人数和桌数信息
+  if (dish.countable === true && dish.perTableGroups) {
+    // 遍历所有不同的每桌数量分组
+    Object.keys(dish.perTableGroups).forEach((perTableCount) => {
+      const group = dish.perTableGroups[perTableCount];
+      // 格式：[人数÷桌数]个×[桌数]份
+      details.push(`${perTableCount}个×${group.tableCount}份`);
+    });
+  } else {
+    // 普通菜品，如果份量 > 1 或桌数 > 1，显示份量和桌数信息
+    if (dish.quantity > 1 || dish.tableCount > 1) {
+      const parts = [];
+      if (dish.quantity > 1) {
+        parts.push(`${dish.quantity}份`);
+      }
+      if (dish.tableCount > 1) {
+        parts.push(`${dish.tableCount}桌`);
+      }
+      details.push(parts.join('/'));
+    }
+  }
+  
+  // 添加催菜提示（基于订单状态）
+  if (dish.orderStatus === 'urged' && dish.hallNumber) {
+    details.push(`${dish.hallNumber}催菜`);
+  }
+  
+  // 添加备注信息（排除"正常"等无效备注）
+  if (dish.details && dish.details.length > 0) {
+    dish.details.forEach((detail) => {
+      if (detail && detail.trim() !== "" && !detail.includes("正常")) {
+        details.push(detail);
+      }
+    });
+  }
+  
+  // 如果有多订单信息，显示厅号列表
+  // if (dish.hallNumbers && dish.hallNumbers.length > 1) {
+  //   details.push(`共${dish.hallNumbers.length}单`);
+  // }
+  
+  return details;
+};
 
 // 优先级选项 - 严格按照 MVP文档要求
 const priorityOptions = [
@@ -454,9 +656,8 @@ const handleDishClick = async (dish) => {
 
       // 等待一小段时间再刷新，让用户看到提示
       await new Promise((resolve) => setTimeout(resolve, 300));
-      await loadDishes();
-
-      // 发送事件通知父组件
+      
+      // 发送事件通知父组件，由父组件负责刷新数据
       emit("dish-action", "status-changed", {
         dish,
         newStatus: result.data?.status || dish.status,
