@@ -287,12 +287,12 @@ const getDefaultMealType = () => {
   const now = new Date();
   const hour = now.getHours();
 
-  // 9:00-15:00 为午餐时段
-  if (hour >= 9 && hour < 15) {
+  // 9:00-13:00 为午餐时段
+  if (hour >= 9 && hour < 13) {
     return "lunch";
   }
-  // 15:00-24:00 为晚餐时段
-  else if (hour >= 15 && hour < 24) {
+  // 13:00-24:00 为晚餐时段
+  else if (hour >= 13 && hour < 24) {
     return "dinner";
   }
   // 0:00-9:00 默认返回午餐（第二天早餐时段）
@@ -675,6 +675,12 @@ const handleDishAction = async (action, data) => {
     case 'status-changed':
       // 菜品状态变更后，刷新订单列表
       console.log('菜品状态变更，刷新订单列表');
+      await loadOrders();
+      break;
+      
+    case 'refresh':
+      // 刷新订单列表（来自子组件的请求）
+      console.log('收到刷新请求，重新加载订单列表');
       await loadOrders();
       break;
       

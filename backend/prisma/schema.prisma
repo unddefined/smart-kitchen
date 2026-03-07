@@ -92,8 +92,8 @@ model OrderItem {
   id        Int       @id @default(autoincrement())
   orderId   Int       @map("order_id")
   dishId    Int       @map("dish_id")
-  quantity  Decimal   @default(1.0) @db.Decimal(3, 1) // 支持一位小数，最大值99.9
-  weight    String?   @db.VarChar(20) // 如5两，1斤
+  quantity  Int       @default(1) // 菜品数量（整数）
+  weight    String?   @db.VarChar(20) // 如 5 两，1 斤
   status    String    @default("pending") @db.VarChar(20) // pending → prep → ready → served → cancelled
   priority  Int       @default(0) // 优先级：0-未起菜，1-不急，2-等一下，3-催菜，-1-已出
   remark    String? // 备注

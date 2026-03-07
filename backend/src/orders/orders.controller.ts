@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Put,
   ParseIntPipe,
   Query,
 } from '@nestjs/common';
@@ -113,5 +114,18 @@ export class OrdersController {
     @Param('itemId', ParseIntPipe) itemId: number,
   ) {
     return await this.ordersService.removeOrderItem(orderId, itemId);
+  }
+
+  /**
+   * 更新订单中的某个菜品项
+   * PUT /api/orders/:orderId/items/:itemId
+   */
+  @Put(':orderId/items/:itemId')
+  async updateOrderItem(
+    @Param('orderId', ParseIntPipe) orderId: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Body() updateData: any,
+  ) {
+    return await this.ordersService.updateOrderItem(orderId, itemId, updateData);
   }
 }

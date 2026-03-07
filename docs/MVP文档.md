@@ -101,11 +101,11 @@ remark          -- 备注
 #### order_items (订单菜品表)
 ```sql
 id              -- 主键
-order_id        -- 订单ID
-dish_id         -- 菜品ID
-quantity        -- 单桌数量（可有一位小数）
-weight          -- 重量（如5两，1斤）
-status          -- 状态(pending → prep → ready → served → cancelled)
+order_id        -- 订单 ID
+dish_id         -- 菜品 ID
+quantity        -- 数量（整数，1-99）
+weight          -- 重量（如 5 两，1 斤）
+status          -- 状态 (pending → prep → ready → served → cancelled)
 priority        -- 优先级
 remark          -- 备注
 served_at       -- 上菜时间
@@ -256,6 +256,8 @@ GET    /api/stations        # 获取工位列表
 最后是三个按钮：[添加备注]、[编辑订单信息]、[取消订单（二次确认）]
 
 ### 总览视图
+
+无操作10秒后自动回到总览视图。
 
 该页面总览所有订单的菜品，自动合并同名同状态同优先级的菜品。
 

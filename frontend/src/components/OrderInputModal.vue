@@ -46,6 +46,16 @@
               class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
 
+          <!-- 订单备注 -->
+          <div class="flex space-x-4 items-start">
+            <label class="text-xl font-medium text-gray-700 whitespace-nowrap mt-2">备注</label>
+            <textarea
+              v-model="orderRemark"
+              rows="2"
+              placeholder="订单备注（可选）..."
+              class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+          </div>
+
           <!-- 用餐时间 -->
           <div class="flex space-x-4 items-center">
             <label class="text-xl font-medium text-gray-700 whitespace-nowrap">用餐时间</label>
@@ -258,12 +268,12 @@ const getDefaultMealTime = () => {
   const now = new Date();
   const hour = now.getHours();
 
-  // 9:00-15:00 为午餐时段
-  if (hour >= 9 && hour < 15) {
+  // 9:00-13:00 为午餐时段
+  if (hour >= 9 && hour < 13) {
     return "午餐";
   }
-  // 15:00-24:00 为晚餐时段
-  else if (hour >= 15 && hour < 24) {
+  // 13:00-24:00 为晚餐时段
+  else if (hour >= 13 && hour < 24) {
     return "晚餐";
   }
   // 0:00-9:00 默认返回午餐（第二天早餐时段）
@@ -276,7 +286,17 @@ const getDefaultMealTime = () => {
 const personCount = ref(1);
 const tableCount = ref(1); // 桌数字段
 const hallNumber = ref("");
-const mealDate = ref(new Date().toISOString().split("T")[0]);
+const orderRemark = ref(""); // 订单备注
+
+// 获取本地日期字符串（避免时区问题）
+const getLocalDateString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const mealDate = ref(getLocalDateString(new Date()));
 const mealTime = ref(getDefaultMealTime());
 const selectedDishes = ref([]);
 
@@ -525,6 +545,7 @@ const submit = async () => {
       hallNumber: hallNumber.value.trim(),
       peopleCount: personCount.value,
       tableCount: tableCount.value, // 使用桌数字段
+      remark: orderRemark.value || null, // 订单备注
       // 根据餐型设置默认用餐时间：午餐 12 点，晚餐 18 点
       mealTime:
         mealTime.value === "午餐" ? new Date(`${mealDate.value}T12:00:00`).toISOString() : new Date(`${mealDate.value}T18:00:00`).toISOString(),
@@ -597,7 +618,8 @@ const resetForm = () => {
   personCount.value = 1;
   tableCount.value = 1;
   hallNumber.value = "";
-  mealDate.value = new Date().toISOString().split("T")[0];
+  orderRemark.value = ""; // 重置备注
+  mealDate.value = getLocalDateString(new Date());
   mealTime.value = getDefaultMealTime();
   // 注意：不重置 selectedDishes，以保持已选菜品状态用于下一张订单
 };
@@ -609,6 +631,7 @@ watch(
     if (newVal) {
       loadDishes();
       loadOptions(); // 加载工位和分类选项
+      orderRemark.value = ""; // 打开弹窗时重置备注
       // 设置已选菜品状态（仅清除备注和重量，保留其他信息）
       if (props.prevSelectedDishes.length > 0) {
         selectedDishes.value = props.prevSelectedDishes.map((dish) => ({

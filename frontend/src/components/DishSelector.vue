@@ -100,11 +100,6 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                 </svg>
               </button>
-              <button
-                @click="addHalfQuantity"
-                class="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm font-medium transition-colors">
-                +0.5
-              </button>
             </div>
           </div>
 
@@ -335,13 +330,6 @@ const decreaseQuantity = () => {
     removeSelectedDish(currentDish.value.id);
     closeEditModal();
   }
-};
-
-// 增加 0.5 份量
-const addHalfQuantity = () => {
-  if (!currentDish.value) return;
-  const currentQuantity = Number(currentDish.value.quantity) || 0;
-  currentDish.value.quantity = parseFloat((currentQuantity + 0.5).toFixed(1));
 };
 
 // 重置数量（移除）
