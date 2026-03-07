@@ -58,6 +58,10 @@
             <span class="text-gray-600 text-base">起菜时间:</span>
             <span class="text-gray-800 font-medium text-base">{{ formatDateTime(orderDetail.startTime) }}</span>
           </div>
+          <div v-if="orderDetail.remark" class="flex justify-between items-start">
+            <span class="text-gray-600 text-base">订单备注:</span>
+            <span class="text-gray-800 font-medium text-base text-right break-all">{{ orderDetail.remark }}</span>
+          </div>
         </div>
       </div>
 
@@ -115,8 +119,9 @@
       <!-- 操作按钮 -->
       <div class="flex gap-2 mt-5 justify-between w-full">
         <button
-          class="flex-1 py-2 px-3 border border-gray-300 rounded-lg bg-white text-gray-800 text-base cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:border-gray-400 whitespace-nowrap">
-          添加备注
+          @click="showEditRemarkModal"
+          class="flex-1 py-2 px-3 border border-green-300 rounded-lg bg-green-50 text-green-700 text-base cursor-pointer transition-all duration-200 hover:bg-green-100 hover:border-green-400 whitespace-nowrap">
+          编辑备注
         </button>
         <button
           @click="showModifyDishesModal"
@@ -313,6 +318,49 @@
       </div>
     </div>
 
+    <!-- 编辑订单备注弹窗 -->
+    <div v-if="showEditRemarkModalVisible" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <!-- 调试信息 -->
+      <div class="absolute top-2 left-2 bg-yellow-100 text-red-600 px-3 py-1 rounded text-xs font-bold z-[100]">
+        弹窗已显示 - {{ showEditRemarkModalVisible }}
+      </div>
+      
+      <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+        <div class="text-center mb-6">
+          <h3 class="text-xl font-bold text-gray-800 mb-2">编辑订单备注</h3>
+          <p class="text-sm text-gray-600 mt-2">台号：{{ orderDetail?.hallNumber }}</p>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">订单备注</label>
+            <textarea
+              v-model="editRemarkForm.remark"
+              rows="4"
+              placeholder="请输入订单备注（如：客户特殊要求、配送说明等）..."
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"></textarea>
+          </div>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+          <button
+            @click="hideEditRemarkModal"
+            class="flex-1 py-3 px-4 border border-gray-300 rounded-lg bg-white text-gray-800 text-base cursor-pointer transition-all duration-200 hover:bg-gray-50">
+            取消
+          </button>
+          <button
+            @click="confirmEditRemark"
+            :disabled="isEditingRemark"
+            :class="[
+              'flex-1 py-3 px-4 rounded-lg text-white text-base cursor-pointer transition-all duration-200',
+              isEditingRemark ? 'bg-green-300 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600 hover:-translate-y-0.5',
+            ]">
+            {{ isEditingRemark ? "保存中..." : "保存备注" }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 修改菜品弹窗 -->
     <div v-if="showModifyModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div class="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" @click.stop>
@@ -414,7 +462,17 @@ const isCancelling = ref(false);
 const isDeleting = ref(false);
 const isCompleting = ref(false);
 const isEditing = ref(false);
-const mealDate = ref(new Date().toISOString().split("T")[0]);
+const isEditingRemark = ref(false); // 编辑备注状态
+
+// 获取本地日期字符串（避免时区问题）
+const getLocalDateString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const mealDate = ref(getLocalDateString(new Date()));
 const mealTime = ref("午餐");
 const editForm = ref({
   hallNumber: "",
@@ -423,14 +481,16 @@ const editForm = ref({
   status: "created",
 });
 
-// 修改菜品相关状态
-const showModifyModal = ref(false);
-const dishSelectorRef = ref(null);
-const isModifying = ref(false);
-const originalOrderItems = ref([]); // 保存弹窗打开时的菜品快照
+// 编辑备注表单
+const editRemarkForm = ref({
+  remark: "",
+});
 
 // 编辑订单弹窗状态
 const showEditModalVisible = ref(false);
+
+// 编辑备注弹窗状态
+const showEditRemarkModalVisible = ref(false);
 
 // 使用菜品加载 Composable
 const { dishes: availableDishes, loading: loadingDishes, error: loadDishesError, loadDishes, resetDishes } = useDishLoader();
@@ -441,12 +501,16 @@ const selectedOrderItems = ref([]);
 // 使用菜品管理 Composable - 专注于交互逻辑
 const dishManager = useDishManager({
   onStatusChange: (dish, newStatus, newPriority) => {
-    console.log("状态变更:", dish.name, newStatus, newPriority);
+    // 兼容两种数据结构
+    const dishName = dish.name || dish.dish?.name || "未知菜品";
+    console.log("状态变更:", dishName, newStatus, newPriority);
     // 详情页需要重新加载订单详情
     loadOrderDetail();
   },
   onPriorityAdjust: (dish, quantity, priority) => {
-    console.log("优先级调整:", dish.name, quantity, priority);
+    // 兼容两种数据结构
+    const dishName = dish.name || dish.dish?.name || "未知菜品";
+    console.log("优先级调整:", dishName, quantity, priority);
     // 这里可以调用后端 API 更新优先级
   },
 });
@@ -801,10 +865,6 @@ const confirmEditOrder = async () => {
       throw new Error("台号不能为空");
     }
 
-    if (updateData.peopleCount < 1 || updateData.peopleCount > 22) {
-      throw new Error("人数必须在 1-22 之间");
-    }
-
     if (updateData.tableCount < 1 || updateData.tableCount > 10) {
       throw new Error("桌数必须在 1-10 之间");
     }
@@ -941,8 +1001,8 @@ const confirmModifyDishes = async () => {
 
     // 调试信息
     console.log('=== 开始确认修改菜品 ===');
-    console.log('原始菜品快照 (originalOrderItems):', originalOrderItems.value.map(i => ({ id: i.id, orderItemId: i.orderItemId, name: i.name })));
-    console.log('当前选中的菜品 (selectedOrderItems):', selectedOrderItems.value.map(i => ({ id: i.id, orderItemId: i.orderItemId, name: i.name })));
+    console.log('原始菜品快照 (originalOrderItems):', originalOrderItems.value.map(i => ({ id: i.id, orderItemId: i.orderItemId, name: i.name, quantity: i.quantity })));
+    console.log('当前选中的菜品 (selectedOrderItems):', selectedOrderItems.value.map(i => ({ id: i.id, orderItemId: i.orderItemId, name: i.name, quantity: i.quantity })));
     
     // 使用组合键来唯一标识菜品项：orderItemId（如果有）或 dishId
     const getItemKey = (item) => item.orderItemId || `dish-${item.id}`;
@@ -963,6 +1023,40 @@ const confirmModifyDishes = async () => {
     const addedItems = selectedOrderItems.value.filter(item => !originalKeys.has(getItemKey(item)));
     console.log('需要新增的菜品:', addedItems.map(i => ({ id: i.id, orderItemId: i.orderItemId, name: i.name })));
 
+    // 找出已修改的菜品（原来和现在都有的，但内容有变化）
+    const modifiedItems = [];
+    for (const currentItem of selectedOrderItems.value) {
+      const currentKey = getItemKey(currentItem);
+      
+      // 只处理原来就有的菜品（通过 orderItemId 匹配）
+      if (currentItem.orderItemId) {
+        const originalItem = originalOrderItems.value.find(orig => orig.orderItemId === currentItem.orderItemId);
+        
+        if (originalItem) {
+          // 检查是否有变化（数量、备注、重量）
+          const hasChanges = 
+            originalItem.quantity !== currentItem.quantity ||
+            originalItem.remark !== currentItem.remark ||
+            originalItem.weightValue !== currentItem.weightValue ||
+            originalItem.weightUnit !== currentItem.weightUnit;
+          
+          if (hasChanges) {
+            modifiedItems.push({
+              original: originalItem,
+              current: currentItem,
+            });
+          }
+        }
+      }
+    }
+    console.log('需要更新的菜品:', modifiedItems.map(m => ({ 
+      id: m.current.id, 
+      orderItemId: m.current.orderItemId, 
+      name: m.current.name,
+      oldQuantity: m.original.quantity,
+      newQuantity: m.current.quantity,
+    })));
+
     // 使用 orderDetail.value.id 获取当前订单 ID
     const orderId = orderDetail.value?.id;
     if (!orderId) {
@@ -982,6 +1076,21 @@ const confirmModifyDishes = async () => {
       hasChanges = true;
     }
 
+    // 批量更新已修改的菜品
+    if (modifiedItems.length > 0) {
+      for (const mod of modifiedItems) {
+        if (mod.current.orderItemId) {
+          await api.orderItems.update(mod.current.orderItemId, orderId, {
+            quantity: mod.current.quantity,
+            remark: mod.current.remark || '',
+            weight: mod.current.weightValue ? `${mod.current.weightValue}${mod.current.weightUnit}` : null,
+          });
+        }
+      }
+      showSuccess(`成功更新 ${modifiedItems.length} 个菜品`);
+      hasChanges = true;
+    }
+
     // 批量添加新选中的菜品
     if (addedItems.length > 0) {
       console.log('需要添加的菜品详情:', addedItems.map(i => ({ 
@@ -996,15 +1105,14 @@ const confirmModifyDishes = async () => {
           dishId: item.id,
           quantity: item.quantity,
           remark: item.remark || '',
-          weightValue: item.weightValue,
-          weightUnit: item.weightUnit,
+          weight: item.weightValue ? `${item.weightValue}${item.weightUnit}` : null,
         });
       }
       
-      if (removedItems.length === 0) {
+      if (removedItems.length === 0 && modifiedItems.length === 0) {
         showSuccess(`成功添加 ${addedItems.length} 个菜品`);
       } else {
-        showSuccess(`已删除 ${removedItems.length} 个菜品，已添加 ${addedItems.length} 个菜品`);
+        showSuccess(`已删除 ${removedItems.length} 个菜品，已更新 ${modifiedItems.length} 个菜品，已添加 ${addedItems.length} 个菜品`);
       }
       hasChanges = true;
     }
@@ -1026,6 +1134,78 @@ const confirmModifyDishes = async () => {
     showError("修改菜品失败：" + (error.message || "操作失败"));
   } finally {
     isModifying.value = false;
+  }
+};
+
+// 编辑备注相关方法
+const showEditRemarkModal = () => {
+  console.log('🔍 [调试] 点击编辑备注按钮');
+  console.log('🔍 [调试] orderDetail:', orderDetail.value);
+  
+  if (!orderDetail.value) {
+    console.error('❌ [调试] orderDetail 为空！');
+    return;
+  }
+
+  // 初始化备注表单
+  editRemarkForm.value = {
+    remark: orderDetail.value.remark || "",
+  };
+  
+  console.log('🔍 [调试] editRemarkForm:', editRemarkForm.value);
+  console.log('🔍 [调试] 准备打开弹窗，当前 showEditRemarkModalVisible:', showEditRemarkModalVisible.value);
+
+  showEditRemarkModalVisible.value = true;
+  
+  console.log('🔍 [调试] 弹窗状态已更新:', showEditRemarkModalVisible.value);
+};
+
+const hideEditRemarkModal = () => {
+  showEditRemarkModalVisible.value = false;
+};
+
+const confirmEditRemark = async () => {
+  if (isEditingRemark.value) return;
+
+  try {
+    isEditingRemark.value = true;
+
+    // 确保 orderId 是数字类型
+    const orderId = parseInt(props.orderId);
+    if (isNaN(orderId)) {
+      throw new Error("无效的订单 ID");
+    }
+
+    // 准备更新数据
+    const updateData = {
+      remark: editRemarkForm.value.remark?.trim() || null,
+    };
+
+    const result = await OrderService.updateOrder(orderId, updateData);
+
+    if (result.success) {
+      // 更新本地订单详情
+      orderDetail.value = {
+        ...orderDetail.value,
+        ...result.data,
+      };
+
+      // 隐藏弹窗
+      hideEditRemarkModal();
+
+      // 通知父组件订单已更新（可选）
+      emit("orderCancelled", orderId);
+
+      // 显示成功提示
+      showSuccess("订单备注更新成功");
+    } else {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error("更新订单备注失败:", error);
+    showError("更新订单备注失败：" + (error.message || "未知错误"));
+  } finally {
+    isEditingRemark.value = false;
   }
 };
 </script>

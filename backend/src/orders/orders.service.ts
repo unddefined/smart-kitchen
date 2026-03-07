@@ -101,7 +101,6 @@ export class OrdersService {
         where: { id: order.id },
         data: {
           status: 'cancelled',
-          updatedAt: now,
         },
       });
     }
@@ -112,9 +111,42 @@ export class OrdersService {
         where: { id: order.id },
         data: {
           status: 'started',
-          updatedAt: now,
         },
       });
+    }
+
+    // 如果订单状态从 serving/urged 回退到 started，重置所有菜品优先级为 0
+    // 这个逻辑用于处理某些特殊场景下的状态回退
+    if (order.status === 'started') {
+      // 检查是否有需要重置优先级的菜品（优先级大于 0 的菜品）
+      const itemsWithPriority = await this.prisma.orderItem.findMany({
+        where: {
+          orderId: order.id,
+          priority: {
+            gt: 0,
+          },
+        },
+      });
+
+      // 如果有需要重置的菜品，批量更新优先级为 0
+      if (itemsWithPriority.length > 0) {
+        await this.prisma.orderItem.updateMany({
+          where: {
+            orderId: order.id,
+          },
+          data: {
+            priority: 0,
+          },
+        });
+
+        this.logger.log(
+          `订单${order.id}状态回退到 started，所有菜品优先级重置为 0`,
+          {
+            orderId: order.id,
+            resetCount: itemsWithPriority.length,
+          },
+        );
+      }
     }
 
     return order;
@@ -218,11 +250,18 @@ export class OrdersService {
       },
     });
 
-    // 第二步：检查并更新每个订单的状态
+    // 第二步：检查并更新每个订单的状态，同时保留完整的订单数据
     const updatedOrders = await Promise.all(
       orders.map(async (order) => {
+        // 检查并可能更新订单状态
         const updatedOrder = await this.checkAndUpdateOrderStatus(order);
-        return updatedOrder;
+        
+        // 使用原始的 orderItems（已经包含 dish 信息）
+        // 因为 checkAndUpdateOrderStatus 不会修改 orderItems，直接返回完整订单对象
+        return {
+          ...updatedOrder,
+          orderItems: order.orderItems,
+        };
       }),
     );
 
@@ -318,16 +357,14 @@ export class OrdersService {
       throw new Error('订单不存在');
     }
 
-    // 处理quantity字段，支持一位小数
-    let quantity = 1.0;
+    // 处理quantity字段
+    let quantity = 1;
     if (createOrderItemDto.quantity !== undefined) {
       quantity = parseFloat(createOrderItemDto.quantity.toString());
       // 限制在合理范围内
-      if (quantity < 0.1 || quantity > 99.9) {
-        throw new Error('数量必须在0.1到99.9之间');
+      if (quantity < 1 || quantity > 99) {
+        throw new Error('数量必须在1到99之间');
       }
-      // 保留一位小数
-      quantity = Math.round(quantity * 10) / 10;
     }
 
     return await this.prisma.orderItem.create({
@@ -352,7 +389,6 @@ export class OrdersService {
       where: { id },
       data: {
         ...updateOrderDto,
-        updatedAt: new Date(),
       },
     });
   }
@@ -376,7 +412,6 @@ export class OrdersService {
       where: { id },
       data: {
         status: 'cancelled',
-        updatedAt: new Date(),
       },
     });
   }
@@ -491,6 +526,7 @@ export class OrdersService {
   /**
    * 暂停 - 将订单状态更新为 started
    * 可以从 serving 或 urged 状态切换到 started
+   * 同时将所有菜品优先级重置为 0（未起菜状态）
    */
   async pauseOrder(id: number) {
     const order = await this.prisma.order.findUnique({
@@ -506,12 +542,35 @@ export class OrdersService {
       throw new Error('只有出餐中或催菜状态的订单可以暂停');
     }
 
-    return await this.prisma.order.update({
-      where: { id },
-      data: {
-        status: 'started',
-        updatedAt: new Date(),
-      },
+    // 使用事务更新订单状态和菜品优先级
+    return await this.prisma.$transaction(async (tx) => {
+      // 1. 更新订单状态
+      const updatedOrder = await tx.order.update({
+        where: { id },
+        data: {
+          status: 'started',
+          updatedAt: new Date(),
+        },
+      });
+
+      // 2. 将所有菜品优先级重置为 0
+      await tx.orderItem.updateMany({
+        where: { orderId: id },
+        data: {
+          priority: 0,
+        },
+      });
+
+      this.logger.log(
+        `订单${id}已暂停，所有菜品优先级重置为 0`,
+        {
+          orderId: id,
+          previousStatus: order.status,
+          newStatus: 'started',
+        },
+      );
+
+      return updatedOrder;
     });
   }
 
@@ -611,7 +670,6 @@ export class OrdersService {
       where: { id },
       data: {
         status: 'done',
-        updatedAt: new Date(),
       },
     });
   }
@@ -652,6 +710,72 @@ export class OrdersService {
     // 删除订单项
     return await this.prisma.orderItem.delete({
       where: { id: itemId },
+    });
+  }
+
+  /**
+   * 更新订单中的某个菜品项
+   * @param orderId 订单 ID
+   * @param itemId 订单项 ID
+   * @param updateData 更新数据（包括 quantity, weight, remark 等）
+   */
+  async updateOrderItem(orderId: number, itemId: number, updateData: any) {
+    // 首先验证订单是否存在
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) {
+      throw new Error('订单不存在');
+    }
+
+    // 验证订单项是否存在且属于该订单
+    const orderItem = await this.prisma.orderItem.findUnique({
+      where: { id: itemId },
+    });
+
+    if (!orderItem) {
+      throw new Error('订单项不存在');
+    }
+
+    if (orderItem.orderId !== orderId) {
+      throw new Error('订单项不属于该订单');
+    }
+
+    // 检查订单项状态，已上菜的菜品不能修改
+    if (orderItem.status === 'served') {
+      throw new Error('已上菜的菜品不能修改');
+    }
+
+    // 构建更新数据对象
+    const dataToUpdate: any = {};
+
+    // 处理 quantity 字段
+    if (updateData.quantity !== undefined) {
+      let quantity = parseFloat(updateData.quantity.toString());
+      if (quantity < 1 || quantity > 99) {
+        throw new Error('数量必须在 1 到 99 之间');
+      }
+      quantity = Math.round(quantity * 10) / 10;
+      dataToUpdate.quantity = quantity;
+    }
+
+    // 处理其他字段
+    if (updateData.weight !== undefined) {
+      dataToUpdate.weight = updateData.weight || null;
+    }
+
+    if (updateData.remark !== undefined) {
+      dataToUpdate.remark = updateData.remark || null;
+    }
+
+    // 更新订单项
+    return await this.prisma.orderItem.update({
+      where: { id: itemId },
+      data: dataToUpdate,
+      include: {
+        dish: true,
+      },
     });
   }
 }

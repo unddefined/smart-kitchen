@@ -99,11 +99,25 @@ export function useDishManager(options = {}) {
    * @param {Function} emitFn - 事件发送函数
    */
   const handleDishClick = async (dish, showToastFn, refreshFn, emitFn) => {
-    console.log("点击菜品:", dish.name, "当前状态:", dish.status, "优先级:", dish.priority, "needPrep:", dish.needPrep);
+    // 兼容两种数据结构：
+    // 1. 扁平化结构（OverviewView）: { name, status, priority, needPrep, itemId, dishId, ... }
+    // 2. 嵌套结构（OrderView）: { id, dish: { name }, status, priority, ... }
+    const dishName = dish.name || dish.dish?.name || "未知菜品";
+    const needPrep = dish.needPrep ?? dish.dish?.needPrep;
+    
+    console.log("点击菜品:", dishName, "当前状态:", dish.status, "优先级:", dish.priority, "needPrep:", needPrep);
+
+    // 获取订单项 ID（兼容两种数据结构）
+    const itemId = dish.itemId ?? dish.id;
+    
+    if (!itemId) {
+      showToastFn.showError("菜品 ID 不存在，无法操作");
+      return;
+    }
 
     // 根据 MVP文档，优先级为 0 的菜品（未起）不能直接上菜
     if (dish.priority === 0 && (dish.status === "ready" || dish.status === "preparing")) {
-      showToastFn.showError(`菜品"${dish.name}"还未起菜，无法上菜。`);
+      showToastFn.showError(`菜品"${dishName}"还未起菜，无法上菜。`);
       return;
     }
 
@@ -113,29 +127,29 @@ export function useDishManager(options = {}) {
     try {
       if (dish.status === "pending") {
         // 检查是否需要预处理
-        if (dish.needPrep === false) {
+        if (needPrep === false) {
           // 不需要预处理，直接从 pending → ready
-          result = await api.serving.completePrep(dish.id);
-          message = `已将"${dish.name}"标记为准备下锅（跳过预处理）`;
+          result = await api.serving.completePrep(itemId);
+          message = `已将"${dishName}"标记为准备下锅（跳过预处理）`;
         } else {
           // 需要预处理，pending → preparing
-          result = await ServingService.completePreparation(dish.id);
-          message = `已将"${dish.name}"标记为待处理`;
+          result = await ServingService.completePreparation(itemId);
+          message = `已将"${dishName}"标记为待处理`;
         }
       } else if (dish.status === "preparing") {
         // preparing → ready
-        result = await api.serving.completePrep(dish.id);
-        message = `已将"${dish.name}"标记为准备下锅`;
+        result = await api.serving.completePrep(itemId);
+        message = `已将"${dishName}"标记为准备下锅`;
       } else if (dish.status === "ready") {
         // ready → served
-        result = await ServingService.serveDish(dish.id);
-        message = `已将"${dish.name}"标记为已上菜`;
+        result = await ServingService.serveDish(itemId);
+        message = `已将"${dishName}"标记为已上菜`;
       } else if (dish.status === "served") {
-        message = `"${dish.name}"已经是已上菜状态`;
+        message = `"${dishName}"已经是已上菜状态`;
         showToastFn.showInfo(message);
         return;
       } else {
-        message = `无法更改"${dish.name}"的状态（当前状态：${dish.status}）`;
+        message = `无法更改"${dishName}"的状态（当前状态：${dish.status}）`;
         showToastFn.showError(message);
         return;
       }
@@ -207,8 +221,11 @@ export function useDishManager(options = {}) {
    * 确认优先级调整
    */
   const confirmPriorityAdjust = (emitFn) => {
+    // 兼容两种数据结构
+    const dishName = currentDish.value?.name || currentDish.value?.dish?.name || "未知菜品";
+    
     console.log("调整菜品:", {
-      dish: currentDish.value.name,
+      dish: dishName,
       quantity: tempQuantity.value,
       priority: tempPriority.value,
     });

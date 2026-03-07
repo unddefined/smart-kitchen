@@ -233,30 +233,30 @@ export const api = {
         body: JSON.stringify(itemData),
       }),
 
-    // 更新订单菜品 - 使用 serving 模块的接口
-    update: (itemId, itemData) =>
-      request(`/api/serving/items/${itemId}/priority`, {
+    // 更新订单菜品信息（份量、备注等）
+    update: (itemId, orderId, itemData) =>
+      request(`/api/orders/${orderId}/items/${itemId}`, {
         method: "PUT",
-        body: JSON.stringify({ priority: itemData.priority, reason: itemData.remark }),
+        body: JSON.stringify(itemData),
       }),
 
-    // 删除订单菜品 - 修改为正确的后端接口路径
+    // 删除订单菜品
     delete: (itemId, orderId) =>
       request(`/api/orders/${orderId}/items/${itemId}`, {
         method: "DELETE",
       }),
 
-    // 更新菜品优先级（催菜功能）
+    // 更新菜品优先级（催菜功能）- 使用 serving 模块的接口
     updatePriority: (itemId, priority, reason) =>
-      request(`/api/order-items/${itemId}/priority`, {
+      request(`/api/serving/items/${itemId}/priority`, {
         method: "PUT",
         body: JSON.stringify({ priority, reason }),
       }),
 
     // 标记菜品为已出菜
     markAsServed: (itemId) =>
-      request(`/api/order-items/${itemId}/serve`, {
-        method: "PUT",
+      request(`/api/serving/items/${itemId}/serve`, {
+        method: "POST",
       }),
   },
 
