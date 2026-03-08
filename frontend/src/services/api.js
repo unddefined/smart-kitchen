@@ -343,7 +343,14 @@ export const api = {
         method: "POST",
       }),
 
-    // 标记菜品已上菜（任意状态 → served）
+    // 批量标记菜品已上菜
+    serveDishes: (itemIds) =>
+      request("/api/serving/items/serve-batch", {
+        method: "POST",
+        body: JSON.stringify({ itemIds }),
+      }),
+
+    // 标记菜品已上菜（单个）
     serveDish: (itemId) =>
       request(`/api/serving/items/${itemId}/serve`, {
         method: "POST",

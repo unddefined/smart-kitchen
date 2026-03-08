@@ -34,12 +34,18 @@
             <div
               v-for="dish in servedDishes"
               :key="`served-${dish.dishId}`"
-              class="flex items-center justify-center bg-white rounded-lg p-3 shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 border-2 border-gray-200 hover:border-gray-400 cursor-pointer"
+              class="flex items-center justify-center bg-white rounded-lg p-1 shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 border-2 border-gray-200 hover:border-gray-400 cursor-pointer"
               @click="onServedDishClick(dish)">
-              <div class="flex items-center text-base font-semibold text-gray-800">
-                <span class="truncate max-w-[100px]">{{ truncateDishName(dish.name) }}</span>
+              <div class="flex items-center text-xl font-semibold text-gray-800">
+                <span class="max-w-[100px]">{{ truncateDishName(dish.name) }}</span>
                 <span class="mx-1 text-gray-900">×</span>
                 <span class="font-bold text-gray-900">{{ dish.totalQuantity }}</span>
+              </div>
+              <!-- 菜品详细标注 - 使用 generateDisplayDetails 生成 -->
+              <div class="text-lg text-gray-800 leading-relaxed font-medium flex flex-col items-center justify-center">
+                <div v-for="(detail, idx) in generateDisplayDetails(dish)" :key="idx" class="text-center break-all min-w-[80px]">
+                  {{ detail }}
+                </div>
               </div>
             </div>
           </div>
@@ -74,7 +80,7 @@
 
               <!-- 菜品主信息 -->
               <div class="flex items-center justify-center text-xl font-bold text-gray-800 leading-tight w-full mb-1 text-center">
-                <span class="truncate max-w-[120px] text-center">{{ truncateDishName(dish.name) }}</span>
+                <span class=" text-center">{{ truncateDishName(dish.name) }}</span>
                 <span class="text-black mx-1">×</span>
                 <span class="font-bold text-gray-900">{{ dish.totalQuantity }}</span>
               </div>
@@ -310,13 +316,26 @@ const {
   collapseTimer,
 } = dishManager;
 
-// 包装 handleDishClick，传入必要的回调函数
+// 包装 handleDishClick，注入事件回调逻辑
+// OverviewView 作为展示组件，通过事件通知父组件执行相应操作
 const handleDishClick = async (dish) => {
-  // OverviewView 作为子组件，不负责加载数据，只负责发送事件通知父组件刷新
+  // 刷新回调：通知父组件重新加载数据
   const refreshFn = () => {
     emit("dish-action", "refresh");
   };
-  await handleDishClickBase(dish, { showSuccess, showError, showInfo }, refreshFn, emit);
+
+  // 状态变更回调：菜品状态发生变化时通知父组件
+  const statusChangeFn = (dish, newStatus, newPriority, message) => {
+    emit("dish-action", "status-changed", {
+      dish,
+      newStatus,
+      newPriority,
+      message,
+    });
+  };
+
+  // 调用基础处理函数，传入 UI 反馈和回调函数
+  await handleDishClickBase(dish, { showSuccess, showError, showInfo }, refreshFn, statusChangeFn);
 };
 
 // 一、提取菜品 - 只负责数据标准化
@@ -391,7 +410,7 @@ const normalizeDishes = (orders = []) => {
         priority: item.priority,
 
         remark: item.remark || "",
-        weight: item.weight ? Number(item.weight) : null,
+        weight: item.weight ? item.weight : null,
 
         peopleCount,
         tableCount,
@@ -421,7 +440,8 @@ const mergeDishes = (dishes) => {
     if (!map.has(key)) {
       map.set(key, {
         dishId: dish.dishId,
-        itemId: dish.itemId, // 保留订单项 ID 用于 API 调用
+        itemId: dish.itemId, // 保留第一个订单项 ID 用于向后兼容
+        itemIds: [dish.itemId], // 收集所有订单项 ID 用于批量操作
         name: dish.name,
         priority: dish.priority,
         status: dish.status,
@@ -432,7 +452,7 @@ const mergeDishes = (dishes) => {
         hallNumbers: new Set(),
         // 保留 remark 和 weight 字段用于 display
         remark: dish.remark || "",
-        weight: dish.weight ? Number(dish.weight) : null,
+        weight: dish.weight ? dish.weight : null,
         countable: dish.countable,
         // 保留 needPrep 字段
         needPrep: dish.needPrep,
@@ -450,6 +470,11 @@ const mergeDishes = (dishes) => {
     // 收集订单 ID 和厅号
     existing.orderIds.add(dish.orderId);
     existing.hallNumbers.add(dish.hallNumber);
+
+    // 收集所有订单项 ID（用于批量操作）
+    if (!existing.itemIds.includes(dish.itemId)) {
+      existing.itemIds.push(dish.itemId);
+    }
 
     // 处理份量分组（perTableGroups）
     const perTableKey = dish.countable ? dish.peopleCount : dish.quantity;
@@ -483,13 +508,25 @@ const mergeDishes = (dishes) => {
   }
 
   // 排序：perTableGroups 按 quantityPerTable 降序
-  return Array.from(map.values()).map((dish) => ({
+  let result = Array.from(map.values()).map((dish) => ({
     ...dish,
     orderIds: Array.from(dish.orderIds),
     hallNumbers: Array.from(dish.hallNumbers),
     perTableGroups: dish.perTableGroups.sort((a, b) => b.quantityPerTable - a.quantityPerTable),
     remarks: dish.remarks.filter((r) => r.remark !== "_none" || r.weight !== null), // 移除空值
   }));
+
+  // 按优先级排序：3(红/催菜) > 2(黄/等一下) > 1(绿/不急) > 0/-1(灰)
+  result.sort((a, b) => {
+    // 优先按优先级降序排列
+    if (b.priority !== a.priority) {
+      return b.priority - a.priority;
+    }
+    // 优先级相同时按名称排序
+    return a.name.localeCompare(b.name);
+  });
+
+  return result;
 };
 
 // 三、生成显示详情 - UI 渲染辅助函数
@@ -590,12 +627,29 @@ const unstartedDishes = computed(() => {
   return dishes.value.filter((dish) => dish.priority === 0);
 });
 
-// 截断菜品名称，保留最后一个字
+// 辅助函数 - 截取菜名，保留前2后2字符，中间省略
 const truncateDishName = (name) => {
-  if (name.length > 4) {
-    return name.slice(0, 4) + "..." + name.slice(-4);
-  }
   return name;
+  if (!name || typeof name !== "string") return "";
+
+  const screenWidth = window.innerWidth;
+
+  // 根据屏幕宽度估算可显示字符数
+  let maxChars;
+
+  if (screenWidth < 400) {
+    maxChars = 3; // 小手机
+  } else if (screenWidth < 768) {
+    maxChars = 5; // 大手机
+  } else if (screenWidth < 1200) {
+    maxChars = 8; // 平板
+  } else {
+    maxChars = 16; // 大屏
+  }
+
+  if (name.length <= maxChars) return name;
+
+  return name.slice(0, maxChars - 3) + "..." + name.slice(-2);
 };
 
 // 监听 orders 变化

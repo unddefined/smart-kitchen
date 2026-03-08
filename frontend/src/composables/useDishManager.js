@@ -108,9 +108,11 @@ export function useDishManager(options = {}) {
     console.log("点击菜品:", dishName, "当前状态:", dish.status, "优先级:", dish.priority, "needPrep:", needPrep);
 
     // 获取订单项 ID（兼容两种数据结构）
+    // 如果是聚合的菜品（来自 OverviewView 的 mergeDishes），可能包含多个 itemId
     const itemId = dish.itemId ?? dish.id;
+    const itemIds = dish.itemIds || (itemId ? [itemId] : []);
     
-    if (!itemId) {
+    if (!itemIds || itemIds.length === 0) {
       showToastFn.showError("菜品 ID 不存在，无法操作");
       return;
     }
@@ -129,25 +131,61 @@ export function useDishManager(options = {}) {
         // 检查是否需要预处理
         if (needPrep === false) {
           // 不需要预处理，直接从 pending → ready
-          result = await api.serving.completePrep(itemId);
-          message = `已将"${dishName}"标记为准备下锅（跳过预处理）`;
+          // 批量操作
+          if (itemIds.length > 1) {
+            const results = await Promise.all(
+              itemIds.map(id => api.serving.completePrep(id))
+            );
+            const successCount = results.filter(r => r?.success).length;
+            result = { success: true, count: successCount, total: itemIds.length };
+            message = `已将${successCount}份"${dishName}"标记为准备下锅（跳过预处理）`;
+          } else {
+            result = await api.serving.completePrep(itemIds[0]);
+            message = `已将"${dishName}"标记为准备下锅（跳过预处理）`;
+          }
           showToastFn.showSuccess(message);
         } else {
           // 需要预处理，pending → preparing
-          result = await ServingService.completePreparation(itemId);
-          message = `已将"${dishName}"标记为待处理`;
+          // 批量操作
+          if (itemIds.length > 1) {
+            const results = await Promise.all(
+              itemIds.map(id => ServingService.completePreparation(id))
+            );
+            const successCount = results.filter(r => r?.success).length;
+            result = { success: true, count: successCount, total: itemIds.length };
+            message = `已将${successCount}份"${dishName}"标记为待处理`;
+          } else {
+            result = await ServingService.completePreparation(itemIds[0]);
+            message = `已将"${dishName}"标记为待处理`;
+          }
           showToastFn.showSuccess(message);
         }
       } else if (dish.status === "preparing") {
         // preparing → ready
-        result = await api.serving.completePrep(itemId);
-        message = `已将"${dishName}"标记为准备下锅`;
+        // 批量操作
+        if (itemIds.length > 1) {
+          const results = await Promise.all(
+            itemIds.map(id => api.serving.completePrep(id))
+          );
+          const successCount = results.filter(r => r?.success).length;
+          result = { success: true, count: successCount, total: itemIds.length };
+          message = `已将${successCount}份"${dishName}"标记为准备下锅`;
+        } else {
+          result = await api.serving.completePrep(itemIds[0]);
+          message = `已将"${dishName}"标记为准备下锅`;
+        }
         showToastFn.showSuccess(message);
       } else if (dish.status === "ready") {
-        // ready → served
-        result = await ServingService.serveDish(itemId);
-        message = `已将"${dishName}"标记为已上菜`;
-        showToastFn.showSuccess(message);
+        // ready → served（使用批量上菜接口）
+        result = await ServingService.serveDishes(itemIds);
+        if (result.success) {
+          const data = result.data || {};
+          message = `成功上菜 ${data.successCount || itemIds.length} 份"${dishName}"`;
+          showToastFn.showSuccess(message);
+        } else {
+          showToastFn.showError(result.message || "上菜失败");
+          return;
+        }
       } else if (dish.status === "served") {
         message = `"${dishName}"已经是已上菜状态`;
         showToastFn.showInfo(message);
@@ -164,18 +202,14 @@ export function useDishManager(options = {}) {
         showToastFn.showSuccess(message);
         await new Promise((resolve) => setTimeout(resolve, 300));
         
-        // 发送事件通知父组件
-        if (emitFn) {
-          emitFn("dish-action", "status-changed", {
-            dish,
-            newStatus: result.data?.status || dish.status,
-            newPriority: result.data?.priority || dish.priority,
-            message,
-          });
+        // 发送状态变更事件通知父组件
+        if (emitFn && typeof emitFn === "function") {
+          // emitFn 接收 4 个参数：dish, newStatus, newPriority, message
+          emitFn(dish, 'served', -1, message);
         }
         
         // 刷新数据
-        if (refreshFn) {
+        if (refreshFn && typeof refreshFn === "function") {
           await refreshFn();
         }
       } else {

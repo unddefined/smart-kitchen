@@ -78,7 +78,7 @@ export class ServingService {
     }
   }
 
-  // 标记菜品已上菜（直接标记为 served）
+  // 标记菜品已上菜（单个）
   static async serveDish(itemId) {
     try {
       const result = await api.serving.serveDish(itemId);
@@ -91,6 +91,23 @@ export class ServingService {
       return {
         success: false,
         message: "操作失败：" + error.message,
+      };
+    }
+  }
+
+  // 批量标记菜品已上菜
+  static async serveDishes(itemIds) {
+    try {
+      const result = await api.serving.serveDishes(itemIds);
+      return {
+        success: result.success,
+        message: result.message || `成功上菜 ${result.successCount} 个，失败 ${result.failCount} 个`,
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: "批量上菜失败：" + error.message,
       };
     }
   }

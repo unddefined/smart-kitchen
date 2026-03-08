@@ -8,20 +8,14 @@ import { EventsGateway } from '../events.gateway';
 @Injectable()
 export class ServingService {
   private readonly logger = new Logger(ServingService.name);
-  private readonly ordersService: OrdersService;
 
   constructor(
     private prisma: PrismaService,
     private eventsGateway: EventsGateway,
     private kitchenService: KitchenService,
     private orderItemsService: OrderItemsService,
-  ) {
-    this.ordersService = new OrdersService(
-      prisma,
-      kitchenService,
-      orderItemsService,
-    );
-  }
+    private ordersService: OrdersService,
+  ) {}
 
   /**
    * 计算菜品优先级 (与数据库函数保持一致)
@@ -449,7 +443,100 @@ export class ServingService {
     };
   }
 
-  // 标记菜品已上菜
+  // 标记菜品已上菜（批量）
+  async serveDishes(itemIds: number[]) {
+    if (!itemIds || itemIds.length === 0) {
+      throw new Error('菜品 ID 列表不能为空');
+    }
+
+    return await this.prisma.$transaction(async (tx) => {
+      const results = [];
+      
+      for (const itemId of itemIds) {
+        try {
+          const item = await tx.orderItem.findUnique({
+            where: { id: itemId },
+            include: { order: true, dish: true },
+          });
+
+          if (!item) {
+            this.logger.warn(`订单项 ${itemId} 不存在，跳过`);
+            continue;
+          }
+
+          // 检查优先级
+          if (item.priority === 0) {
+            this.logger.warn(`菜品"${item.dish.name}"(ID: ${itemId}) 还未起菜，跳过`);
+            results.push({
+              success: false,
+              itemId,
+              message: `菜品"${item.dish.name}"还未起菜，无法上菜`,
+            });
+            continue;
+          }
+
+          // 更新状态
+          const updatedItem = await tx.orderItem.update({
+            where: { id: itemId },
+            data: {
+              status: 'served',
+              priority: -1,
+              servedAt: new Date(),
+            },
+          });
+
+          this.logger.log(`批量上菜：订单${item.order.hallNumber}的${item.dish.name}`, {
+            orderId: item.orderId,
+            dishId: item.dishId,
+          });
+
+          results.push({
+            success: true,
+            itemId: updatedItem.id,
+            status: updatedItem.status,
+            priority: updatedItem.priority,
+            servedAt: updatedItem.servedAt,
+            message: `菜品${item.dish.name}已上菜`,
+          });
+
+          // 处理订单状态
+          if (item.order.status === 'urged') {
+            try {
+              await this.ordersService.resumeOrderAfterServe(item.orderId);
+              this.logger.log(`订单 ${item.orderId} 已自动恢复为 serving 状态`);
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : '未知错误';
+              this.logger.error(`恢复订单状态失败：${errorMessage}`);
+            }
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : '未知错误';
+          this.logger.error(`批量上菜失败 (ID: ${itemId}): ${errorMessage}`);
+          results.push({
+            success: false,
+            itemId,
+            message: errorMessage,
+          });
+        }
+      }
+
+      const successCount = results.filter(r => r.success).length;
+      const failCount = results.filter(r => !r.success).length;
+
+      this.logger.log(`批量上菜完成：成功${successCount}个，失败${failCount}个`);
+
+      return {
+        success: true,
+        total: itemIds.length,
+        successCount,
+        failCount,
+        results,
+        message: `批量上菜完成：成功${successCount}个，失败${failCount}个`,
+      };
+    });
+  }
+
+  // 标记菜品已上菜（单个）
   async serveDish(itemId: number) {
     const item = await this.prisma.orderItem.findUnique({
       where: { id: itemId },
@@ -497,13 +584,8 @@ export class ServingService {
 
       // 3. 如果订单状态为 urged，检查是否需要恢复为 serving
       if (item.order.status === 'urged') {
-        const ordersService = new OrdersService(
-          this.prisma,
-          this.kitchenService,
-          this.orderItemsService,
-        );
         try {
-          await ordersService.resumeOrderAfterServe(item.orderId);
+          await this.ordersService.resumeOrderAfterServe(item.orderId);
           this.logger.log(`订单 ${item.orderId} 已自动恢复为 serving 状态`);
         } catch (error) {
           const errorMessage =

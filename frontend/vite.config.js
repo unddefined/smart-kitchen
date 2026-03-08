@@ -82,7 +82,7 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       proxy: {
         "/api": {
-          target: env.VITE_API_BASE_URL || "http://localhost:3001", // 使用环境变量
+          target: env.VITE_API_BASE_URL || "http://8.145.34.30:3001", // 修改默认值为生产环境地址
           changeOrigin: true,
           secure: false,
         },

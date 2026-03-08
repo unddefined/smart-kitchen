@@ -415,7 +415,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, nextTick } from "vue";
 import { useOrderAutoRefresh } from "@/composables/useOrderAutoRefresh";
 import { OrderService } from "@/services";
 import ConfirmModal from "@/components/ConfirmModal.vue";
@@ -454,6 +454,9 @@ const isEditingRemark = ref(false); // 编辑备注状态
 const showModifyModal = ref(false); // 修改菜品弹窗状态
 const isModifying = ref(false); // 修改菜品加载状态
 const originalOrderItems = ref([]); // 原始菜品快照
+
+// DishSelector 组件引用
+const dishSelectorRef = ref(null);
 
 // 获取本地日期字符串（避免时区问题）
 const getLocalDateString = (date) => {
@@ -495,8 +498,8 @@ const dishManager = useDishManager({
     // 兼容两种数据结构
     const dishName = dish.name || dish.dish?.name || "未知菜品";
     console.log("状态变更:", dishName, newStatus, newPriority);
-    // 详情页需要重新加载订单详情
-    loadOrderDetail();
+    // 详情页不需要手动重新加载，WebSocket 会自动刷新
+    // loadOrderDetail();
   },
   onPriorityAdjust: (dish, quantity, priority) => {
     // 兼容两种数据结构
@@ -539,7 +542,14 @@ const servedDishes = computed(() => {
 
 const pendingDishes = computed(() => {
   if (!orderDetail.value?.items) return [];
-  return orderDetail.value.items.filter((item) => item.status !== "served");
+  const pending = orderDetail.value.items.filter((item) => item.status !== "served");
+  // 待上菜品按优先级降序排列：3(催菜) > 2(等一下) > 1(不急) > 0(未起)
+  return pending.sort((a, b) => {
+    if (b.priority !== a.priority) {
+      return b.priority - a.priority;
+    }
+    return (a.dish?.name || "").localeCompare(b.dish?.name || "");
+  });
 });
 
 const orderStats = computed(() => {
@@ -559,15 +569,23 @@ const loadOrderDetail = async () => {
       throw new Error("无效的订单 ID");
     }
 
+    console.log(`🔄 加载订单详情 #${orderId}...`);
+    
     const detail = await OrderService.getOrderDetail(orderId);
+    
     if (detail) {
+      console.log(`✅ 订单 #${orderId} 加载成功:`, detail.status);
       orderDetail.value = detail;
     } else {
+      console.warn(`⚠️ 订单 #${orderId} 不存在`);
       error.value = "未找到该订单";
+      orderDetail.value = null; // 明确设置为 null
     }
   } catch (err) {
-    console.error("加载订单详情失败:", err);
+    console.error(`❌ 加载订单详情失败 #${props.orderId}:`, err);
     error.value = "加载订单详情失败：" + (err.message || "未知错误");
+    // 保留之前的订单详情，避免闪烁
+    // orderDetail.value = null;
   } finally {
     loading.value = false;
   }
@@ -765,12 +783,27 @@ const confirmDeleteOrder = async () => {
 // 监听 orderId 变化，重新加载数据
 watch(
   () => props.orderId,
-  (newId) => {
+  (newId, oldId) => {
+    console.log(`🔍 orderId 变化：${oldId} → ${newId}`);
     if (newId) {
       loadOrderDetail();
     }
   },
   { immediate: true },
+);
+
+// 监听 orderDetail 值的变化，调试用
+watch(
+  () => orderDetail.value,
+  (newValue, oldValue) => {
+    if (newValue === null && oldValue !== null) {
+      console.warn('⚠️ orderDetail 被设置为 null！');
+      console.warn('之前的订单:', oldValue?.id, '当前状态:', oldValue?.status);
+    } else if (newValue) {
+      console.log('✅ orderDetail 更新:', newValue.id, '状态:', newValue.status);
+    }
+  },
+  { deep: true }
 );
 
 // 编辑订单相关方法
@@ -875,11 +908,6 @@ const confirmEditOrder = async () => {
           result = await OrderService.updateOrder(orderId, { status: newStatus });
           break;
 
-        case "paused":
-          // 暂停订单 - 直接从 started/serving/urged 转到 paused
-          result = await OrderService.pauseOrder(orderId);
-          break;
-
         default:
           // 其他状态（如 created）使用通用 update API
           result = await OrderService.updateOrder(orderId, { status: newStatus });
@@ -887,20 +915,16 @@ const confirmEditOrder = async () => {
       }
 
       if (result.success) {
-        // 更新本地订单详情
-        orderDetail.value = {
-          ...orderDetail.value,
-          ...result.data,
-        };
-
         // 隐藏弹窗
         hideEditModal();
 
-        // 通知父组件订单已更新
+        // 通知父组件订单已更新（但不刷新列表，由 WebSocket 自动处理）
         emit("orderCancelled", orderId);
 
         // 显示成功提示
-        showSuccess(`订单状态已更新为 ${getOrderStatusText(newStatus)}`);
+        showSuccess("订单信息更新成功");
+        
+        // 不立即调用 loadOrderDetail，等待 WebSocket 触发自动刷新
       } else {
         throw new Error(result.message);
       }
@@ -931,12 +955,6 @@ const confirmEditOrder = async () => {
       const result = await OrderService.updateOrder(orderId, updateData);
 
       if (result.success) {
-        // 更新本地订单详情
-        orderDetail.value = {
-          ...orderDetail.value,
-          ...result.data,
-        };
-
         // 隐藏弹窗
         hideEditModal();
 
@@ -983,7 +1001,7 @@ const showModifyDishesModal = async () => {
   initializeSelectedOrderItems(); // 初始化已选中的订单菜品
 
   // 等待下一个 tick，确保 DishSelector 组件已经渲染并接收了 selectedOrderItems
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  await nextTick();
 
   // 保存原始菜品快照，用于后续比较哪些被删除了
   // 直接从 DishSelector 组件获取初始状态
@@ -1004,6 +1022,8 @@ const initializeSelectedOrderItems = () => {
   selectedOrderItems.value = orderDetail.value.items.map((item) => ({
     id: item.dishId,
     orderItemId: item.id,
+    status: item.status,
+    priority: item.priority,
     name: item.dish?.name || "未知菜品",
     quantity: item.quantity || 1,
     remark: item.remark || "",
@@ -1012,16 +1032,16 @@ const initializeSelectedOrderItems = () => {
     weightUnit: extractWeightUnit(item.weight) || "两",
     dish: item.dish,
   }));
-  
+
   console.log(
     "=== 初始化已选中的订单菜品 ===",
-    selectedOrderItems.value.map(i => ({
+    selectedOrderItems.value.map((i) => ({
       id: i.id,
       name: i.name,
       weight: i.weight,
       weightValue: i.weightValue,
       weightUnit: i.weightUnit,
-    }))
+    })),
   );
 };
 
@@ -1044,10 +1064,10 @@ const handleSelectedDishesChange = (newSelectedDishes) => {
   console.log("=== handleSelectedDishesChange 被调用 ===");
   console.log(
     "传入的新数据:",
-    newSelectedDishes.map((i) => ({ 
-      id: i.id, 
-      orderItemId: i.orderItemId, 
-      name: i.name, 
+    newSelectedDishes.map((i) => ({
+      id: i.id,
+      orderItemId: i.orderItemId,
+      name: i.name,
       quantity: i.quantity,
       weight: i.weight,
       weightValue: i.weightValue,
@@ -1056,61 +1076,11 @@ const handleSelectedDishesChange = (newSelectedDishes) => {
     })),
   );
 
-  // 更新已选中的订单菜品状态
-  // 需要为原来就有的菜品恢复 orderItemId
-  const restoredDishes = newSelectedDishes.map((newItem) => {
-    // 查找原始快照中是否有这个菜品（通过 dishId 匹配）
-    const originalItem = originalOrderItems.value.find((orig) => orig.id === newItem.id);
-
-    if (originalItem && originalItem.orderItemId) {
-      // 原来就有这个菜品，恢复它的 orderItemId
-      const restored = {
-        ...newItem,
-        orderItemId: originalItem.orderItemId,
-      };
-      console.log(`恢复菜品 ${newItem.name} 的 orderItemId:`, originalItem.orderItemId);
-      console.log(`菜品 ${newItem.name} 的完整数据:`, {
-        id: restored.id,
-        name: restored.name,
-        quantity: restored.quantity,
-        weight: restored.weight,
-        weightValue: restored.weightValue,
-        weightUnit: restored.weightUnit,
-        remark: restored.remark,
-        orderItemId: restored.orderItemId,
-      });
-      return restored;
-    }
-
-    // 新增的菜品，保持原样（orderItemId 为 null）
-    console.log(`新增菜品 ${newItem.name} 的完整数据:`, {
-      id: newItem.id,
-      name: newItem.name,
-      quantity: newItem.quantity,
-      weight: newItem.weight,
-      weightValue: newItem.weightValue,
-      weightUnit: newItem.weightUnit,
-      remark: newItem.remark,
-      orderItemId: newItem.orderItemId,
-    });
-    return newItem;
-  });
-
-  console.log(
-    "恢复后的数据:",
-    restoredDishes.map((i) => ({ 
-      id: i.id, 
-      orderItemId: i.orderItemId, 
-      name: i.name, 
-      quantity: i.quantity,
-      weight: i.weight,
-      weightValue: i.weightValue,
-      weightUnit: i.weightUnit,
-      remark: i.remark,
-    })),
-  );
-  selectedOrderItems.value = restoredDishes;
-  console.log("选中的菜品:", restoredDishes);
+  // 直接赋值，不需要恢复逻辑
+  // 因为 DishSelector 组件会保留 orderItemId 字段
+  selectedOrderItems.value = newSelectedDishes;
+  
+  console.log("选中的菜品:", selectedOrderItems.value);
 };
 
 // 处理菜品选择器中的菜品点击
@@ -1143,57 +1113,31 @@ const confirmModifyDishes = async () => {
       selectedOrderItems.value.map((i) => ({ id: i.id, orderItemId: i.orderItemId, name: i.name, quantity: i.quantity })),
     );
 
-    // 使用组合键来唯一标识菜品项：orderItemId（如果有）或 dishId
-    const getItemKey = (item) => item.orderItemId || `dish-${item.id}`;
+    // 简化的 diff 算法：基于 orderItemId 唯一标识
+    const originalMap = new Map(originalOrderItems.value.map(i => [i.orderItemId, i]));
+    const currentMap = new Map(selectedOrderItems.value.filter(i => i.orderItemId).map(i => [i.orderItemId, i]));
 
-    // 构建原始菜品的 key 集合
-    const originalKeys = new Set(originalOrderItems.value.map(getItemKey));
-    // 构建当前菜品的 key 集合
-    const currentKeys = new Set(selectedOrderItems.value.map(getItemKey));
+    // 删除的菜品：原来有但现在没有（通过 orderItemId 判断）
+    const removedItems = originalOrderItems.value.filter(item => !currentMap.has(item.orderItemId));
+    
+    // 更新的菜品：orderItemId 存在但内容有变化
+    const modifiedItems = selectedOrderItems.value
+      .filter(i => i.orderItemId)
+      .filter(i => {
+        const original = originalMap.get(i.orderItemId);
+        return original && (
+          original.quantity !== i.quantity ||
+          original.remark !== i.remark ||
+          original.weight !== i.weight
+        );
+      });
+    
+    // 新增的菜品：orderItemId 为 null
+    const addedItems = selectedOrderItems.value.filter(item => !item.orderItemId);
 
-    console.log("原始菜品 keys:", [...originalKeys]);
-    console.log("当前菜品 keys:", [...currentKeys]);
-
-    // 找出被移除的菜品（原来有但现在没有的）
-    const removedItems = originalOrderItems.value.filter((item) => !currentKeys.has(getItemKey(item)));
-    console.log(
-      "需要删除的菜品:",
-      removedItems.map((i) => ({ id: i.id, orderItemId: i.orderItemId, name: i.name })),
-    );
-
-    // 找出新增的菜品（现在有但原来没有的）
-    const addedItems = selectedOrderItems.value.filter((item) => !originalKeys.has(getItemKey(item)));
-    console.log(
-      "需要新增的菜品:",
-      addedItems.map((i) => ({ id: i.id, orderItemId: i.orderItemId, name: i.name })),
-    );
-
-    // 找出已修改的菜品（原来和现在都有的，但内容有变化）
-    const modifiedItems = [];
-    for (const currentItem of selectedOrderItems.value) {
-      const currentKey = getItemKey(currentItem);
-
-      // 只处理原来就有的菜品（通过 orderItemId 匹配）
-      if (currentItem.orderItemId) {
-        const originalItem = originalOrderItems.value.find((orig) => orig.orderItemId === currentItem.orderItemId);
-
-        if (originalItem) {
-          // 检查是否有变化（数量、备注、重量）
-          const hasChanges =
-            originalItem.quantity !== currentItem.quantity ||
-            originalItem.remark !== currentItem.remark ||
-            originalItem.weightValue !== currentItem.weightValue ||
-            originalItem.weightUnit !== currentItem.weightUnit;
-
-          if (hasChanges) {
-            modifiedItems.push({
-              original: originalItem,
-              current: currentItem,
-            });
-          }
-        }
-      }
-    }
+    console.log("需要删除的菜品:", removedItems.map(i => ({ id: i.id, orderItemId: i.orderItemId, name: i.name })));
+    console.log("需要更新的菜品:", modifiedItems.map(i => ({ id: i.id, orderItemId: i.orderItemId, name: i.name })));
+    console.log("需要新增的菜品:", addedItems.map(i => ({ id: i.id, name: i.name })));
 
     // 使用 orderDetail.value.id 获取当前订单 ID
     const orderId = orderDetail.value?.id;
@@ -1203,53 +1147,40 @@ const confirmModifyDishes = async () => {
 
     let hasChanges = false;
 
-    // 批量删除被移除的菜品
+    // 并行批量删除被移除的菜品
     if (removedItems.length > 0) {
-      for (const item of removedItems) {
-        if (item.orderItemId) {
-          await api.orderItems.delete(item.orderItemId, orderId);
-        }
-      }
+      await Promise.all(
+        removedItems.map(item => api.orderItems.delete(item.orderItemId, orderId))
+      );
       showSuccess(`成功删除 ${removedItems.length} 个菜品`);
       hasChanges = true;
     }
 
-    // 批量更新已修改的菜品
+    // 并行批量更新已修改的菜品
     if (modifiedItems.length > 0) {
-      for (const mod of modifiedItems) {
-        if (mod.current.orderItemId) {
-          await api.orderItems.update(mod.current.orderItemId, orderId, {
-            quantity: mod.current.quantity,
-            remark: mod.current.remark || "",
-            weight: mod.current.weight || null,
-          });
-        }
-      }
+      await Promise.all(
+        modifiedItems.map(item => api.orderItems.update(item.orderItemId, orderId, {
+          quantity: item.quantity,
+          remark: item.remark || "",
+          weight: item.weight || null,
+        }))
+      );
       showSuccess(`成功更新 ${modifiedItems.length} 个菜品`);
       hasChanges = true;
     }
 
-    // 批量添加新选中的菜品
+    // 并行批量添加新选中的菜品
     if (addedItems.length > 0) {
-      console.log(
-        "需要添加的菜品详情:",
-        addedItems.map((i) => ({
-          dishId: i.id,
-          name: i.name,
-          quantity: i.quantity,
-          weight: i.weight,
-        })),
-      );
+      console.log("需要添加的菜品详情:", addedItems.map(i => ({ dishId: i.id, name: i.name, quantity: i.quantity, weight: i.weight })));
 
-      for (const item of addedItems) {
-        // 调用后端 API 添加菜品到订单
-        await api.orderItems.create(orderId, {
+      await Promise.all(
+        addedItems.map(item => api.orderItems.create(orderId, {
           dishId: item.id,
           quantity: item.quantity,
           remark: item.remark || "",
           weight: item.weight || null,
-        });
-      }
+        }))
+      );
 
       if (removedItems.length === 0 && modifiedItems.length === 0) {
         showSuccess(`成功添加 ${addedItems.length} 个菜品`);
@@ -1266,11 +1197,10 @@ const confirmModifyDishes = async () => {
     // 隐藏弹窗
     hideModifyModal();
 
-    // 重新加载订单详情
-    await loadOrderDetail();
-
-    // 通知父组件订单已更新
+    // 通知父组件订单已更新，由 WebSocket 触发自动刷新
     emit("orderCancelled", props.orderId);
+    
+    // 不立即调用 loadOrderDetail，等待 WebSocket 触发自动刷新
   } catch (error) {
     console.error("修改菜品失败:", error);
     showError("修改菜品失败：" + (error.message || "操作失败"));
@@ -1326,12 +1256,6 @@ const confirmEditRemark = async () => {
     const result = await OrderService.updateOrder(orderId, updateData);
 
     if (result.success) {
-      // 更新本地订单详情
-      orderDetail.value = {
-        ...orderDetail.value,
-        ...result.data,
-      };
-
       // 隐藏弹窗
       hideEditRemarkModal();
 
