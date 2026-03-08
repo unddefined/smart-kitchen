@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrdersService } from '../orders/orders.service';
+import { OrderItemsService } from '../order-items/order-items.service';
+import { KitchenService } from '../kitchen/kitchen.service';
 import { EventsGateway } from '../events.gateway';
 
 @Injectable()
@@ -11,8 +13,14 @@ export class ServingService {
   constructor(
     private prisma: PrismaService,
     private eventsGateway: EventsGateway,
+    private kitchenService: KitchenService,
+    private orderItemsService: OrderItemsService,
   ) {
-    this.ordersService = new OrdersService(prisma, eventsGateway);
+    this.ordersService = new OrdersService(
+      prisma,
+      kitchenService,
+      orderItemsService,
+    );
   }
 
   /**
@@ -101,11 +109,13 @@ export class ServingService {
         `订单 ${orderId} 的 ${servedItem.dish.name} (${servedCategoryName}) 已上菜，检查是否需要调整后续分类优先级`,
       );
 
-      // 检查当前分类是否所有菜都已上完
+      // 检查当前分类是否所有菜都已上完（排除刚上完的那道）
       const itemsInSameCategory = orderItems.filter((item) => {
         const categoryName = item.dish?.category?.name;
         return (
-          categoryName && categoryOrder[categoryName] === servedCategoryLevel
+          categoryName &&
+          categoryOrder[categoryName] === servedCategoryLevel &&
+          item.id !== servedItemId // 排除刚上完的这道菜
         );
       });
 
@@ -489,7 +499,8 @@ export class ServingService {
       if (item.order.status === 'urged') {
         const ordersService = new OrdersService(
           this.prisma,
-          this.eventsGateway,
+          this.kitchenService,
+          this.orderItemsService,
         );
         try {
           await ordersService.resumeOrderAfterServe(item.orderId);
@@ -501,8 +512,11 @@ export class ServingService {
         }
       }
 
-      // 4. 上菜后，自动调整该订单后续菜品的优先级
-      await this.autoAdjustSubsequentPriorities(item.orderId, item.id);
+      // 4. 上菜后，不再自动调整后续菜品优先级
+      // 原因：订单起菜时已经通过 initializeDishPriorities 设置了正确的分类优先级
+      // 如果在上菜后再次调整，会导致从暂停到起菜的场景中优先级被错误地重复调整
+      // 只有在特殊场景下（如后来加菜）才需要手动触发优先级调整
+      // await this.autoAdjustSubsequentPriorities(item.orderId, item.id);
 
       return {
         success: true,

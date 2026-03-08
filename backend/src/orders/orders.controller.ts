@@ -73,15 +73,6 @@ export class OrdersController {
   }
 
   /**
-   * 暂停 - 将订单状态更新为 started
-   * PATCH /api/orders/:id/pause
-   */
-  @Patch(':id/pause')
-  async pauseOrder(@Param('id', ParseIntPipe) id: number) {
-    return await this.ordersService.pauseOrder(id);
-  }
-
-  /**
    * 恢复 - 催菜后上了一道菜时自动恢复
    * POST /api/orders/:id/resume
    */
@@ -126,6 +117,10 @@ export class OrdersController {
     @Param('itemId', ParseIntPipe) itemId: number,
     @Body() updateData: any,
   ) {
-    return await this.ordersService.updateOrderItem(orderId, itemId, updateData);
+    return await this.ordersService.updateOrderItem(
+      orderId,
+      itemId,
+      updateData,
+    );
   }
 }

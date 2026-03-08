@@ -152,43 +152,25 @@ export class OrderService {
     } catch (error) {
       return {
         success: false,
-        message: "催菜失败: " + error.message,
+        message: "催菜失败：" + error.message,
       };
     }
   }
 
-  // 暂停 - 将订单状态更新为 started
-  static async pauseOrder(orderId) {
+  // 完成订单
+  static async completeOrder(orderId) {
     try {
-      const order = await api.orders.pause(orderId);
-
+      const order = await api.orders.complete(orderId);
+      
       return {
         success: true,
-        message: "订单已暂停",
+        message: "订单已完成",
         data: order,
       };
     } catch (error) {
       return {
         success: false,
-        message: "暂停失败: " + error.message,
-      };
-    }
-  }
-
-  // 恢复 - 催菜后自动恢复
-  static async resumeOrder(orderId) {
-    try {
-      const order = await api.orders.resume(orderId);
-
-      return {
-        success: true,
-        message: "订单已恢复",
-        data: order,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: "恢复失败: " + error.message,
+        message: "订单完成失败: " + error.message,
       };
     }
   }

@@ -77,8 +77,8 @@
           </div>
 
           <!-- 份量调整 -->
-          <div>
-            <label class="block text-xs font-medium text-gray-700 mb-2">份量</label>
+          <div class="flex justify-between items-start items-center">
+            <label class=" text-xl font-medium text-gray-700 mb-2">份量</label>
             <div class="flex items-center space-x-3">
               <button
                 @click="resetQuantity"
@@ -104,14 +104,14 @@
           </div>
 
           <!-- 重量输入 -->
-          <div v-if="showWeightInput && currentDish">
-            <label class="block text-xs font-medium text-gray-700 mb-2">重量</label>
-            <WeightInput ref="weightInputRef" v-model="currentDish.weightValue" v-model:unit="currentDish.weightUnit" />
+          <div v-if="showWeightInput && currentDish" class="flex justify-between items-start items-center">
+            <label class=" text-xl font-medium text-gray-700 mb-2 whitespace-nowrap mr-3">重量</label>
+            <WeightInput class="w-full" ref="weightInputRef" v-model="currentDish.weightValue" v-model:unit="currentDish.weightUnit" />
           </div>
 
           <!-- 备注输入 -->
           <div v-if="currentDish">
-            <label class="block text-xs font-medium text-gray-700 mb-2">备注</label>
+            <label class="block text-base font-medium text-gray-700 mb-2">备注</label>
             <textarea
               v-model="currentDish.remark"
               rows="3"

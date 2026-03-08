@@ -1,0 +1,190 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { EventsGateway } from '../events.gateway';
+
+@Injectable()
+export class OrderItemsService {
+  private readonly logger = new Logger(OrderItemsService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private eventsGateway: EventsGateway,
+  ) {}
+
+  /**
+   * 广播订单项事件到指定房间
+   */
+  private broadcastItemEvent(
+    event: string,
+    data: any,
+    rooms: string[] = ['order-items', 'all'],
+  ) {
+    const timestamp = new Date().toISOString();
+    rooms.forEach((room) => {
+      this.eventsGateway.server.to(room).emit(event, { data, timestamp });
+    });
+    this.logger.log(`已广播 ${event} 事件到房间：${rooms.join(', ')}`);
+  }
+
+  /**
+   * 查询订单的所有菜品项
+   */
+  async findOrderItems(orderId: number) {
+    return await this.prisma.orderItem.findMany({
+      where: { orderId },
+      include: { dish: true },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  /**
+   * 添加订单菜品项
+   */
+  async addOrderItem(orderId: number, createOrderItemDto: any) {
+    // 首先验证订单是否存在
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) {
+      throw new Error('订单不存在');
+    }
+
+    // 处理 quantity 字段
+    let quantity = 1;
+    if (createOrderItemDto.quantity !== undefined) {
+      quantity = parseFloat(createOrderItemDto.quantity.toString());
+      // 限制在合理范围内
+      if (quantity < 1 || quantity > 99) {
+        throw new Error('数量必须在 1 到 99 之间');
+      }
+    }
+
+    const createdItem = await this.prisma.orderItem.create({
+      data: {
+        orderId,
+        dishId: createOrderItemDto.dishId,
+        quantity: quantity,
+        weight: createOrderItemDto.weight || null,
+        status: createOrderItemDto.status || 'pending',
+        priority: createOrderItemDto.priority || 0,
+        remark: createOrderItemDto.remark || null,
+        createdAt: new Date(),
+      },
+      include: { dish: true },
+    });
+
+    // 广播订单项创建事件
+    this.broadcastItemEvent('item-created', createdItem);
+
+    return createdItem;
+  }
+
+  /**
+   * 删除订单中的某个菜品项
+   */
+  async removeOrderItem(orderId: number, itemId: number) {
+    // 首先验证订单是否存在
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) {
+      throw new Error('订单不存在');
+    }
+
+    // 验证订单项是否存在且属于该订单
+    const orderItem = await this.prisma.orderItem.findUnique({
+      where: { id: itemId },
+    });
+
+    if (!orderItem) {
+      throw new Error('订单项不存在');
+    }
+
+    if (orderItem.orderId !== orderId) {
+      throw new Error('订单项不属于该订单');
+    }
+
+    // 检查订单项状态，已上菜的菜品不能删除
+    if (orderItem.status === 'served') {
+      throw new Error('已上菜的菜品不能删除');
+    }
+
+    // 删除订单项
+    const deletedItem = await this.prisma.orderItem.delete({
+      where: { id: itemId },
+    });
+
+    // 广播订单项删除事件
+    this.broadcastItemEvent('item-deleted', { ...deletedItem, orderId });
+
+    return deletedItem;
+  }
+
+  /**
+   * 更新订单中的某个菜品项
+   */
+  async updateOrderItem(orderId: number, itemId: number, updateData: any) {
+    // 首先验证订单是否存在
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) {
+      throw new Error('订单不存在');
+    }
+
+    // 验证订单项是否存在且属于该订单
+    const orderItem = await this.prisma.orderItem.findUnique({
+      where: { id: itemId },
+    });
+
+    if (!orderItem) {
+      throw new Error('订单项不存在');
+    }
+
+    if (orderItem.orderId !== orderId) {
+      throw new Error('订单项不属于该订单');
+    }
+
+    // 检查订单项状态，已上菜的菜品不能修改
+    if (orderItem.status === 'served') {
+      throw new Error('已上菜的菜品不能修改');
+    }
+
+    // 构建更新数据对象
+    const dataToUpdate: any = {};
+
+    // 处理 quantity 字段
+    if (updateData.quantity !== undefined) {
+      let quantity = parseFloat(updateData.quantity.toString());
+      if (quantity < 1 || quantity > 99) {
+        throw new Error('数量必须在 1 到 99 之间');
+      }
+      quantity = Math.round(quantity * 10) / 10;
+      dataToUpdate.quantity = quantity;
+    }
+
+    // 处理其他字段
+    if (updateData.weight !== undefined) {
+      dataToUpdate.weight = updateData.weight || null;
+    }
+
+    if (updateData.remark !== undefined) {
+      dataToUpdate.remark = updateData.remark || null;
+    }
+
+    // 更新订单项
+    const updatedItem = await this.prisma.orderItem.update({
+      where: { id: itemId },
+      data: dataToUpdate,
+      include: { dish: true },
+    });
+
+    // 广播订单项更新事件
+    this.broadcastItemEvent('item-updated', updatedItem);
+
+    return updatedItem;
+  }
+}

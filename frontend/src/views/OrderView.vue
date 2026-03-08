@@ -60,7 +60,7 @@
           </div>
           <div v-if="orderDetail.remark" class="flex justify-between items-start">
             <span class="text-gray-600 text-xl">订单备注:</span>
-            <span class="text-gray-800 font-medium text-xl  text-right break-all">{{ orderDetail.remark }}</span>
+            <span class="text-gray-800 font-medium text-xl text-right break-all">{{ orderDetail.remark }}</span>
           </div>
         </div>
       </div>
@@ -437,7 +437,7 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(["back", "orderCancelled", "orderDeleted"]);
+const emit = defineEmits(["back", "orderCancelled", "orderDeleted", "dish-action"]);
 
 // 响应式数据
 const orderDetail = ref(null);
@@ -583,7 +583,8 @@ const handleDishClick = async (dish) => {
   }
 
   // 调用 composable 提供的通用方法，传入必要的回调函数
-  await handleDishClickBase(dish, { showSuccess, showError, showInfo }, loadOrderDetail, null);
+  // 传入 emit 函数以通知父组件状态变更
+  await handleDishClickBase(dish, { showSuccess, showError, showInfo }, loadOrderDetail, emit);
 };
 
 const getOrderStatusText = (status) => {
@@ -870,8 +871,13 @@ const confirmEditOrder = async () => {
           break;
 
         case "started":
-          // 待起菜/暂停 - 使用通用 update API
-          result = await OrderService.pauseOrder(orderId, { status: newStatus });
+          // 待起菜/暂停 - 都使用通用 update API
+          result = await OrderService.updateOrder(orderId, { status: newStatus });
+          break;
+
+        case "paused":
+          // 暂停订单 - 直接从 started/serving/urged 转到 paused
+          result = await OrderService.pauseOrder(orderId);
           break;
 
         default:
