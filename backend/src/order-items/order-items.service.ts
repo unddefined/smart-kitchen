@@ -30,11 +30,22 @@ export class OrderItemsService {
    * 查询订单的所有菜品项
    */
   async findOrderItems(orderId: number) {
-    return await this.prisma.orderItem.findMany({
+    const items = await this.prisma.orderItem.findMany({
       where: { orderId },
       include: { dish: true },
       orderBy: { createdAt: 'asc' },
     });
+    
+    // 调试日志
+    this.logger.log(`查询订单 ${orderId} 的菜品项:`, items.map(item => ({
+      id: item.id,
+      dishId: item.dishId,
+      name: item.dish.name,
+      weight: item.weight,
+      quantity: item.quantity,
+    })));
+    
+    return items;
   }
 
   /**

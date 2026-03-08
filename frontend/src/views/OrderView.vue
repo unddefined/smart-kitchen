@@ -1007,10 +1007,36 @@ const initializeSelectedOrderItems = () => {
     name: item.dish?.name || "未知菜品",
     quantity: item.quantity || 1,
     remark: item.remark || "",
-    weightValue: item.weightValue || null,
-    weightUnit: item.weightUnit || "两",
+    weight: item.weight || null, // 添加 weight 字段
+    weightValue: extractWeightValue(item.weight) || null,
+    weightUnit: extractWeightUnit(item.weight) || "两",
     dish: item.dish,
   }));
+  
+  console.log(
+    "=== 初始化已选中的订单菜品 ===",
+    selectedOrderItems.value.map(i => ({
+      id: i.id,
+      name: i.name,
+      weight: i.weight,
+      weightValue: i.weightValue,
+      weightUnit: i.weightUnit,
+    }))
+  );
+};
+
+// 从 weight 字符串中提取数值部分（如 "2 两" -> 2）
+const extractWeightValue = (weight) => {
+  if (!weight) return null;
+  const match = weight.match(/^(\d+)/);
+  return match ? parseInt(match[1]) : null;
+};
+
+// 从 weight 字符串中提取单位部分（如 "2 两" -> "两"）
+const extractWeightUnit = (weight) => {
+  if (!weight) return "两";
+  const match = weight.match(/[\u4e00-\u9fa5]+$/);
+  return match ? match[0] : "两";
 };
 
 // 处理选中菜品的变化
@@ -1018,7 +1044,16 @@ const handleSelectedDishesChange = (newSelectedDishes) => {
   console.log("=== handleSelectedDishesChange 被调用 ===");
   console.log(
     "传入的新数据:",
-    newSelectedDishes.map((i) => ({ id: i.id, orderItemId: i.orderItemId, name: i.name, quantity: i.quantity })),
+    newSelectedDishes.map((i) => ({ 
+      id: i.id, 
+      orderItemId: i.orderItemId, 
+      name: i.name, 
+      quantity: i.quantity,
+      weight: i.weight,
+      weightValue: i.weightValue,
+      weightUnit: i.weightUnit,
+      remark: i.remark,
+    })),
   );
 
   // 更新已选中的订单菜品状态
@@ -1034,16 +1069,45 @@ const handleSelectedDishesChange = (newSelectedDishes) => {
         orderItemId: originalItem.orderItemId,
       };
       console.log(`恢复菜品 ${newItem.name} 的 orderItemId:`, originalItem.orderItemId);
+      console.log(`菜品 ${newItem.name} 的完整数据:`, {
+        id: restored.id,
+        name: restored.name,
+        quantity: restored.quantity,
+        weight: restored.weight,
+        weightValue: restored.weightValue,
+        weightUnit: restored.weightUnit,
+        remark: restored.remark,
+        orderItemId: restored.orderItemId,
+      });
       return restored;
     }
 
     // 新增的菜品，保持原样（orderItemId 为 null）
+    console.log(`新增菜品 ${newItem.name} 的完整数据:`, {
+      id: newItem.id,
+      name: newItem.name,
+      quantity: newItem.quantity,
+      weight: newItem.weight,
+      weightValue: newItem.weightValue,
+      weightUnit: newItem.weightUnit,
+      remark: newItem.remark,
+      orderItemId: newItem.orderItemId,
+    });
     return newItem;
   });
 
   console.log(
     "恢复后的数据:",
-    restoredDishes.map((i) => ({ id: i.id, orderItemId: i.orderItemId, name: i.name, quantity: i.quantity })),
+    restoredDishes.map((i) => ({ 
+      id: i.id, 
+      orderItemId: i.orderItemId, 
+      name: i.name, 
+      quantity: i.quantity,
+      weight: i.weight,
+      weightValue: i.weightValue,
+      weightUnit: i.weightUnit,
+      remark: i.remark,
+    })),
   );
   selectedOrderItems.value = restoredDishes;
   console.log("选中的菜品:", restoredDishes);
@@ -1157,7 +1221,7 @@ const confirmModifyDishes = async () => {
           await api.orderItems.update(mod.current.orderItemId, orderId, {
             quantity: mod.current.quantity,
             remark: mod.current.remark || "",
-            weight: mod.current.weightValue ? `${mod.current.weightValue}${mod.current.weightUnit}` : null,
+            weight: mod.current.weight || null,
           });
         }
       }
@@ -1173,6 +1237,7 @@ const confirmModifyDishes = async () => {
           dishId: i.id,
           name: i.name,
           quantity: i.quantity,
+          weight: i.weight,
         })),
       );
 
@@ -1182,7 +1247,7 @@ const confirmModifyDishes = async () => {
           dishId: item.id,
           quantity: item.quantity,
           remark: item.remark || "",
-          weight: item.weightValue ? `${item.weightValue}${item.weightUnit}` : null,
+          weight: item.weight || null,
         });
       }
 

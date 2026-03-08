@@ -95,7 +95,7 @@
             :show-add-button="true"
             :loading="dishesLoading"
             :error="dishesError"
-            @update:selected-dishes="selectedDishes = $event"
+            @update:selected-dishes="handleSelectedDishesChange"
             @add-new="showAddDishModal = true"
             @retry="loadDishes"
             @delete-dish="handleDeleteDishFromDb" />
@@ -464,6 +464,39 @@ const getStationName = (stationId) => {
   return station ? station.name : "";
 };
 
+// 处理菜品选择器的选中变化事件
+const handleSelectedDishesChange = (newSelectedDishes) => {
+  console.log("=== OrderInputModal: handleSelectedDishesChange 被调用 ===");
+  console.log(
+    "传入的新数据:",
+    newSelectedDishes.map((i) => ({ 
+      id: i.id, 
+      name: i.name, 
+      quantity: i.quantity,
+      weight: i.weight,
+      weightValue: i.weightValue,
+      weightUnit: i.weightUnit,
+      remark: i.remark,
+    })),
+  );
+  
+  // 直接更新选中的菜品列表
+  selectedDishes.value = newSelectedDishes;
+  
+  console.log(
+    "更新后的 selectedDishes:",
+    selectedDishes.value.map((i) => ({ 
+      id: i.id, 
+      name: i.name, 
+      quantity: i.quantity,
+      weight: i.weight,
+      weightValue: i.weightValue,
+      weightUnit: i.weightUnit,
+      remark: i.remark,
+    })),
+  );
+};
+
 const cancel = () => {
   console.log("取消按钮被点击");
   closeModal(); // 添加关闭弹窗逻辑
@@ -571,15 +604,35 @@ const submit = async () => {
     }
 
     // 添加菜品到订单
-    const dishPromises = selectedDishes.value.map((dish) =>
-      OrderService.addDishToOrder(orderResult.data.id, {
+    console.log("=== 准备添加菜品到订单 ===");
+    console.log("selectedDishes.value:", selectedDishes.value.map(d => ({
+      id: d.id,
+      name: d.name,
+      quantity: d.quantity,
+      weight: d.weight,
+      weightValue: d.weightValue,
+      weightUnit: d.weightUnit,
+      remark: d.remark,
+    })));
+    
+    const dishPromises = selectedDishes.value.map((dish) => {
+      const payload = {
         dishId: dish.id,
         quantity: dish.quantity,
         weight: dish.weight || null,
         remark: dish.remark || null,
         countable: dish.countable || false,
-      }),
-    );
+      };
+      console.log(`\n=== 菜品数据 ===`);
+      console.log(`菜品名称：${dish.name}`);
+      console.log(`dish.id: ${dish.id}`);
+      console.log(`dish.weight: "${dish.weight}" (类型：${typeof dish.weight})`);
+      console.log(`dish.weightValue: ${dish.weightValue} (类型：${typeof dish.weightValue})`);
+      console.log(`dish.weightUnit: "${dish.weightUnit}" (类型：${typeof dish.weightUnit})`);
+      console.log(`payload.weight: "${payload.weight}" (类型：${typeof payload.weight})`);
+      console.log(`发送的数据：`, JSON.stringify(payload, null, 2));
+      return OrderService.addDishToOrder(orderResult.data.id, payload);
+    });
 
     try {
       await Promise.all(dishPromises);
