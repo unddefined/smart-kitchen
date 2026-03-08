@@ -1,14 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrdersService } from '../orders/orders.service';
+import { EventsGateway } from '../events.gateway';
 
 @Injectable()
 export class ServingService {
   private readonly logger = new Logger(ServingService.name);
   private readonly ordersService: OrdersService;
 
-  constructor(private prisma: PrismaService) {
-    this.ordersService = new OrdersService(prisma);
+  constructor(
+    private prisma: PrismaService,
+    private eventsGateway: EventsGateway,
+  ) {
+    this.ordersService = new OrdersService(prisma, eventsGateway);
   }
 
   /**
@@ -221,15 +225,6 @@ export class ServingService {
       },
     });
     return orders;
-  }
-
-  // 更新订单状态
-  async updateOrderStatus(orderId: number, status: string) {
-    const updatedOrder = await this.prisma.order.update({
-      where: { id: orderId },
-      data: { status },
-    });
-    return updatedOrder;
   }
 
   // 获取订单项详情
@@ -492,7 +487,10 @@ export class ServingService {
 
       // 3. 如果订单状态为 urged，检查是否需要恢复为 serving
       if (item.order.status === 'urged') {
-        const ordersService = new OrdersService(this.prisma);
+        const ordersService = new OrdersService(
+          this.prisma,
+          this.eventsGateway,
+        );
         try {
           await ordersService.resumeOrderAfterServe(item.orderId);
           this.logger.log(`订单 ${item.orderId} 已自动恢复为 serving 状态`);

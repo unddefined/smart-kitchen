@@ -117,7 +117,7 @@ export function useDishManager(options = {}) {
 
     // 根据 MVP文档，优先级为 0 的菜品（未起）不能直接上菜
     if (dish.priority === 0 && (dish.status === "ready" || dish.status === "preparing")) {
-      showToastFn.showError(`菜品"${dishName}"还未起菜，无法上菜。`);
+      showToastFn.showError(`还未起菜，无法上菜。`);
       return;
     }
 
@@ -131,19 +131,23 @@ export function useDishManager(options = {}) {
           // 不需要预处理，直接从 pending → ready
           result = await api.serving.completePrep(itemId);
           message = `已将"${dishName}"标记为准备下锅（跳过预处理）`;
+          showToastFn.showSuccess(message);
         } else {
           // 需要预处理，pending → preparing
           result = await ServingService.completePreparation(itemId);
           message = `已将"${dishName}"标记为待处理`;
+          showToastFn.showSuccess(message);
         }
       } else if (dish.status === "preparing") {
         // preparing → ready
         result = await api.serving.completePrep(itemId);
         message = `已将"${dishName}"标记为准备下锅`;
+        showToastFn.showSuccess(message);
       } else if (dish.status === "ready") {
         // ready → served
         result = await ServingService.serveDish(itemId);
         message = `已将"${dishName}"标记为已上菜`;
+        showToastFn.showSuccess(message);
       } else if (dish.status === "served") {
         message = `"${dishName}"已经是已上菜状态`;
         showToastFn.showInfo(message);

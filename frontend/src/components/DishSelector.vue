@@ -115,7 +115,7 @@
             <textarea
               v-model="currentDish.remark"
               rows="3"
-              placeholder="特殊要求..."
+              placeholder="大份，少辣，去葱等备注信息"
               class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
           </div>
         </div>
@@ -213,9 +213,26 @@ const weightInputRef = ref(null);
 const showLocalEditModal = ref(false); // 本地管理编辑弹窗状态
 
 
-// 计算属性 - 直接使用父组件传入的菜品列表（已排序）
+// 计算属性 - 按分类排序后内部再按字母排序
 const sortedDishes = computed(() => {
-  return props.dishes || [];
+  if (!props.dishes || props.dishes.length === 0) {
+    return [];
+  }
+  
+  // 创建副本进行排序
+  return [...props.dishes].sort((a, b) => {
+    // 首先按分类的 displayOrder 排序
+    // 注意：数据可能包含 category.displayOrder 或 categoryDisplayOrder 字段
+    const categoryOrderA = a.category?.displayOrder ?? a.categoryDisplayOrder ?? Number.MAX_SAFE_INTEGER;
+    const categoryOrderB = b.category?.displayOrder ?? b.categoryDisplayOrder ?? Number.MAX_SAFE_INTEGER;
+    
+    if (categoryOrderA !== categoryOrderB) {
+      return categoryOrderA - categoryOrderB;
+    }
+    
+    // 同一分类内按菜名字母顺序排序
+    return (a.name || '').localeCompare(b.name || '', 'zh-CN');
+  });
 });
 
 // 获取菜品样式类

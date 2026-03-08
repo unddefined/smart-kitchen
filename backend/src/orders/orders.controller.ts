@@ -55,7 +55,7 @@ export class OrdersController {
   }
 
   /**
-   * 起菜 - 将订单状态更新为 serving 并设置起菜时间
+   * 起菜 - 将订单状态更新为 serving 并初始化菜品优先级
    * PATCH /api/orders/:id/start
    */
   @Patch(':id/start')

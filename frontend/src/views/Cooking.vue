@@ -366,7 +366,9 @@ const currentOrderInfo = computed(() => {
   if (!activeOrderId.value) return "未选择订单";
   const order = orders.value.find((o) => o.id === activeOrderId.value);
   if (!order) return "订单不存在";
-  return `${order.hallNumber} - ${order.status === "started" ? "待起菜" : order.status === "serving" ? "出餐中" : order.status === "urged" ? "已催菜" : order.status}`;
+  return `${order.hallNumber} - ${
+    order.status === "started" ? "待起菜" : order.status === "serving" ? "出餐中" : order.status === "urged" ? "已催菜" : order.status
+  }`;
 });
 
 // 计算属性：确认按钮颜色
@@ -669,39 +671,39 @@ const handleReturnDish = () => {
 
 const handleDishAction = async (action, data) => {
   console.log("菜品操作:", action, data);
-  
+
   // 处理不同类型的菜品操作
   switch (action) {
-    case 'status-changed':
+    case "status-changed":
       // 菜品状态变更后，刷新订单列表
-      console.log('菜品状态变更，刷新订单列表');
+      console.log("菜品状态变更，刷新订单列表");
       await loadOrders();
       break;
-      
-    case 'refresh':
+
+    case "refresh":
       // 刷新订单列表（来自子组件的请求）
-      console.log('收到刷新请求，重新加载订单列表');
+      console.log("收到刷新请求，重新加载订单列表");
       await loadOrders();
       break;
-      
-    case 'double-click':
+
+    case "double-click":
       // 双击菜品，可以在这里添加更多交互逻辑
-      console.log('双击菜品:', data);
+      console.log("双击菜品:", data);
       break;
-      
-    case 'adjust-priority':
+
+    case "adjust-priority":
       // 调整优先级（通过弹窗表单）
-      console.log('调整优先级:', data);
+      console.log("调整优先级:", data);
       // 优先级调整已在弹窗中处理，这里不需要额外操作
       break;
-      
-    case 'served-click':
+
+    case "served-click":
       // 点击已出菜品
-      console.log('点击已出菜品:', data);
+      console.log("点击已出菜品:", data);
       break;
-      
+
     default:
-      console.log('未知的菜品操作类型:', action);
+      console.log("未知的菜品操作类型:", action);
   }
 };
 
@@ -917,7 +919,7 @@ const filterOrders = (status) => {
 // 使用订单自动刷新 Composable
 const { cleanup: cleanupWebSocket } = useOrderAutoRefresh({
   refreshFn: loadOrders,
-  mode: 'list',
+  mode: "list",
   autoConnect: true,
 });
 

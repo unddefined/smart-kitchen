@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { Order } from '@prisma/client';
+import { EventsGateway } from '../events.gateway';
 
 // 查询参数类型
 export interface FindAllQueryParams {
@@ -16,7 +17,145 @@ export interface FindAllQueryParams {
 @Injectable()
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventsGateway: EventsGateway,
+  ) {}
+
+  /**
+   * 广播订单事件到指定房间
+   * @param event 事件名称（如 'order-created', 'order-updated'）
+   * @param data 事件数据
+   * @param rooms 要广播的房间列表，默认为 ['orders', 'all']
+   */
+  private broadcastOrderEvent(
+    event: string,
+    data: any,
+    rooms: string[] = ['orders', 'all'],
+  ) {
+    const timestamp = new Date().toISOString();
+    rooms.forEach((room) => {
+      this.eventsGateway.server.to(room).emit(event, { data, timestamp });
+    });
+    this.logger.log(`已广播 ${event} 事件到房间：${rooms.join(', ')}`);
+  }
+
+  /**
+   * 广播订单项事件到指定房间
+   * @param event 事件名称（如 'item-created', 'item-updated'）
+   * @param data 事件数据
+   * @param rooms 要广播的房间列表，默认为 ['order-items', 'all']
+   */
+  private broadcastItemEvent(
+    event: string,
+    data: any,
+    rooms: string[] = ['order-items', 'all'],
+  ) {
+    const timestamp = new Date().toISOString();
+    rooms.forEach((room) => {
+      this.eventsGateway.server.to(room).emit(event, { data, timestamp });
+    });
+    this.logger.log(`已广播 ${event} 事件到房间：${rooms.join(', ')}`);
+  }
+
+  /**
+   * 根据订单状态更新订单菜品
+   * 如果订单状态从 serving/urged 回退到 started，重置所有菜品优先级为 0
+   * 这个逻辑用于处理某些特殊场景下的状态回退
+   */
+  private async updateOrderItemsByStatus(order: Order) {
+    if (order.status === 'started') {
+      // 检查是否有需要重置优先级的菜品（优先级大于 0 的菜品）
+      const itemsWithPriority = await this.prisma.orderItem.findMany({
+        where: {
+          orderId: order.id,
+          priority: {
+            gt: 0,
+          },
+        },
+      });
+
+      // 如果有需要重置的菜品，批量更新优先级为 0（排除已出菜的菜品）
+      if (itemsWithPriority.length > 0) {
+        await this.prisma.orderItem.updateMany({
+          where: {
+            orderId: order.id,
+            status: { not: 'served' }, // 只重置未出菜菜品的优先级
+          },
+          data: {
+            priority: 0,
+          },
+        });
+
+        this.logger.log(
+          `订单${order.id}状态回退到 started，所有菜品优先级重置为 0`,
+          {
+            orderId: order.id,
+            resetCount: itemsWithPriority.length,
+          },
+        );
+      }
+    } else if (order.status === 'serving') {
+      // 当订单状态变为 serving 时，初始化所有菜品的优先级
+      await this.initializeDishPriorities(order.id);
+    }
+  }
+
+  /**
+   * 初始化订单中所有菜品的优先级
+   * @param orderId 订单 ID
+   */
+  private async initializeDishPriorities(orderId: number) {
+    const orderItems = await this.prisma.orderItem.findMany({
+      where: {
+        orderId,
+        status: { not: 'served' }, // 过滤掉已出菜的菜品
+      },
+      include: {
+        dish: {
+          include: {
+            category: true,
+          },
+        },
+      },
+    });
+
+    // 定义菜品分类与优先级的映射关系
+    // prettier-ignore
+    const priorityMap: Record<string, number> = {
+      '前菜': 3,
+      '中菜': 2,
+      '点心': 2,
+      '蒸菜': 2,
+      '后菜': 1,
+      '尾菜': 1,
+      '凉菜': 3,
+    };
+
+    // 更新每个订单项的优先级
+    for (const item of orderItems) {
+      if (item.dish?.category?.name) {
+        const categoryName = item.dish.category.name;
+        const priority = priorityMap[categoryName] || 0;
+
+        await this.prisma.orderItem.update({
+          where: { id: item.id },
+          data: { priority },
+        });
+
+        this.logger.log(
+          `订单${orderId}的${item.dish.name}(${categoryName}) 设置优先级为 ${priority}`,
+          {
+            orderId,
+            itemId: item.id,
+            dishName: item.dish.name,
+            categoryName,
+            priority,
+          },
+        );
+      }
+    }
+  }
 
   /**
    * 检查并更新订单状态 - 如果订单进入用餐时间范围，自动将状态从 'created' 更新为 'started'
@@ -97,56 +236,35 @@ export class OrdersService {
 
     // 如果已过期，更新状态为 'cancelled'
     if (isExpired) {
-      return await this.prisma.order.update({
+      const cancelledOrder = await this.prisma.order.update({
         where: { id: order.id },
         data: {
           status: 'cancelled',
+          updatedAt: new Date(),
         },
       });
+      await this.updateOrderItemsByStatus(cancelledOrder);
+
+      // 广播订单状态变更
+      this.broadcastOrderEvent('order-updated', cancelledOrder);
+
+      return cancelledOrder;
     }
 
     // 如果在用餐时间范围内且当前状态是 created，更新状态为 'started'
     if (shouldStart && order.status === 'created') {
-      return await this.prisma.order.update({
+      const startedOrder = await this.prisma.order.update({
         where: { id: order.id },
         data: {
           status: 'started',
-        },
-      });
-    }
-
-    // 如果订单状态从 serving/urged 回退到 started，重置所有菜品优先级为 0
-    // 这个逻辑用于处理某些特殊场景下的状态回退
-    if (order.status === 'started') {
-      // 检查是否有需要重置优先级的菜品（优先级大于 0 的菜品）
-      const itemsWithPriority = await this.prisma.orderItem.findMany({
-        where: {
-          orderId: order.id,
-          priority: {
-            gt: 0,
-          },
+          updatedAt: new Date(),
         },
       });
 
-      // 如果有需要重置的菜品，批量更新优先级为 0
-      if (itemsWithPriority.length > 0) {
-        await this.prisma.orderItem.updateMany({
-          where: {
-            orderId: order.id,
-          },
-          data: {
-            priority: 0,
-          },
-        });
+      // 广播订单状态变更
+      this.broadcastOrderEvent('order-updated', startedOrder);
 
-        this.logger.log(
-          `订单${order.id}状态回退到 started，所有菜品优先级重置为 0`,
-          {
-            orderId: order.id,
-            resetCount: itemsWithPriority.length,
-          },
-        );
-      }
+      return startedOrder;
     }
 
     return order;
@@ -227,6 +345,10 @@ export class OrdersService {
     });
 
     this.logger.log('订单创建成功 - ID:', order.id);
+
+    // 广播订单创建事件
+    this.broadcastOrderEvent('order-created', order);
+
     return order;
   }
 
@@ -255,7 +377,7 @@ export class OrdersService {
       orders.map(async (order) => {
         // 检查并可能更新订单状态
         const updatedOrder = await this.checkAndUpdateOrderStatus(order);
-        
+
         // 使用原始的 orderItems（已经包含 dish 信息）
         // 因为 checkAndUpdateOrderStatus 不会修改 orderItems，直接返回完整订单对象
         return {
@@ -357,17 +479,17 @@ export class OrdersService {
       throw new Error('订单不存在');
     }
 
-    // 处理quantity字段
+    // 处理 quantity 字段
     let quantity = 1;
     if (createOrderItemDto.quantity !== undefined) {
       quantity = parseFloat(createOrderItemDto.quantity.toString());
       // 限制在合理范围内
       if (quantity < 1 || quantity > 99) {
-        throw new Error('数量必须在1到99之间');
+        throw new Error('数量必须在 1 到 99 之间');
       }
     }
 
-    return await this.prisma.orderItem.create({
+    const createdItem = await this.prisma.orderItem.create({
       data: {
         orderId,
         dishId: createOrderItemDto.dishId,
@@ -382,15 +504,29 @@ export class OrdersService {
         dish: true,
       },
     });
+
+    // 广播订单项创建事件
+    this.broadcastItemEvent('item-created', createdItem);
+
+    return createdItem;
   }
 
   async update(id: number, updateOrderDto: any) {
-    return await this.prisma.order.update({
+    const updatedOrder = await this.prisma.order.update({
       where: { id },
       data: {
         ...updateOrderDto,
+        updatedAt: new Date(),
       },
     });
+
+    // 广播订单更新事件
+    this.broadcastOrderEvent('order-updated', updatedOrder);
+
+    // 根据订单状态更新订单菜品
+    await this.updateOrderItemsByStatus(updatedOrder);
+
+    return updatedOrder;
   }
 
   async cancelOrder(id: number) {
@@ -408,12 +544,18 @@ export class OrdersService {
       throw new Error('无法取消已完成或已取消的订单');
     }
 
-    return await this.prisma.order.update({
+    const cancelledOrder = await this.prisma.order.update({
       where: { id },
       data: {
         status: 'cancelled',
+        updatedAt: new Date(),
       },
     });
+
+    // 广播订单更新事件
+    this.broadcastOrderEvent('order-updated', cancelledOrder);
+
+    return cancelledOrder;
   }
 
   /**
@@ -446,7 +588,7 @@ export class OrdersService {
     }
 
     // 使用事务更新订单状态和菜品优先级
-    return await this.prisma.$transaction(async (tx) => {
+    const updatedOrder = await this.prisma.$transaction(async (tx) => {
       // 1. 更新订单状态
       const updatedOrder = await tx.order.update({
         where: { id },
@@ -494,6 +636,11 @@ export class OrdersService {
 
       return updatedOrder;
     });
+
+    // 广播订单更新事件
+    this.broadcastOrderEvent('order-updated', updatedOrder);
+
+    return updatedOrder;
   }
 
   /**
@@ -538,7 +685,11 @@ export class OrdersService {
     }
 
     // 检查订单状态，只有 serving 或 urged 状态的订单可以暂停
-    if (order.status !== 'serving' && order.status !== 'urged') {
+    if (
+      order.status !== 'serving' &&
+      order.status !== 'urged' &&
+      order.status !== 'created'
+    ) {
       throw new Error('只有出餐中或催菜状态的订单可以暂停');
     }
 
@@ -553,22 +704,14 @@ export class OrdersService {
         },
       });
 
-      // 2. 将所有菜品优先级重置为 0
-      await tx.orderItem.updateMany({
-        where: { orderId: id },
-        data: {
-          priority: 0,
-        },
-      });
+      // 2. 将所有未上菜品优先级重置为 0
+      await this.updateOrderItemsByStatus(updatedOrder);
 
-      this.logger.log(
-        `订单${id}已暂停，所有菜品优先级重置为 0`,
-        {
-          orderId: id,
-          previousStatus: order.status,
-          newStatus: 'started',
-        },
-      );
+      this.logger.log(`订单${id}已暂停，所有未上菜品优先级重置为 0`, {
+        orderId: id,
+        previousStatus: order.status,
+        newStatus: 'started',
+      });
 
       return updatedOrder;
     });
