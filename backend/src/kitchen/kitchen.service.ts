@@ -191,7 +191,6 @@ export class KitchenService {
    * 午餐：9:00-14:00，晚餐：15:00-21:00
    */
   async checkAndUpdateOrderStatus(order: Order) {
-    return order;
     // 只有 created 或 started 状态的订单才需要检查
     if (order.status !== 'created' && order.status !== 'started') {
       return order;
