@@ -56,7 +56,18 @@ export class ServingController {
   }
 
   /**
-   * 标记菜品已上菜
+   * 标记菜品已上菜（批量）
+   * POST /api/serving/items/serve-batch
+   */
+  @Post('items/serve-batch')
+  async serveDishes(@Body() body: { itemIds: number[] }) {
+    const { itemIds } = body;
+    this.logger.log(`批量标记 ${itemIds.length} 个菜品已上菜`);
+    return await this.servingService.serveDishes(itemIds);
+  }
+
+  /**
+   * 标记菜品已上菜（单个）
    * POST /api/serving/items/:itemId/serve
    */
   @Post('items/:itemId/serve')

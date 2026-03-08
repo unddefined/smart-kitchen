@@ -4,6 +4,10 @@ import { ref, onMounted, onUnmounted } from "vue";
 const socket = ref(null);
 const isConnected = ref(false);
 const reconnectAttempts = ref(0);
+// 新增：全局状态跟踪已订阅的房间和已监听的事件
+const subscribedRooms = new Set();
+const eventListeners = new Map();
+let isConnecting = false; // 防止重复连接
 
 export function useWebSocket() {
   // 根据环境自动选择 WebSocket 地址
@@ -18,6 +22,13 @@ export function useWebSocket() {
   };
 
   const connect = (url = null) => {
+    // 防止重复连接
+    if (isConnecting || (socket.value && isConnected.value)) {
+      console.log('⚠️ WebSocket 已在连接或已连接，跳过连接');
+      return;
+    }
+
+    isConnecting = true;
     const wsUrl = url || getWebSocketUrl();
     console.log('Connecting to WebSocket:', wsUrl);
 
@@ -34,16 +45,19 @@ export function useWebSocket() {
       console.log("✅ WebSocket 连接成功");
       isConnected.value = true;
       reconnectAttempts.value = 0;
+      isConnecting = false;
     });
 
     socket.value.on("disconnect", (reason) => {
       console.warn("❌ WebSocket 断开连接:", reason);
       isConnected.value = false;
+      isConnecting = false;
     });
 
     socket.value.on("reconnect", (attemptNumber) => {
       console.log(`🔄 重新连接成功，尝试次数：${attemptNumber}`);
       reconnectAttempts.value = attemptNumber;
+      isConnecting = false;
     });
 
     socket.value.on("reconnect_attempt", (attemptNumber) => {
@@ -52,11 +66,13 @@ export function useWebSocket() {
 
     socket.value.on("reconnect_failed", () => {
       console.error("❌ 重新连接失败");
+      isConnecting = false;
     });
 
     // 错误处理
     socket.value.on("connect_error", (error) => {
       console.error("❌ 连接错误:", error.message);
+      isConnecting = false;
     });
 
     // 监听订阅成功
@@ -70,6 +86,10 @@ export function useWebSocket() {
       socket.value.disconnect();
       socket.value = null;
       isConnected.value = false;
+      isConnecting = false;
+      // 可选：清理已订阅的房间和监听器
+      // subscribedRooms.clear();
+      // eventListeners.clear();
     }
   };
 
@@ -84,26 +104,66 @@ export function useWebSocket() {
   };
 
   const listen = (event, callback) => {
+    // 检查是否已存在该事件的监听器
+    const eventKey = event;
+    if (!eventListeners.has(eventKey)) {
+      eventListeners.set(eventKey, new Set());
+    }
+    
+    const listeners = eventListeners.get(eventKey);
+    if (listeners.has(callback)) {
+      console.warn(`⚠️ 事件 ${event} 的监听器已存在，跳过重复注册`);
+      return () => {}; // 返回空清理函数
+    }
+
+    listeners.add(callback);
+
     if (socket.value) {
       socket.value.on(event, callback);
       return () => removeListener(event, callback);
     }
-    return () => { };
+    return () => {};
   };
 
   const removeListener = (event, callback) => {
-    if (socket.value) {
-      socket.value.off(event, callback);
+    const eventKey = event;
+    if (eventListeners.has(eventKey)) {
+      const listeners = eventListeners.get(eventKey);
+      listeners.delete(callback);
+      
+      if (listeners.size === 0) {
+        eventListeners.delete(eventKey);
+        if (socket.value) {
+          socket.value.off(event, callback);
+        }
+      }
     }
   };
 
   const subscribe = (room, stationId = null) => {
+    // 防止重复订阅相同的房间
+    const roomKey = stationId ? `${room}:${stationId}` : room;
+    if (subscribedRooms.has(roomKey)) {
+      console.log(`ℹ️ 房间 ${roomKey} 已订阅，跳过重复订阅`);
+      return true;
+    }
+
     const payload = stationId ? { room, stationId } : { room };
-    return sendMessage('subscribe', payload);
+    const success = sendMessage('subscribe', payload);
+    
+    if (success) {
+      subscribedRooms.add(roomKey);
+    }
+    
+    return success;
   };
 
   const unsubscribe = (room) => {
-    return sendMessage('unsubscribe', { room });
+    const success = sendMessage('unsubscribe', { room });
+    if (success) {
+      subscribedRooms.delete(room);
+    }
+    return success;
   };
 
   const broadcast = (room, event, data) => {
@@ -149,55 +209,62 @@ export function useAutoRefresh(options = {}) {
 
   const ws = useWebSocket();
   const unsubscribers = [];
+  const isInitialized = ref(false); // 防止重复初始化
 
   // 连接 WebSocket
   const connect = () => {
-    if (autoConnect) {
+    if (autoConnect && !isInitialized.value) {
       ws.connect();
     }
   };
 
   // 订阅所有房间
   const subscribeRooms = () => {
-    rooms.forEach(room => {
-      ws.subscribe(room);
-      console.log(`${logPrefix} 订阅房间：${room}`);
-    });
+    if (!isInitialized.value) {
+      rooms.forEach(room => {
+        ws.subscribe(room);
+        console.log(`${logPrefix} 订阅房间：${room}`);
+      });
+    }
   };
 
   // 监听事件
   const listenEvents = () => {
-    if (!events || events.length === 0) {
-      // 如果没有配置事件，使用默认配置
-      const defaultEvents = [
-        { event: 'order-created', rooms: ['orders', 'all'] },
-        { event: 'order-updated', rooms: ['orders', 'all'] },
-        { event: 'order-deleted', rooms: ['orders', 'all'] },
-        { event: 'item-created', rooms: ['order-items', 'all'] },
-        { event: 'item-updated', rooms: ['order-items', 'all'] },
-        { event: 'item-deleted', rooms: ['order-items', 'all'] },
-      ];
+    if (!isInitialized.value) {
+      if (!events || events.length === 0) {
+        // 如果没有配置事件，使用默认配置
+        const defaultEvents = [
+          { event: 'order-created', rooms: ['orders', 'all'] },
+          { event: 'order-updated', rooms: ['orders', 'all'] },
+          { event: 'order-deleted', rooms: ['orders', 'all'] },
+          { event: 'item-created', rooms: ['order-items', 'all'] },
+          { event: 'item-updated', rooms: ['order-items', 'all'] },
+          { event: 'item-deleted', rooms: ['order-items', 'all'] },
+        ];
 
-      defaultEvents.forEach(({ event, rooms: eventRooms }) => {
-        const unsubscribe = ws.listen(event, (data) => {
-          console.log(`${logPrefix} 📢 ${event}:`, data);
-          if (refreshFn) {
-            refreshFn(data);
-          }
+        defaultEvents.forEach(({ event, rooms: eventRooms }) => {
+          const unsubscribe = ws.listen(event, (data) => {
+            console.log(`${logPrefix} 📢 ${event}:`, data);
+            if (refreshFn) {
+              refreshFn(data);
+            }
+          });
+          unsubscribers.push(unsubscribe);
         });
-        unsubscribers.push(unsubscribe);
-      });
-    } else {
-      // 使用自定义配置
-      events.forEach(({ event, rooms: eventRooms }) => {
-        const unsubscribe = ws.listen(event, (data) => {
-          console.log(`${logPrefix} 📢 ${event}:`, data);
-          if (refreshFn) {
-            refreshFn(data);
-          }
+      } else {
+        // 使用自定义配置
+        events.forEach(({ event, rooms: eventRooms }) => {
+          const unsubscribe = ws.listen(event, (data) => {
+            console.log(`${logPrefix} 📢 ${event}:`, data);
+            if (refreshFn) {
+              refreshFn(data);
+            }
+          });
+          unsubscribers.push(unsubscribe);
         });
-        unsubscribers.push(unsubscribe);
-      });
+      }
+      
+      isInitialized.value = true;
     }
   };
 
@@ -212,9 +279,9 @@ export function useAutoRefresh(options = {}) {
     });
     unsubscribers.length = 0;
 
-    if (autoConnect) {
-      ws.disconnect();
-    }
+    // 注意：不清理全局 WebSocket 连接，因为可能被其他组件使用
+    // 只有当明确需要断开时才调用 ws.disconnect()
+    isInitialized.value = false;
   };
 
   // 生命周期钩子

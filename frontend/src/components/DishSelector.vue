@@ -299,10 +299,14 @@ const handleDishClick = (dish) => {
 
   if (selected) {
     // 已选中，设置当前编辑的菜品并通知父组件打开编辑弹窗
+    // 根据模式决定是否保留之前的备注、重量等详情信息
+    // edit 模式（修改订单菜品）下保留，其他模式下清空
     currentDish.value = {
-      ...selected,
-      quantity: selected.quantity || 1, // 确保 quantity 有默认值
-      weightUnit: selected.weightUnit || "两", // 确保 weightUnit 有效
+      ...dish, // 使用原始菜品信息
+      quantity: selected.quantity || 1, // 保留数量
+      weightValue: props.mode === "edit" ? (selected.weightValue ?? null) : null,
+      weightUnit: props.mode === "edit" ? (selected.weightUnit || "两") : "两",
+      remark: props.mode === "edit" ? (selected.remark || "") : "",
     };
     
     // 根据模式决定触发哪个事件

@@ -186,6 +186,12 @@ export class OrderItemsService {
       dataToUpdate.remark = updateData.remark || null;
     }
 
+    // 注意：priority 和 status 字段不能在 OrderItemsService.updateOrderItem 中更新
+    // 原因：
+    // 1. DishSelector 编辑弹窗中不提供这两个字段的 UI
+    // 2. 优先级应由 KitchenService 根据业务规则自动管理
+    // 3. 状态应通过专门的状态机接口（如催菜、起菜）来变更
+
     // 更新订单项
     const updatedItem = await this.prisma.orderItem.update({
       where: { id: itemId },

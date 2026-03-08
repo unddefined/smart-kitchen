@@ -62,11 +62,15 @@ export function useOrderAutoRefresh(options = {}) {
       const events = getEventsConfig();
       const matchEvent = events.find(e => e.filter && e.filter(data));
       
-      if (matchEvent || !data) {
+      if (matchEvent) {
         console.log('🔄 刷新当前订单详情');
         refreshFn();
+      } else if (!data) {
+        // 没有数据时也刷新（初始加载）
+        console.log('🔄 初始加载订单详情');
+        refreshFn();
       } else {
-        console.log('⏭️ 跳过非当前订单的更新');
+        console.log('⏭️ 跳过非当前订单的更新', data);
       }
     } else {
       // 列表页直接刷新

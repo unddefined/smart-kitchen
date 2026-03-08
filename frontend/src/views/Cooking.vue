@@ -133,8 +133,8 @@
             :class="[
               'w-full p-2 border-none cursor-pointer text-xl transition-all duration-200 text-left ',
               activeTab === `order-${order.id}` ? 'bg-gray-100 text-black' : '',
-              order.status === 'urged' ? 'text-red-500 font-bold' : '',
-              order.status !== 'serving' ? 'text-gray-400' : '',
+              order.status === 'urged' ? 'bg-red-400 text-black font-bold' : '',
+              order.status !== 'serving' ? 'text-gray-500' : '',
             ]"
             @click="activeTab = `order-${order.id}`">
             {{ order.hallNumber }}
@@ -593,9 +593,25 @@ const loadOrders = async () => {
 };
 
 // 处理订单删除/取消后的刷新
-const handleOrderDeleted = async () => {
-  console.log("订单已删除/取消，刷新订单列表");
+const handleOrderDeleted = async (orderId) => {
+  console.log("订单已删除/取消，刷新订单列表", orderId);
+  
+  // 保存当前的 activeTab 状态
+  const currentTab = activeTab.value;
+  
   await loadOrders();
+  
+  // 如果是特定订单的 tab，检查该订单是否还在列表中
+  if (currentTab.startsWith('order-')) {
+    const targetOrderId = parseInt(currentTab.split('-')[1]);
+    const orderStillExists = orders.value.some(o => o.id === targetOrderId);
+    
+    // 如果订单不存在了（可能被删除或过滤掉），切换回总览页面
+    if (!orderStillExists) {
+      console.log(`订单 #${targetOrderId} 不在列表中，切换回总览页面`);
+      activeTab.value = 'overview';
+    }
+  }
 };
 
 // 定时刷新订单数据（静默刷新，不显示 loading）
@@ -632,6 +648,24 @@ onMounted(() => {
   loadOrders();
 });
 
+// 监听 activeTab 变化，确保选中的订单在列表中
+watch(
+  () => orders.value,
+  (newOrders) => {
+    if (activeTab.value.startsWith('order-')) {
+      const targetOrderId = parseInt(activeTab.value.split('-')[1]);
+      const orderStillExists = newOrders.some(o => o.id === targetOrderId);
+      
+      // 如果订单不存在了（可能被删除或过滤掉），切换回总览页面
+      if (!orderStillExists) {
+        console.log(`订单 #${targetOrderId} 不在列表中，自动切换回总览页面`);
+        activeTab.value = 'overview';
+      }
+    }
+  },
+  { deep: true }
+);
+
 // 组件卸载时清除定时器
 onUnmounted(() => {
   if (refreshTimer) {
@@ -640,11 +674,12 @@ onUnmounted(() => {
   }
 });
 
-// 使用订单自动刷新 Composable（列表页模式）
-useOrderAutoRefresh({
-  refreshFn: loadOrders,
-  mode: "list",
-});
+// 注意：useOrderAutoRefresh 已在组件底部调用（第 952 行），此处不应重复调用
+// 使用订单自动刷新 Composable（列表页模式）已移至底部统一管理
+// useOrderAutoRefresh({
+//   refreshFn: loadOrders,
+//   mode: "list",
+// });
 
 // 处理起菜逻辑（已改为弹窗表单方式）
 const handleStartDish = async () => {
@@ -676,7 +711,8 @@ const handleDishAction = async (action, data) => {
   switch (action) {
     case "status-changed":
       // 菜品状态变更后，刷新订单列表
-      console.log("菜品状态变更，刷新订单列表");
+      console.log("菜品状态变更，刷新订单列表", data);
+      // data 包含：{ dish, newStatus, newPriority, message }
       await loadOrders();
       break;
 
@@ -809,12 +845,9 @@ const confirmAction = async () => {
         // 刷新订单列表
         await loadOrders();
 
-        // 刷新当前订单详情
-        if (activeTab.value.startsWith("order-")) {
-          activeTab.value = "overview";
-          await nextTick();
-          activeTab.value = `order-${activeOrderId.value}`;
-        }
+        // ✅ 不需要切换 tab，OrderView 会通过 WebSocket 自动刷新详情
+        // 只需要关闭弹窗即可
+        console.log('✅ 操作成功，订单详情将通过 WebSocket 自动刷新');
 
         // 关闭弹窗
         closeActionModal();

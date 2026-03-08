@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { Order } from '@prisma/client';
 import { KitchenService } from '../kitchen/kitchen.service';
 import { OrderItemsService } from '../order-items/order-items.service';
+import { EventsGateway } from '../events.gateway';
 
 // 查询参数类型
 export interface FindAllQueryParams {
@@ -23,7 +24,23 @@ export class OrdersService {
     private prisma: PrismaService,
     private kitchenService: KitchenService,
     private orderItemsService: OrderItemsService,
+    private eventsGateway: EventsGateway,
   ) {}
+
+  /**
+   * 广播订单事件到指定房间
+   */
+  private broadcastOrderEvent(
+    event: string,
+    data: any,
+    rooms: string[] = ['orders', 'all'],
+  ) {
+    const timestamp = new Date().toISOString();
+    rooms.forEach((room) => {
+      this.eventsGateway.server.to(room).emit(event, { data, timestamp });
+    });
+    this.logger.log(`已广播 ${event} 事件到房间：${rooms.join(', ')}`);
+  }
 
   /**
    * 创建订单
@@ -237,6 +254,9 @@ export class OrdersService {
         updatedAt: new Date(),
       },
     });
+
+    // 广播订单更新事件（包括状态变更和非状态字段更新）
+    this.broadcastOrderEvent('order-updated', updatedOrder);
 
     // 只有当状态变更时，才更新订单菜品
     if (updateOrderDto.status && updateOrderDto.status !== order.status) {
