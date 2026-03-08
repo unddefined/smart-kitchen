@@ -354,6 +354,7 @@ export class OrderService {
       [ORDER_STATUS.STARTED]: "待起菜",
       [ORDER_STATUS.SERVING]: "出餐中",
       [ORDER_STATUS.DONE]: "已完成",
+      [ORDER_STATUS.URGED]: "已催菜",
       [ORDER_STATUS.CANCELLED]: "已取消",
     };
     return statusMap[status] || "未知状态";

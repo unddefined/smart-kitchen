@@ -399,6 +399,7 @@ export const ORDER_STATUS = {
   CREATED: "created",
   STARTED: "started",
   SERVING: "serving",
+  URGED: "urged",
   DONE: "done",
   CANCELLED: "cancelled",
 };

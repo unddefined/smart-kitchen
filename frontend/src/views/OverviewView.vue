@@ -495,7 +495,7 @@ const mergeDishes = (dishes) => {
 // 三、生成显示详情 - UI 渲染辅助函数
 const formatDetailItem = (dish) => {
   const remark = dish.remark ? `(${dish.remark})` : "";
-  const weight = dish.weight ? `(${dish.weight})` : "";
+  const weight = dish.weight !== null && dish.weight !== undefined && dish.weight !== "" ? `(${dish.weight})` : "";
   return `${remark}${weight}`;
 };
 
@@ -518,11 +518,12 @@ const generateDisplayDetails = (dish) => {
     text += `${dish.remark}`;
   }
 
-  if (dish.weight) {
+  // 修复：weight 是字符串，需要检查是否为空字符串而不仅是 truthy/falsy
+  if (dish.weight !== null && dish.weight !== undefined && dish.weight !== "") {
     text += text ? ` · ${dish.weight}` : `${dish.weight}`;
   }
 
-  if (dish.totalQuantity && (dish.remark || dish.weight)) {
+  if (dish.totalQuantity && (dish.remark || (dish.weight !== null && dish.weight !== undefined && dish.weight !== ""))) {
     text += ` · ${dish.totalQuantity}份`;
   }
 

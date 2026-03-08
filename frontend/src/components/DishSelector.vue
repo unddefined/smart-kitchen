@@ -415,7 +415,8 @@ const confirmEdit = () => {
       remark: currentDish.value.remark || '',
       weightValue: currentDish.value.weightValue,
       weightUnit: currentDish.value.weightUnit,
-      weight: weightString,
+      // 修复：只有当 weightString 不为空时才设置 weight，否则设为 null
+      weight: weightString ? weightString : null,
     };
 
     console.log('更新后的数据:', newSelected[index]);
