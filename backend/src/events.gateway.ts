@@ -11,8 +11,9 @@ import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
   cors: {
-    origin: '*', // 生产环境应该配置具体的域名
+    origin: process.env.FRONTEND_URL || '*', // 生产环境配置具体域名
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   },
   namespace: 'ws',
 })

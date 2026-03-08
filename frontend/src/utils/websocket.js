@@ -15,7 +15,8 @@ export function useWebSocket() {
     // 生产环境使用服务器地址
     if (import.meta.env.PROD) {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      return `${protocol}//${window.location.host}/ws`;
+      // 修复：添加端口号和正确的 /ws 命名空间
+      return `${protocol}//${window.location.host}:3001/ws`;
     }
     // 开发环境使用本地地址
     return import.meta.env.VITE_WS_URL || "ws://localhost:3001/ws";
