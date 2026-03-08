@@ -793,7 +793,8 @@ const confirmAction = async () => {
           result = await OrderService.urgeOrder(activeOrderId.value);
           break;
         case "pause":
-          result = await OrderService.pauseOrder(activeOrderId.value);
+          // 暂停订单 - 将状态更新为 started
+          result = await OrderService.updateOrder(activeOrderId.value, { status: "started" });
           break;
       }
 
@@ -852,7 +853,7 @@ const confirmAction = async () => {
               break;
             case "pause":
               if (order.status !== "serving" && order.status !== "urged") continue;
-              result = await OrderService.pauseOrder(orderId);
+              result = await OrderService.updateOrder(orderId, { status: "started" });
               break;
           }
 
