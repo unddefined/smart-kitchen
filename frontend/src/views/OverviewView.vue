@@ -273,8 +273,6 @@ const showPriorityModal = ref(false);
 // DOM 引用
 const cardRefs = ref([]);
 const unstartedCardRefs = ref([]);
-const waterfallContainer = ref(null);
-const unstartedWaterfallContainer = ref(null);
 
 // 使用 toast 组合式函数（使用全局注入）
 const { showToast, showSuccess, showError, showInfo } = useToast();
@@ -316,7 +314,7 @@ const {
 const handleDishClick = async (dish) => {
   // OverviewView 作为子组件，不负责加载数据，只负责发送事件通知父组件刷新
   const refreshFn = () => {
-    emit('dish-action', 'refresh');
+    emit("dish-action", "refresh");
   };
   await handleDishClickBase(dish, { showSuccess, showError, showInfo }, refreshFn, emit);
 };
@@ -329,7 +327,17 @@ const normalizeDishes = (orders = []) => {
     if (!order?.orderItems?.length) continue;
 
     for (const item of order.orderItems) {
-      if (!item.dish) continue;
+      // 验证 dish 对象是否存在
+      if (!item.dish) {
+        console.error("订单项缺少 dish 对象:", JSON.stringify(item, null, 2));
+        throw new Error(`订单项 ${item.id} (${item.dishId}) 缺少菜品信息`);
+      }
+
+      // 验证 needPrep 字段是否存在
+      if (item.dish.needPrep === undefined || item.dish.needPrep === null) {
+        console.error("菜品缺少 needPrep 字段:", JSON.stringify(item.dish, null, 2));
+        throw new Error(`菜品 "${item.dish.name}" (${item.dish.id}) 的 needPrep 字段为 ${item.dish.needPrep}`);
+      }
 
       // 跳过取消的订单或已完成（done）的订单
       if (order.status === "done" || order.status === "cancelled") {
@@ -359,14 +367,14 @@ const normalizeDishes = (orders = []) => {
 
       // 计算是否需要处理以及处理类型
       let needsProcessing = false;
-      let processType = '';
+      let processType = "";
 
-      if (item.status === 'pending') {
+      if (item.status === "pending") {
         needsProcessing = true;
-        processType = '待切配';
-      } else if (item.status === 'preparing') {
+        processType = "待切配";
+      } else if (item.status === "preparing") {
         needsProcessing = true;
-        processType = '处理中';
+        processType = "待处理";
       }
 
       dishes.push({
@@ -426,6 +434,8 @@ const mergeDishes = (dishes) => {
         remark: dish.remark || "",
         weight: dish.weight ? Number(dish.weight) : null,
         countable: dish.countable,
+        // 保留 needPrep 字段
+        needPrep: dish.needPrep,
         // 保留 needsProcessing 和 processType 字段
         needsProcessing: dish.needsProcessing,
         processType: dish.processType,
@@ -493,34 +503,31 @@ const formatDetailItem = (dish) => {
 const generateDisplayDetails = (dish) => {
   const details = [];
 
-  // Countable 菜品：显示人数分配详情
-  if (dish.countable && dish.perTableGroups && dish.perTableGroups.length > 0) {
-    dish.perTableGroups.forEach((group) => {
+  // countable 菜
+  if (dish.countable && dish.perTableGroups?.length) {
+    for (const group of dish.perTableGroups) {
       details.push(`${group.quantityPerTable}个×${group.tableCount}份`);
-    });
-  } else {
-    // 普通菜品（含称重菜）：仅在有备注或重量时显示
-    const parts = [];
-    
-    // 添加备注
-    if (dish.remark) {
-      parts.push(dish.remark);
     }
-    
-    // 添加重量
-    if (dish.weight) {
-      parts.push(`${dish.weight}斤`);
-    }
-    
-    // 添加份数：仅当有备注或重量时才显示
-    if (!dish.countable && dish.totalQuantity && (dish.remark || dish.weight)) {
-      parts.push(`${dish.totalQuantity}份`);
-    }
-    
-    // 只有在有内容时才添加到 details
-    if (parts.length > 0) {
-      details.push(parts.join(' · '));
-    }
+    return details;
+  }
+
+  // 普通菜
+  let text = "";
+
+  if (dish.remark) {
+    text += `${dish.remark}`;
+  }
+
+  if (dish.weight) {
+    text += text ? ` · ${dish.weight}` : `${dish.weight}`;
+  }
+
+  if (dish.totalQuantity && (dish.remark || dish.weight)) {
+    text += ` · ${dish.totalQuantity}份`;
+  }
+
+  if (text) {
+    details.push(text);
   }
 
   return details;
@@ -582,10 +589,10 @@ const unstartedDishes = computed(() => {
   return dishes.value.filter((dish) => dish.priority === 0);
 });
 
-// 截断菜品名称
+// 截断菜品名称，保留最后一个字
 const truncateDishName = (name) => {
   if (name.length > 4) {
-    return name.slice(0, 4) + "...";
+    return name.slice(0, 4) + "..." + name.slice(-4);
   }
   return name;
 };

@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Param,
   Body,
   ParseIntPipe,
@@ -45,12 +46,12 @@ export class ServingController {
   }
 
   /**
-   * 标记菜品制作完成
+   * 标记菜品准备下锅
    * POST /api/serving/items/:itemId/complete-prep
    */
   @Post('items/:itemId/complete-prep')
   async completeDishPreparation(@Param('itemId', ParseIntPipe) itemId: number) {
-    this.logger.log(`标记订单菜品 ${itemId} 制作完成`);
+    this.logger.log(`标记订单菜品 ${itemId} 准备下锅`);
     return await this.servingService.completeDishPreparation(itemId);
   }
 
