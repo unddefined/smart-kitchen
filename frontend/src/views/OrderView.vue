@@ -67,9 +67,15 @@
 
       <!-- 已出菜品 -->
       <div class="bg-white rounded-xl p-3 mb-5 shadow-md">
-        <h3 class="text-lg font-medium text-gray-800 mb-2">已出菜品</h3>
+        <div class="flex justify-between items-center cursor-pointer select-none" @click="isServedCollapsed = !isServedCollapsed">
+          <h3 class="text-lg font-medium text-gray-800">已出菜品</h3>
+          <span class="text-sm text-gray-600">
+            {{ isServedCollapsed ? "展开" : "收起" }}
+          </span>
+        </div>
         <div class="flex flex-col gap-3">
           <div
+            v-show="!isServedCollapsed"
             v-for="dish in servedDishes"
             :key="dish.id"
             class="p-3 rounded-lg border border-gray-300 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer">
@@ -250,7 +256,7 @@
           </div>
 
           <!-- 用餐时间输入 -->
-          <div class="flex space-x-4 items-center">
+          <div class="flex space-x-1 items-center">
             <label class="text-xl font-medium text-gray-700 whitespace-nowrap">用餐时间</label>
             <div class="flex space-x-2 items-center flex-nowrap">
               <input
@@ -512,7 +518,7 @@ const dishManager = useDishManager({
 });
 
 // 解构常用方法
-const { getPriorityClass: getDishPriorityClass, handleDishClick: handleDishClickBase } = dishManager;
+const { getPriorityClass: getDishPriorityClass, handleDishClick: handleDishClickBase, isServedCollapsed} = dishManager;
 
 // 计算属性 - 判断取消按钮是否禁用
 const isCancelButtonDisabled = computed(() => {
