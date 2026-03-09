@@ -1,6 +1,9 @@
 <!-- eslint-disable prettier/prettier -->
 <template>
   <div class="flex flex-col h-full bg-gray-100 relative">
+    <!-- 订单状态变更广播通知 -->
+    <OrderBroadcast />
+    
     <!-- 加载状态覆盖层 -->
     <div v-if="loading" class="absolute inset-0 bg-white bg-opacity-90 flex justify-center items-center z-50">
       <div class="text-center p-5 bg-white rounded-xl shadow-lg">
@@ -144,6 +147,7 @@
 
       <!-- 右侧内容区域 -->
       <div class="flex-1 overflow-y-auto bg-gray-100">
+        <!-- TODO 广播订单状态变更通知 -->
         <!-- 总览视图 -->
         <OverviewView v-if="activeTab === 'overview'" :orders="orders" @dish-action="handleDishAction" />
 
@@ -271,6 +275,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
 import OverviewView from "./OverviewView.vue";
 import OrderView from "./OrderView.vue";
 import OrderInputModal from "../components/OrderInputModal.vue";
+import OrderBroadcast from "../components/OrderBroadcast.vue";
 import { OrderService } from "@/services";
 import { useToast } from "@/composables/useToast";
 import { useOrderAutoRefresh } from "@/composables/useOrderAutoRefresh";
@@ -595,21 +600,21 @@ const loadOrders = async () => {
 // 处理订单删除/取消后的刷新
 const handleOrderDeleted = async (orderId) => {
   console.log("订单已删除/取消，刷新订单列表", orderId);
-  
+
   // 保存当前的 activeTab 状态
   const currentTab = activeTab.value;
-  
+
   await loadOrders();
-  
+
   // 如果是特定订单的 tab，检查该订单是否还在列表中
-  if (currentTab.startsWith('order-')) {
-    const targetOrderId = parseInt(currentTab.split('-')[1]);
-    const orderStillExists = orders.value.some(o => o.id === targetOrderId);
-    
+  if (currentTab.startsWith("order-")) {
+    const targetOrderId = parseInt(currentTab.split("-")[1]);
+    const orderStillExists = orders.value.some((o) => o.id === targetOrderId);
+
     // 如果订单不存在了（可能被删除或过滤掉），切换回总览页面
     if (!orderStillExists) {
       console.log(`订单 #${targetOrderId} 不在列表中，切换回总览页面`);
-      activeTab.value = 'overview';
+      activeTab.value = "overview";
     }
   }
 };
@@ -652,18 +657,18 @@ onMounted(() => {
 watch(
   () => orders.value,
   (newOrders) => {
-    if (activeTab.value.startsWith('order-')) {
-      const targetOrderId = parseInt(activeTab.value.split('-')[1]);
-      const orderStillExists = newOrders.some(o => o.id === targetOrderId);
-      
+    if (activeTab.value.startsWith("order-")) {
+      const targetOrderId = parseInt(activeTab.value.split("-")[1]);
+      const orderStillExists = newOrders.some((o) => o.id === targetOrderId);
+
       // 如果订单不存在了（可能被删除或过滤掉），切换回总览页面
       if (!orderStillExists) {
         console.log(`订单 #${targetOrderId} 不在列表中，自动切换回总览页面`);
-        activeTab.value = 'overview';
+        activeTab.value = "overview";
       }
     }
   },
-  { deep: true }
+  { deep: true },
 );
 
 // 组件卸载时清除定时器
@@ -847,7 +852,7 @@ const confirmAction = async () => {
 
         // ✅ 不需要切换 tab，OrderView 会通过 WebSocket 自动刷新详情
         // 只需要关闭弹窗即可
-        console.log('✅ 操作成功，订单详情将通过 WebSocket 自动刷新');
+        console.log("✅ 操作成功，订单详情将通过 WebSocket 自动刷新");
 
         // 关闭弹窗
         closeActionModal();

@@ -42,8 +42,8 @@ export function useDishManager(options = {}) {
       3: "bg-red-300",
       2: "bg-yellow-300",
       1: "bg-green-300",
-      0: "bg-gray-100 text-gray-400",
-      "-1": "bg-gray-100 text-gray-500 opacity-70",
+      0: "bg-white text-gray-400",
+      "-1": "bg-gray-100 text-gray-600",
     };
     return classes[priority] || "bg-white";
   };
@@ -76,21 +76,6 @@ export function useDishManager(options = {}) {
     const option = priorityOptions.find((opt) => opt.value === priority);
     return option ? option.label : "未知";
   };
-
-  /**
-   * 截断菜品名称
-   */
-  const truncateDishName = (name, maxLength = 8) => {
-    if (!name || name.length <= maxLength) {
-      return name;
-    }
-    const lastChar = name.slice(-1);
-    const prefixLength = maxLength - 1;
-    return prefixLength > 0 
-      ? name.substring(0, prefixLength) + "..." + lastChar
-      : "..." + name.slice(-Math.min(5, name.length));
-  };
-
   /**
    * 处理菜品点击事件 - 统一状态流转逻辑
    * @param {Object} dish - 菜品对象
@@ -342,7 +327,6 @@ export function useDishManager(options = {}) {
     getPriorityClass,
     getPriorityButtonClass,
     getPriorityLabel,
-    truncateDishName,
     handleDishClick,
     showPriorityAdjustModal,
     closePriorityModal,

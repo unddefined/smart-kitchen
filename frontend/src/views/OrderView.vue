@@ -576,9 +576,9 @@ const loadOrderDetail = async () => {
     }
 
     console.log(`🔄 加载订单详情 #${orderId}...`);
-    
+
     const detail = await OrderService.getOrderDetail(orderId);
-    
+
     if (detail) {
       console.log(`✅ 订单 #${orderId} 加载成功:`, detail.status);
       orderDetail.value = detail;
@@ -803,13 +803,13 @@ watch(
   () => orderDetail.value,
   (newValue, oldValue) => {
     if (newValue === null && oldValue !== null) {
-      console.warn('⚠️ orderDetail 被设置为 null！');
-      console.warn('之前的订单:', oldValue?.id, '当前状态:', oldValue?.status);
+      console.warn("⚠️ orderDetail 被设置为 null！");
+      console.warn("之前的订单:", oldValue?.id, "当前状态:", oldValue?.status);
     } else if (newValue) {
-      console.log('✅ orderDetail 更新:', newValue.id, '状态:', newValue.status);
+      console.log("✅ orderDetail 更新:", newValue.id, "状态:", newValue.status);
     }
   },
-  { deep: true }
+  { deep: true },
 );
 
 // 编辑订单相关方法
@@ -929,7 +929,7 @@ const confirmEditOrder = async () => {
 
         // 显示成功提示
         showSuccess("订单信息更新成功");
-        
+
         // 不立即调用 loadOrderDetail，等待 WebSocket 触发自动刷新
       } else {
         throw new Error(result.message);
@@ -1085,7 +1085,7 @@ const handleSelectedDishesChange = (newSelectedDishes) => {
   // 直接赋值，不需要恢复逻辑
   // 因为 DishSelector 组件会保留 orderItemId 字段
   selectedOrderItems.value = newSelectedDishes;
-  
+
   console.log("选中的菜品:", selectedOrderItems.value);
 };
 
@@ -1120,116 +1120,99 @@ const confirmModifyDishes = async () => {
     );
 
     // 简化的 diff 算法：基于 orderItemId 唯一标识
-    const originalMap = new Map(originalOrderItems.value.map(i => [i.orderItemId, i]));
-    const currentMap = new Map(selectedOrderItems.value.filter(i => i.orderItemId).map(i => [i.orderItemId, i]));
+    const originalMap = new Map(originalOrderItems.value.map((i) => [i.orderItemId, i]));
+    const currentMap = new Map(selectedOrderItems.value.filter((i) => i.orderItemId).map((i) => [i.orderItemId, i]));
 
     // 删除的菜品：原来有但现在没有（通过 orderItemId 判断）
-    const removedItems = originalOrderItems.value.filter(item => !currentMap.has(item.orderItemId));
-    
+    const removedItems = originalOrderItems.value.filter((item) => !currentMap.has(item.orderItemId));
+
     // 更新的菜品：orderItemId 存在但内容有变化
     const modifiedItems = selectedOrderItems.value
-      .filter(i => i.orderItemId)
-      .filter(i => {
+      .filter((i) => i.orderItemId)
+      .filter((i) => {
         const original = originalMap.get(i.orderItemId);
-        return original && (
-          original.quantity !== i.quantity ||
-          original.remark !== i.remark ||
-          original.weight !== i.weight
-        );
+        return original && (original.quantity !== i.quantity || original.remark !== i.remark || original.weight !== i.weight);
       });
-    
-    // 新增的菜品：orderItemId 为 null
-    const addedItems = selectedOrderItems.value.filter(item => !item.orderItemId);
 
-    console.log("需要删除的菜品:", removedItems.map(i => ({ id: i.id, orderItemId: i.orderItemId, name: i.name })));
-    console.log("需要更新的菜品:", modifiedItems.map(i => ({ id: i.id, orderItemId: i.orderItemId, name: i.name })));
-    console.log("需要新增的菜品:", addedItems.map(i => ({ id: i.id, name: i.name, categoryId: i.categoryId, category: i.category })));
+    // 新增的菜品：orderItemId 为 null
+    const addedItems = selectedOrderItems.value.filter((item) => !item.orderItemId);
+
+    console.log(
+      "需要删除的菜品:",
+      removedItems.map((i) => ({ id: i.id, orderItemId: i.orderItemId, name: i.name })),
+    );
+    console.log(
+      "需要更新的菜品:",
+      modifiedItems.map((i) => ({ id: i.id, orderItemId: i.orderItemId, name: i.name })),
+    );
+    console.log(
+      "需要新增的菜品:",
+      addedItems.map((i) => ({ id: i.id, name: i.name, categoryId: i.categoryId, category: i.category })),
+    );
 
     // 定义分类默认优先级映射（三层优先级）
     const CATEGORY_PRIORITY_MAP = {
-      '凉菜': 3,  // 立即上（红色）
-      '前菜': 3,  // 立即上（红色）
-      '中菜': 2,  // 正常（黄色）
-      '点心': 2,  // 正常（黄色）
-      '蒸菜': 2,  // 正常（黄色）
-      '后菜': 1,  // 后上（绿色）
-      '尾菜': 1,  // 后上（绿色）
+      凉菜: 3, // 立即上（红色）
+      前菜: 3, // 立即上（红色）
+      中菜: 2, // 正常（黄色）
+      点心: 2, // 正常（黄色）
+      蒸菜: 2, // 正常（黄色）
+      后菜: 1, // 后上（绿色）
+      尾菜: 1, // 后上（绿色）
     };
 
-    // 简化的优先级计算算法：基于已上菜品的分类
+    // 简化的优先级计算算法：基于订单中已有菜品的最高优先级
     const calculateNewDishPriority = (dish) => {
-      if (!orderDetail.value?.items) {
-        return CATEGORY_PRIORITY_MAP[dish.category?.name] || 1;
-      }
-      
       const categoryName = dish.category?.name;
-      if (!categoryName) {
-        return 1;
+      if (!categoryName) return 1;
+
+      const pendingItems = orderDetail.value?.items?.filter((i) => i.status !== "served");
+
+      if (!pendingItems || pendingItems.length === 0) {
+        return CATEGORY_PRIORITY_MAP[categoryName] || 1;
       }
 
-      // 获取所有待上菜品（未出菜的）
-      const pendingItems = orderDetail.value.items.filter(item => item.status !== "served");
-      
-      // 统计各分类的待上数量
-      const categoryPendingCount = {};
-      pendingItems.forEach(item => {
-        const itemCategory = item.dish?.category?.name;
-        if (!itemCategory) return;
-        categoryPendingCount[itemCategory] = (categoryPendingCount[itemCategory] || 0) + 1;
-      });
+      const categoryPriority = {};
 
-      console.log('📊 各分类待上数量:', categoryPendingCount);
+      for (const item of pendingItems) {
+        const cat = item.dish?.category?.name;
+        if (!cat) continue;
 
-      // 核心逻辑：某个分类已上完（待上数量为 0） → 下一个分类的优先级提升到 3
-      // 上菜顺序：凉菜 → 前菜 → 中菜/点心/蒸菜 → 后菜 → 尾菜
-      
-      // 凉菜已上完 → 前菜优先级提升到 3
-      if (categoryPendingCount['凉菜'] === 0 && categoryName === '前菜') {
-        console.log(`⬆️ 凉菜已上完，${categoryName} 优先级提升至 3`);
-        return 3;
-      }
-      
-      // 前菜已上完 → 中菜/点心/蒸菜优先级提升到 3
-      if (categoryPendingCount['前菜'] === 0 && ['中菜', '点心', '蒸菜'].includes(categoryName)) {
-        console.log(`⬆️ 前菜已上完，${categoryName} 优先级提升至 3`);
-        return 3;
-      }
-      
-      // 中菜/点心/蒸菜已上完 → 后菜优先级提升到 3
-      const middleCategoriesCompleted = 
-        categoryPendingCount['中菜'] === 0 || 
-        categoryPendingCount['点心'] === 0 || 
-        categoryPendingCount['蒸菜'] === 0;
-      
-      if (middleCategoriesCompleted && categoryName === '后菜') {
-        console.log(`⬆️ 中菜/点心/蒸菜已上完，${categoryName} 优先级提升至 3`);
-        return 3;
-      }
-      
-      // 后菜已上完 → 尾菜优先级提升到 3
-      if (categoryPendingCount['后菜'] === 0 && categoryName === '尾菜') {
-        console.log(`⬆️ 后菜已上完，${categoryName} 优先级提升至 3`);
-        return 3;
-      }
+        const p = item.priority ?? 1;
 
-      // 其他情况使用默认优先级
-      const defaultPriority = CATEGORY_PRIORITY_MAP[categoryName] || 1;
-      console.log(`🎯 ${categoryName} 使用默认优先级：${defaultPriority}`);
-      
-      return defaultPriority;
+        if (!categoryPriority[cat] || categoryPriority[cat] < p) {
+          categoryPriority[cat] = p;
+        }
+      }
+      const CATEGORY_ORDER = ["凉菜", "前菜", "中菜", "点心", "蒸菜", "后菜", "尾菜"];
+
+      const categories = Object.keys(categoryPriority);
+
+      const maxCategory = categories.reduce((a, b) => (categoryPriority[a] > categoryPriority[b] ? a : b));
+
+      const maxPriority = categoryPriority[maxCategory];
+
+      const newIndex = CATEGORY_ORDER.indexOf(categoryName);
+      const maxIndex = CATEGORY_ORDER.indexOf(maxCategory);
+
+      if (newIndex <= maxIndex) return maxPriority;
+
+      return categoryPriority[categoryName];
     };
-
     // 为每个新增菜品计算优先级
-    const addedItemsWithPriority = addedItems.map(item => ({
+    const addedItemsWithPriority = addedItems.map((item) => ({
       ...item,
       calculatedPriority: calculateNewDishPriority(item),
     }));
 
-    console.log("新增菜品优先级详情:", addedItemsWithPriority.map(i => ({
-      name: i.name,
-      category: i.category?.name,
-      priority: i.calculatedPriority,
-    })));
+    console.log(
+      "新增菜品优先级详情:",
+      addedItemsWithPriority.map((i) => ({
+        name: i.name,
+        category: i.category?.name,
+        priority: i.calculatedPriority,
+      })),
+    );
 
     // 使用 orderDetail.value.id 获取当前订单 ID
     const orderId = orderDetail.value?.id;
@@ -1241,9 +1224,7 @@ const confirmModifyDishes = async () => {
 
     // 并行批量删除被移除的菜品
     if (removedItems.length > 0) {
-      await Promise.all(
-        removedItems.map(item => api.orderItems.delete(item.orderItemId, orderId))
-      );
+      await Promise.all(removedItems.map((item) => api.orderItems.delete(item.orderItemId, orderId)));
       showSuccess(`成功删除 ${removedItems.length} 个菜品`);
       hasChanges = true;
     }
@@ -1251,11 +1232,13 @@ const confirmModifyDishes = async () => {
     // 并行批量更新已修改的菜品
     if (modifiedItems.length > 0) {
       await Promise.all(
-        modifiedItems.map(item => api.orderItems.update(item.orderItemId, orderId, {
-          quantity: item.quantity,
-          remark: item.remark || "",
-          weight: item.weight || null,
-        }))
+        modifiedItems.map((item) =>
+          api.orderItems.update(item.orderItemId, orderId, {
+            quantity: item.quantity,
+            remark: item.remark || "",
+            weight: item.weight || null,
+          }),
+        ),
       );
       showSuccess(`成功更新 ${modifiedItems.length} 个菜品`);
       hasChanges = true;
@@ -1263,16 +1246,21 @@ const confirmModifyDishes = async () => {
 
     // 并行批量添加新选中的菜品
     if (addedItemsWithPriority.length > 0) {
-      console.log("需要添加的菜品详情:", addedItemsWithPriority.map(i => ({ dishId: i.id, name: i.name, quantity: i.quantity, weight: i.weight, priority: i.calculatedPriority })));
+      console.log(
+        "需要添加的菜品详情:",
+        addedItemsWithPriority.map((i) => ({ dishId: i.id, name: i.name, quantity: i.quantity, weight: i.weight, priority: i.calculatedPriority })),
+      );
 
       await Promise.all(
-        addedItemsWithPriority.map(item => api.orderItems.create(orderId, {
-          dishId: item.id,
-          quantity: item.quantity,
-          remark: item.remark || "",
-          weight: item.weight || null,
-          priority: item.calculatedPriority, // 使用计算出的优先级
-        }))
+        addedItemsWithPriority.map((item) =>
+          api.orderItems.create(orderId, {
+            dishId: item.id,
+            quantity: item.quantity,
+            remark: item.remark || "",
+            weight: item.weight || null,
+            priority: item.calculatedPriority, // 使用计算出的优先级
+          }),
+        ),
       );
 
       if (removedItems.length === 0 && modifiedItems.length === 0) {
@@ -1292,7 +1280,7 @@ const confirmModifyDishes = async () => {
 
     // 通知父组件订单已更新，由 WebSocket 触发自动刷新
     emit("orderCancelled", props.orderId);
-    
+
     // 不立即调用 loadOrderDetail，等待 WebSocket 触发自动刷新
   } catch (error) {
     console.error("修改菜品失败:", error);

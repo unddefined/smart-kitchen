@@ -16,7 +16,6 @@
 
     <!-- 正常内容 -->
     <template v-else>
-      <!-- TODO 广播订单状态变更通知 -->
       <div class="flex-1 overflow-y-auto p-4">
         <!-- 已出菜品瀑布流 -->
         <div
@@ -30,115 +29,24 @@
               {{ isServedCollapsed ? "展开" : "收起" }}
             </span>
           </div>
-          <div v-show="!isServedCollapsed" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
-            <div
-              v-for="dish in servedDishes"
-              :key="`served-${dish.dishId}`"
-              class="flex items-center justify-center bg-white rounded-lg p-1 shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 border-2 border-gray-200 hover:border-gray-400 cursor-pointer"
-              @click="onServedDishClick(dish)">
-              <div class="flex items-center text-xl font-semibold text-gray-800">
-                <span class="max-w-[100px]">{{ truncateDishName(dish.name) }}</span>
-                <span class="mx-1 text-gray-900">×</span>
-                <span class="font-bold text-gray-900">{{ dish.totalQuantity }}</span>
-              </div>
-              <!-- 菜品详细标注 - 使用 generateDisplayDetails 生成 -->
-              <div class="text-lg text-gray-800 leading-relaxed font-medium flex flex-col items-center justify-center">
-                <div v-for="(detail, idx) in generateDisplayDetails(dish)" :key="idx" class="text-center break-all min-w-[80px]">
-                  {{ detail }}
-                </div>
-              </div>
-            </div>
-          </div>
+          <DishCards
+            v-show="!isServedCollapsed"
+            :dishes="servedDishes"
+            @click="handleDishClick"
+            @dblclick="onDishDoubleClick"
+            @contextmenu="onLongPress" />
         </div>
 
         <!-- 待处理菜品卡片 -->
         <div class="mb-3">
           <h3 class="text-lg font-medium text-gray-800">待上</h3>
-          <div ref="waterfallContainer" class="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-1.5">
-            <div
-              v-for="(dish, index) in pendingDishes"
-              :key="`pending-${dish.itemId}`"
-              :ref="
-                (el) => {
-                  if (el) cardRefs[index] = el;
-                }
-              "
-              :class="[
-                'break-inside-avoid mb-2 rounded-xl p-1.5 shadow-lg transition-all duration-300 hover:-translate-y-1.5 hover:scale-105 hover:shadow-xl cursor-pointer relative',
-                getPriorityClass(dish.priority),
-                dish.needsProcessing ? 'border-4 border-blue-500' : '',
-              ]"
-              @click="handleDishClick(dish)"
-              @dblclick="onDishDoubleClick(dish)"
-              @contextmenu.prevent="onLongPress(dish)">
-              <!-- 待切配/待处理提示 -->
-              <div
-                v-if="dish.needsProcessing"
-                class="absolute -top-2 left-1/2 transform -translate-x-1/2 text-blue-700 text-xl font-light z-10 whitespace-nowrap">
-                <span class="processing-text">{{ dish.processType }}</span>
-              </div>
-
-              <!-- 菜品主信息 -->
-              <div class="flex items-center justify-center text-xl font-bold text-gray-800 leading-tight w-full mb-1 text-center">
-                <span class=" text-center">{{ truncateDishName(dish.name) }}</span>
-                <span class="text-black mx-1">×</span>
-                <span class="font-bold text-gray-900">{{ dish.totalQuantity }}</span>
-              </div>
-
-              <!-- 菜品详细标注 - 使用 generateDisplayDetails 生成 -->
-              <div class="text-lg text-gray-800 leading-relaxed font-medium flex flex-col items-center justify-center">
-                <div v-for="(detail, idx) in generateDisplayDetails(dish)" :key="idx" class="text-center break-all min-w-[80px]">
-                  {{ detail }}
-                </div>
-              </div>
-            </div>
-          </div>
+          <DishCards :dishes="pendingDishes" @click="handleDishClick" @dblclick="onDishDoubleClick" @contextmenu="onLongPress" />
         </div>
 
         <!-- 未起菜菜品列表 -->
         <div class="mb-3">
           <h3 class="text-lg font-medium text-gray-800">未起</h3>
-          <div ref="unstartedWaterfallContainer" class="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-2">
-            <div
-              v-for="(dish, index) in unstartedDishes"
-              :key="`unstarted-${dish.itemId}`"
-              :ref="
-                (el) => {
-                  if (el) unstartedCardRefs[index] = el;
-                }
-              "
-              :class="[
-                'break-inside-avoid mb-3 rounded-xl p-1 shadow transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg cursor-pointer relative border-2',
-                getPriorityClass(dish.priority),
-                dish.needsProcessing ? 'border-4 border-blue-500' : '',
-              ]"
-              @click="handleDishClick(dish)"
-              @dblclick="onDishDoubleClick(dish)"
-              @contextmenu.prevent="onLongPress(dish)">
-              <!-- 待切配/待处理提示 -->
-              <div
-                v-if="dish.needsProcessing"
-                class="absolute -top-2 left-1/2 transform -translate-x-1/2 text-blue-700 text-lg font-light z-10 whitespace-nowrap">
-                <span class="processing-text">{{ dish.processType }}</span>
-              </div>
-
-              <!-- 菜品主信息 -->
-              <div class="flex items-center justify-center text-base font-medium text-gray-700 leading-tight w-full mb-1">
-                <span class="text-xl truncate max-w-[100px] text-center">{{ truncateDishName(dish.name) }}</span>
-                <span class="text-gray-600 mx-1">×</span>
-                <span class="font-semibold text-gray-800 text-xl">{{ dish.totalQuantity }}</span>
-              </div>
-
-              <!-- 菜品详细标注 - 使用 generateDisplayDetails 生成 -->
-              <div class="text-lg text-gray-800 leading-relaxed font-medium flex flex-col items-center justify-center">
-                <!-- 催菜提示 - 基于订单状态显示，而不是优先级 -->
-                <div v-if="dish.orderStatus === 'urged'" class="text-red-600 font-bold text-center mb-1">{{ dish.hallNumber }}催菜</div>
-                <div v-for="(detail, idx) in generateDisplayDetails(dish)" :key="idx" class="text-center break-all min-w-[80px]">
-                  {{ detail }}
-                </div>
-              </div>
-            </div>
-          </div>
+          <DishCards :dishes="unstartedDishes" @click="handleDishClick" @dblclick="onDishDoubleClick" @contextmenu="onLongPress" />
         </div>
       </div>
     </template>
@@ -207,6 +115,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useToast } from "@/composables/useToast";
 import { useDishManager } from "@/composables/useDishManager";
+import DishCards from "@/components/DishCards.vue";
 
 // 自定义 v-longpress 指令
 const vLongpress = {
@@ -302,7 +211,6 @@ const {
   getPriorityClass,
   getPriorityButtonClass,
   handleDishClick: handleDishClickBase,
-  showPriorityAdjustModal,
   closePriorityModal,
   decreaseQuantity,
   increaseQuantity,
@@ -336,6 +244,24 @@ const handleDishClick = async (dish) => {
 
   // 调用基础处理函数，传入 UI 反馈和回调函数
   await handleDishClickBase(dish, { showSuccess, showError, showInfo }, refreshFn, statusChangeFn);
+};
+
+// 包装 handleDishDoubleClick，注入事件回调逻辑
+const onDishDoubleClick = (dish) => {
+  handleDishDoubleClick(dish, (eventName, eventType, data) => {
+    emit(eventName, eventType, data);
+  });
+};
+
+// 长按事件处理 - 显示优先级调整弹窗
+const onLongPress = (dish) => {
+  console.log("长按菜品:", dish.name || dish.dish?.name || "未知菜品");
+  // 使用 useDishManager 中的 showPriorityAdjustModal 方法
+  // 但由于该方法没有导出，我们需要在这里直接实现弹窗逻辑
+  currentDish.value = dish;
+  tempQuantity.value = dish.totalQuantity || dish.quantity;
+  tempPriority.value = dish.priority;
+  showPriorityModal.value = true;
 };
 
 // 一、提取菜品 - 只负责数据标准化
@@ -529,48 +455,6 @@ const mergeDishes = (dishes) => {
   return result;
 };
 
-// 三、生成显示详情 - UI 渲染辅助函数
-const formatDetailItem = (dish) => {
-  const remark = dish.remark ? `(${dish.remark})` : "";
-  const weight = dish.weight !== null && dish.weight !== undefined && dish.weight !== "" ? `(${dish.weight})` : "";
-  return `${remark}${weight}`;
-};
-
-// 四、生成显示详情 - UI 渲染辅助函数
-const generateDisplayDetails = (dish) => {
-  const details = [];
-
-  // countable 菜
-  if (dish.countable && dish.perTableGroups?.length) {
-    for (const group of dish.perTableGroups) {
-      details.push(`${group.quantityPerTable}个×${group.tableCount}份`);
-    }
-    return details;
-  }
-
-  // 普通菜
-  let text = "";
-
-  if (dish.remark) {
-    text += `${dish.remark}`;
-  }
-
-  // 修复：weight 是字符串，需要检查是否为空字符串而不仅是 truthy/falsy
-  if (dish.weight !== null && dish.weight !== undefined && dish.weight !== "") {
-    text += text ? ` · ${dish.weight}` : `${dish.weight}`;
-  }
-
-  if (dish.totalQuantity && (dish.remark || (dish.weight !== null && dish.weight !== undefined && dish.weight !== ""))) {
-    text += ` · ${dish.totalQuantity}份`;
-  }
-
-  if (text) {
-    details.push(text);
-  }
-
-  return details;
-};
-
 /**
  * TODO: 后端聚合接口预留位置
  *
@@ -626,31 +510,6 @@ const pendingDishes = computed(() => {
 const unstartedDishes = computed(() => {
   return dishes.value.filter((dish) => dish.priority === 0);
 });
-
-// 辅助函数 - 截取菜名，保留前2后2字符，中间省略
-const truncateDishName = (name) => {
-  return name;
-  if (!name || typeof name !== "string") return "";
-
-  const screenWidth = window.innerWidth;
-
-  // 根据屏幕宽度估算可显示字符数
-  let maxChars;
-
-  if (screenWidth < 400) {
-    maxChars = 3; // 小手机
-  } else if (screenWidth < 768) {
-    maxChars = 5; // 大手机
-  } else if (screenWidth < 1200) {
-    maxChars = 8; // 平板
-  } else {
-    maxChars = 16; // 大屏
-  }
-
-  if (name.length <= maxChars) return name;
-
-  return name.slice(0, maxChars - 3) + "..." + name.slice(-2);
-};
 
 // 监听 orders 变化
 watch(
