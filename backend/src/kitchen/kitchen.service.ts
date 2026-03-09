@@ -295,6 +295,7 @@ export class KitchenService {
         },
       },
     });
+    this.broadcastOrderEvent('order-updated', order);
 
     if (!order) {
       throw new Error('订单不存在');
