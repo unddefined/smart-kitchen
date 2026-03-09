@@ -8,6 +8,9 @@ import "./styles/main.css";
 // 引入移动端优化样式
 import "./styles/mobile.css";
 
+// 导入全局 WebSocket 初始化函数
+import { initGlobalWebSocket } from "@/utils/websocket";
+
 // 移动端PWA优化
 const initMobileOptimizations = () => {
   // 禁止双击缩放
@@ -59,6 +62,9 @@ const initMobileOptimizations = () => {
 
 // 初始化移动端优化
 initMobileOptimizations();
+
+// 初始化全局 WebSocket（用于浏览器 Console 调试和多设备同步）
+initGlobalWebSocket();
 
 // 添加一个注释来触发前端部署
 // 2026-03-01 16:30: 前端样式更新部署测试

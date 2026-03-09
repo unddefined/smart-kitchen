@@ -301,3 +301,34 @@ export function useAutoRefresh(options = {}) {
     cleanup,
   };
 }
+
+/**
+ * 全局 WebSocket 实例（用于浏览器 Console 调试）
+ * 在应用启动时初始化
+ */
+let globalWebSocket = null;
+
+/**
+ * 初始化全局 WebSocket 实例
+ * 应在 main.js 中调用一次
+ */
+export function initGlobalWebSocket() {
+  if (!globalWebSocket) {
+    globalWebSocket = useWebSocket();
+    // 暴露到 window 对象，方便在 Console 中访问
+    if (typeof window !== 'undefined') {
+      window.ws = globalWebSocket;
+      window.subscribedRooms = subscribedRooms;
+      window.eventListeners = eventListeners;
+      console.log('🌐 全局 WebSocket 已初始化并暴露到 window.ws');
+    }
+  }
+  return globalWebSocket;
+}
+
+/**
+ * 获取全局 WebSocket 实例
+ */
+export function getGlobalWebSocket() {
+  return globalWebSocket || initGlobalWebSocket();
+}
