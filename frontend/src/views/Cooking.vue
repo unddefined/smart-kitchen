@@ -77,7 +77,7 @@
         </div>
       </div>
 
-      <!-- 功能按钮区域：起菜、催菜、暂停、更改订单菜品、录入订单 -->
+      <!-- 功能按钮区域：起菜、催菜、暂停、录入订单 -->
       <div class="flex w-full justify-between text-black gap-1">
         <button
           :class="[
@@ -443,67 +443,6 @@ const getStatusIcon = () => {
   return iconMap[order.status] || "❓";
 };
 
-// 检查是否可以执行操作
-const canPerformAction = () => {
-  if (!activeOrderId.value) return false;
-
-  const order = orders.value.find((o) => o.id === activeOrderId.value);
-  if (!order) return false;
-
-  // 根据操作类型检查订单状态
-  switch (currentActionType.value) {
-    case "start":
-      return order.status === "started";
-    case "urgent":
-      return order.status === "serving";
-    case "pause":
-      return order.status === "serving" || order.status === "urged";
-    default:
-      return false;
-  }
-};
-
-// 获取操作被禁用的原因
-const getActionDisabledReason = () => {
-  if (!activeOrderId.value) return "请先选择一个订单";
-
-  const order = orders.value.find((o) => o.id === activeOrderId.value);
-  if (!order) return "订单不存在";
-
-  const actionNames = {
-    start: "起菜",
-    urgent: "催菜",
-    pause: "暂停",
-  };
-
-  const reasonMap = {
-    start: {
-      allowed: ["started"],
-      message: '该订单处于"{status}"状态，无法执行起菜操作（需要"待起菜"状态）',
-    },
-    urgent: {
-      allowed: ["serving"],
-      message: '该订单处于"{status}"状态，无法执行催菜操作（需要"出餐中"状态）',
-    },
-    pause: {
-      allowed: ["serving", "urged"],
-      message: '该订单处于"{status}"状态，无法执行暂停操作（需要"出餐中"或"已催菜"状态）',
-    },
-  };
-
-  const config = reasonMap[currentActionType.value];
-  const statusMap = {
-    created: "待处理",
-    started: "待起菜",
-    serving: "出餐中",
-    urged: "已催菜",
-    done: "已完成",
-    cancelled: "已取消",
-  };
-
-  const currentStatus = statusMap[order.status] || order.status;
-  return config.message.replace("{status}", currentStatus);
-};
 
 // 计算属性
 const currentDate = computed(() => {

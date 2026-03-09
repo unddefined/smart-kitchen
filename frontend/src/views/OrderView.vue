@@ -73,14 +73,14 @@
             v-for="dish in servedDishes"
             :key="dish.id"
             class="p-3 rounded-lg border border-gray-300 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer">
-            <div class="flex justify-between font-medium text-gray-800">
-              <span class="dish-name">{{ dish.dish?.name || "未知菜品" }}</span>
-              <span class="dish-quantity">×{{ dish.quantity }}</span>
+            <div class="flex justify-between font-medium text-gray-800 text-xl">
+              <span>{{ dish.dish?.name || "未知菜品" }}</span>
+              <span>×{{ dish.quantity }}</span>
             </div>
-            <div v-if="dish.weight" class="text-lg text-gray-600 mt-1">
+            <div v-if="dish.weight" class="text-xl text-gray-600 mt-1">
               {{ dish.weight }}
             </div>
-            <div v-if="dish.remark" class="text-lg text-gray-600 mt-2 p-2 bg-gray-100 rounded">
+            <div v-if="dish.remark" class="text-xl text-gray-600 mt-2 p-2 bg-gray-100 rounded">
               {{ dish.remark }}
             </div>
           </div>
@@ -104,17 +104,13 @@
                 <span>{{ dish.dish?.name || "未知菜品" }}</span>
                 <span>×{{ dish.quantity }}</span>
               </span>
-              <span class="bg-gray-200 px-2 py-0.5 rounded-full text-sm">{{ getOrderItemStatusText(dish.status) }}</span>
+              <span class="bg-gray-200 px-2 py-0.5 rounded-full text-base">{{ getOrderItemStatusText(dish.status) }}</span>
             </div>
-            <div v-if="dish.weight" class="text-lg text-gray-600 mt-1">
+            <div v-if="dish.weight" class="text-xl text-gray-600 mt-1">
               {{ dish.weight }}
             </div>
-            <!-- 催菜提示 - 当订单状态为 urged 时显示 -->
-            <div v-if="orderDetail?.status === 'urged'" class="text-red-600 font-medium mt-2 p-2 bg-red-50 rounded text-lg">
-              {{ orderDetail.hallNumber }}催菜
-            </div>
             <!-- 普通备注 -->
-            <div v-else-if="dish.remark" class="text-lg text-gray-600 mt-2 p-2 bg-gray-100 rounded">
+            <div v-else-if="dish.remark" class="text-xl text-gray-600 mt-2 p-2 bg-gray-100 rounded">
               {{ dish.remark }}
             </div>
             <div class="dish-meta"></div>

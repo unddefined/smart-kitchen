@@ -5,18 +5,15 @@ import { ServingService } from "@/services";
 /**
  * 菜品交互管理 Composable
  * 专注于菜品点击、优先级调整等交互逻辑，数据处理由各视图自行实现
- * 
+ *
  * @param {Object} options - 配置选项
  * @param {Function} options.onStatusChange - 状态变更回调 (dish, newStatus, newPriority) => void
  * @param {Function} options.onPriorityAdjust - 优先级调整回调 (dish, quantity, priority) => void
- * 
+ *
  * @returns {Object} 响应式状态和方法
  */
 export function useDishManager(options = {}) {
-  const {
-    onStatusChange,
-    onPriorityAdjust,
-  } = options;
+  const { onStatusChange, onPriorityAdjust } = options;
 
   // 响应式状态
   const showPriorityModal = ref(false);
@@ -89,21 +86,33 @@ export function useDishManager(options = {}) {
     // 2. 嵌套结构（OrderView）: { id, dish: { name }, status, priority, ... }
     const dishName = dish.name || dish.dish?.name || "未知菜品";
     const needPrep = dish.needPrep ?? dish.dish?.needPrep;
-    
-    console.log("点击菜品:", dishName, "当前状态:", dish.status, "优先级:", dish.priority, "needPrep:", needPrep);
+
+    console.log(
+      "点击菜品:",
+      dishName,
+      "当前状态:",
+      dish.status,
+      "优先级:",
+      dish.priority,
+      "needPrep:",
+      needPrep,
+    );
 
     // 获取订单项 ID（兼容两种数据结构）
     // 如果是聚合的菜品（来自 OverviewView 的 mergeDishes），可能包含多个 itemId
     const itemId = dish.itemId ?? dish.id;
     const itemIds = dish.itemIds || (itemId ? [itemId] : []);
-    
+
     if (!itemIds || itemIds.length === 0) {
       showToastFn.showError("菜品 ID 不存在，无法操作");
       return;
     }
 
     // 根据 MVP文档，优先级为 0 的菜品（未起）不能直接上菜
-    if (dish.priority === 0 && (dish.status === "ready" || dish.status === "preparing")) {
+    if (
+      dish.priority === 0 &&
+      (dish.status === "ready" || dish.status === "preparing")
+    ) {
       showToastFn.showError(`还未起菜，无法上菜。`);
       return;
     }
@@ -119,10 +128,14 @@ export function useDishManager(options = {}) {
           // 批量操作
           if (itemIds.length > 1) {
             const results = await Promise.all(
-              itemIds.map(id => api.serving.completePrep(id))
+              itemIds.map((id) => api.serving.completePrep(id)),
             );
-            const successCount = results.filter(r => r?.success).length;
-            result = { success: true, count: successCount, total: itemIds.length };
+            const successCount = results.filter((r) => r?.success).length;
+            result = {
+              success: true,
+              count: successCount,
+              total: itemIds.length,
+            };
             message = `已将${successCount}份"${dishName}"标记为准备下锅（跳过预处理）`;
           } else {
             result = await api.serving.completePrep(itemIds[0]);
@@ -134,10 +147,14 @@ export function useDishManager(options = {}) {
           // 批量操作
           if (itemIds.length > 1) {
             const results = await Promise.all(
-              itemIds.map(id => ServingService.startPreparation(id))
+              itemIds.map((id) => ServingService.startPreparation(id)),
             );
-            const successCount = results.filter(r => r?.success).length;
-            result = { success: true, count: successCount, total: itemIds.length };
+            const successCount = results.filter((r) => r?.success).length;
+            result = {
+              success: true,
+              count: successCount,
+              total: itemIds.length,
+            };
             message = `已将${successCount}份"${dishName}"标记为待处理`;
           } else {
             result = await ServingService.completePreparation(itemIds[0]);
@@ -150,10 +167,14 @@ export function useDishManager(options = {}) {
         // 批量操作
         if (itemIds.length > 1) {
           const results = await Promise.all(
-            itemIds.map(id => api.serving.completePrep(id))
+            itemIds.map((id) => api.serving.completePrep(id)),
           );
-          const successCount = results.filter(r => r?.success).length;
-          result = { success: true, count: successCount, total: itemIds.length };
+          const successCount = results.filter((r) => r?.success).length;
+          result = {
+            success: true,
+            count: successCount,
+            total: itemIds.length,
+          };
           message = `已将${successCount}份"${dishName}"标记为准备下锅`;
         } else {
           result = await api.serving.completePrep(itemIds[0]);
@@ -186,13 +207,35 @@ export function useDishManager(options = {}) {
       if (result?.success) {
         showToastFn.showSuccess(message);
         await new Promise((resolve) => setTimeout(resolve, 300));
-        
+
         // 发送状态变更事件通知父组件
         if (emitFn && typeof emitFn === "function") {
-          // emitFn 接收 4 个参数：dish, newStatus, newPriority, message
-          emitFn(dish, 'served', -1, message);
+          // 创建纯 POJO 对象，避免响应式代理
+          const simplifiedDish = JSON.parse(
+            JSON.stringify({
+              id: dish.id,
+              orderItemId: dish.orderItemId,
+              name: dish.name || dish.dish?.name,
+              status: dish.status,
+              priority: dish.priority,
+              quantity: dish.quantity,
+            }),
+          );
+
+          // 确保 message 是字符串类型
+          const messageStr = String(message || "");
+          console.log("🔍 发送状态变更事件:", simplifiedDish, messageStr);
+
+          // 使用 event 名称和 payload 对象的方式
+          emitFn("dish-action", {
+            type: "status-changed",
+            dish: simplifiedDish,
+            newStatus: "served",
+            newPriority: -1,
+            message: messageStr,
+          });
         }
-        
+
         // 刷新数据
         if (refreshFn && typeof refreshFn === "function") {
           await refreshFn();
@@ -245,8 +288,9 @@ export function useDishManager(options = {}) {
    */
   const confirmPriorityAdjust = (emitFn) => {
     // 兼容两种数据结构
-    const dishName = currentDish.value?.name || currentDish.value?.dish?.name || "未知菜品";
-    
+    const dishName =
+      currentDish.value?.name || currentDish.value?.dish?.name || "未知菜品";
+
     console.log("调整菜品:", {
       dish: dishName,
       quantity: tempQuantity.value,
@@ -254,7 +298,7 @@ export function useDishManager(options = {}) {
     });
 
     closePriorityModal();
-    
+
     if (emitFn) {
       emitFn("dish-action", "adjust-priority", {
         dish: currentDish.value,
@@ -262,9 +306,13 @@ export function useDishManager(options = {}) {
         priority: tempPriority.value,
       });
     }
-    
+
     if (onPriorityAdjust) {
-      onPriorityAdjust(currentDish.value, tempQuantity.value, tempPriority.value);
+      onPriorityAdjust(
+        currentDish.value,
+        tempQuantity.value,
+        tempPriority.value,
+      );
     }
   };
 
@@ -322,7 +370,7 @@ export function useDishManager(options = {}) {
     isServedCollapsed,
     collapseTimer,
     priorityOptions,
-    
+
     // 方法
     getPriorityClass,
     getPriorityButtonClass,
