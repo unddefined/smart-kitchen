@@ -59,7 +59,7 @@
 
         <div class="p-4 space-y-4">
           <div class="flex items-center justify-between">
-            <div class="text-gray-900 font-medium text-xl">
+            <div class="text-gray-900 font-medium text-2xl">
               {{ currentDish?.name }}
             </div>
             <button
@@ -75,14 +75,14 @@
               <span>删除</span>
             </button>
           </div>
-
+          <div class="text-lg" v-if="currentDish.countable">本菜品按总人数自动算个数，无需额外标注</div>
           <!-- 份量调整 -->
           <div class="flex justify-between items-start items-center">
-            <label class=" text-xl font-medium text-gray-700 mb-2">份量</label>
+            <label class="text-xl font-medium text-gray-700 mb-2">份量</label>
             <div class="flex items-center space-x-3">
               <button
                 @click="resetQuantity"
-                class="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm font-medium transition-colors">
+                class="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-base font-medium transition-colors">
                 清零
               </button>
               <button
@@ -92,7 +92,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
                 </svg>
               </button>
-              <span class="text-base font-bold w-12 text-center">{{ currentDish?.quantity || 1 }}</span>
+              <span class="text-xl font-bold w-12 text-center">{{ currentDish?.quantity || 1 }}</span>
               <button
                 @click="increaseQuantity"
                 class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 transition-colors">
@@ -105,7 +105,7 @@
 
           <!-- 重量输入 -->
           <div v-if="showWeightInput && currentDish" class="flex justify-between items-start items-center">
-            <label class=" text-xl font-medium text-gray-700 mb-2 whitespace-nowrap mr-3">重量</label>
+            <label class="text-xl font-medium text-gray-700 mb-2 whitespace-nowrap mr-3">重量</label>
             <WeightInput class="w-full" ref="weightInputRef" v-model="currentDish.weightValue" v-model:unit="currentDish.weightUnit" />
           </div>
 
@@ -116,7 +116,7 @@
               v-model="currentDish.remark"
               rows="3"
               placeholder="大份，少辣，去葱等备注信息"
-              class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+              class=" text-xl w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
           </div>
         </div>
 
@@ -212,26 +212,25 @@ const currentDish = ref(null);
 const weightInputRef = ref(null);
 const showLocalEditModal = ref(false); // 本地管理编辑弹窗状态
 
-
 // 计算属性 - 按分类排序后内部再按字母排序
 const sortedDishes = computed(() => {
   if (!props.dishes || props.dishes.length === 0) {
     return [];
   }
-  
+
   // 创建副本进行排序
   return [...props.dishes].sort((a, b) => {
     // 首先按分类的 displayOrder 排序
     // 注意：数据可能包含 category.displayOrder 或 categoryDisplayOrder 字段
     const categoryOrderA = a.category?.displayOrder ?? a.categoryDisplayOrder ?? Number.MAX_SAFE_INTEGER;
     const categoryOrderB = b.category?.displayOrder ?? b.categoryDisplayOrder ?? Number.MAX_SAFE_INTEGER;
-    
+
     if (categoryOrderA !== categoryOrderB) {
       return categoryOrderA - categoryOrderB;
     }
-    
+
     // 同一分类内按菜名字母顺序排序
-    return (a.name || '').localeCompare(b.name || '', 'zh-CN');
+    return (a.name || "").localeCompare(b.name || "", "zh-CN");
   });
 });
 
@@ -239,7 +238,7 @@ const sortedDishes = computed(() => {
 const getDishClasses = (dish) => {
   // 检查是否为已上菜的菜品
   const isServed = props.servedDishIds.includes(dish.id);
-  
+
   if (props.readonly || isServed) {
     return "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed";
   }
@@ -288,7 +287,7 @@ const getSelectedQuantity = (dishId) => {
 // 处理菜品点击
 const handleDishClick = (dish) => {
   if (props.readonly) return;
-  
+
   // 检查是否为已上菜的菜品，如果是则禁止点击
   const isServed = props.servedDishIds.includes(dish.id);
   if (isServed) {
@@ -305,10 +304,10 @@ const handleDishClick = (dish) => {
       ...dish, // 使用原始菜品信息
       quantity: selected.quantity || 1, // 保留数量
       weightValue: props.mode === "edit" ? (selected.weightValue ?? null) : null,
-      weightUnit: props.mode === "edit" ? (selected.weightUnit || "两") : "两",
-      remark: props.mode === "edit" ? (selected.remark || "") : "",
+      weightUnit: props.mode === "edit" ? selected.weightUnit || "两" : "两",
+      remark: props.mode === "edit" ? selected.remark || "" : "",
     };
-    
+
     // 根据模式决定触发哪个事件
     if (props.mode === "edit" || props.mode === "select") {
       // 编辑模式和选择模式下都触发 dish-edit 事件打开编辑弹窗
@@ -391,22 +390,22 @@ const closeEditModal = () => {
 const confirmEdit = () => {
   if (!currentDish.value) return;
 
-  console.log('=== confirmEdit 被调用 ===');
-  console.log('currentDish.value:', currentDish.value);
-  
+  console.log("=== confirmEdit 被调用 ===");
+  console.log("currentDish.value:", currentDish.value);
+
   const index = props.selectedDishes.findIndex((d) => d.id === currentDish.value.id);
-  console.log('找到的索引:', index);
-  
+  console.log("找到的索引:", index);
+
   if (index >= 0) {
     const newSelected = [...props.selectedDishes];
-    
+
     // 使用组件暴露的 weightString 计算属性
     const weightString = weightInputRef.value?.weightString || "";
-    
-    console.log('原始数据:', newSelected[index]);
-    console.log('要更新的字段:', {
+
+    console.log("原始数据:", newSelected[index]);
+    console.log("要更新的字段:", {
       quantity: currentDish.value.quantity,
-      remark: currentDish.value.remark || '',
+      remark: currentDish.value.remark || "",
       weightValue: currentDish.value.weightValue,
       weightUnit: currentDish.value.weightUnit,
       weight: weightString,
@@ -416,16 +415,16 @@ const confirmEdit = () => {
     newSelected[index] = {
       ...newSelected[index], // 保留原有字段（包括 orderItemId 等）
       quantity: currentDish.value.quantity,
-      remark: currentDish.value.remark || '',
+      remark: currentDish.value.remark || "",
       weightValue: currentDish.value.weightValue,
       weightUnit: currentDish.value.weightUnit,
       // 修复：只有当 weightString 不为空时才设置 weight，否则设为 null
       weight: weightString ? weightString : null,
     };
 
-    console.log('更新后的数据:', newSelected[index]);
-    console.log('触发 update:selectedDishes 事件，发送', newSelected.length, '个菜品');
-    
+    console.log("更新后的数据:", newSelected[index]);
+    console.log("触发 update:selectedDishes 事件，发送", newSelected.length, "个菜品");
+
     // 触发更新事件，让父组件同步状态
     emit("update:selectedDishes", newSelected);
   }

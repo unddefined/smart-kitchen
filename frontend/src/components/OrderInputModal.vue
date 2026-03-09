@@ -19,7 +19,7 @@
           <!-- 用餐信息输入（全部同一行） -->
           <div class="flex space-x-4">
             <div class="flex items-center space-x-3 flex-1">
-              <label class="text-xl whitespace-nowrap">人数</label>
+              <label class="text-xl whitespace-nowrap">总人数</label>
               <input
                 v-model.number="personCount"
                 type="number"
@@ -42,8 +42,8 @@
             <input
               v-model="hallNumber"
               type="text"
-              placeholder="请输入台号"
-              class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              placeholder="打包请输入：打包+取餐时间"
+              class="text-xl w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
 
           <!-- 订单备注 -->
@@ -52,8 +52,8 @@
             <textarea
               v-model="orderRemark"
               rows="2"
-              placeholder="订单备注（可选）..."
-              class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+              placeholder="如不要葱蒜、全素等"
+              class="text-xl w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
           </div>
 
           <!-- 用餐时间 -->
@@ -63,7 +63,7 @@
               <input
                 v-model="mealDate"
                 type="date"
-                class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]" />
+                class="text-xl px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]" />
               <span class="flex rounded overflow-hidden">
                 <button
                   :class="[

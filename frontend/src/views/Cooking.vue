@@ -3,7 +3,7 @@
   <div class="flex flex-col h-full bg-gray-100 relative">
     <!-- 订单状态变更广播通知 -->
     <OrderBroadcast />
-    
+
     <!-- 加载状态覆盖层 -->
     <div v-if="loading" class="absolute inset-0 bg-white bg-opacity-90 flex justify-center items-center z-50">
       <div class="text-center p-5 bg-white rounded-xl shadow-lg">
@@ -59,7 +59,7 @@
           <span class="flex rounded overflow-hidden">
             <button
               :class="[
-                'px-1 py-0.5 border-r border-gray-300 text-base cursor-pointer transition-all duration-200',
+                ' text-xl px-1 py-0.5 border-r border-gray-300 text-base cursor-pointer transition-all duration-200',
                 mealType === 'lunch' ? 'bg-blue-500 text-white border-blue-500' : '',
               ]"
               @click="mealType = 'lunch'">
@@ -67,7 +67,7 @@
             </button>
             <button
               :class="[
-                'px-1 py-0.5 border-gray-300 text-base cursor-pointer transition-all duration-200',
+                ' text-xl px-1 py-0.5 border-gray-300 text-base cursor-pointer transition-all duration-200',
                 mealType === 'dinner' ? 'bg-blue-500 text-white border-blue-500' : '',
               ]"
               @click="mealType = 'dinner'">
@@ -442,7 +442,6 @@ const getStatusIcon = () => {
 
   return iconMap[order.status] || "❓";
 };
-
 
 // 计算属性
 const currentDate = computed(() => {
