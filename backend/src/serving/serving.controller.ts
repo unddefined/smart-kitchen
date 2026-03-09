@@ -46,6 +46,16 @@ export class ServingController {
   }
 
   /**
+   * 开始制作菜品（pending → preparing）
+   * POST /api/serving/items/:itemId/start-prep
+   */
+  @Post('items/:itemId/start-prep')
+  async startDishPreparation(@Param('itemId', ParseIntPipe) itemId: number) {
+    this.logger.log(`标记订单菜品 ${itemId} 开始制作`);
+    return await this.servingService.startDishPreparation(itemId);
+  }
+
+  /**
    * 标记菜品准备下锅
    * POST /api/serving/items/:itemId/complete-prep
    */

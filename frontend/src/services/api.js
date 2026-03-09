@@ -253,6 +253,12 @@ export const api = {
         body: JSON.stringify({ priority, reason }),
       }),
 
+    // 开始制作菜品（pending → preparing）
+    startPreparation: (itemId) =>
+      request(`/api/serving/items/${itemId}/start-prep`, {
+        method: "POST",
+      }),
+
     // 标记菜品为已出菜
     markAsServed: (itemId) =>
       request(`/api/serving/items/${itemId}/serve`, {
