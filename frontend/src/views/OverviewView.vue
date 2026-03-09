@@ -403,19 +403,49 @@ const mergeDishes = (dishes) => {
     }
 
     // 处理份量分组（perTableGroups）
-    const perTableKey = dish.countable ? dish.peopleCount : dish.quantity;
-    let group = existing.perTableGroups.find((g) => g.quantityPerTable === perTableKey);
+    if (dish.countable) {
+      // 可数菜品：使用取余平均分配
+      const quotient = Math.floor(dish.peopleCount / dish.tableCount);
+      const remainder = dish.peopleCount % dish.tableCount;
 
-    if (!group) {
-      group = {
-        quantityPerTable: perTableKey,
-        tableCount: 0,
-      };
-      existing.perTableGroups.push(group);
+      // 添加较多人数的组 (商 +1)
+      if (remainder > 0) {
+        let group = existing.perTableGroups.find((g) => g.quantityPerTable === quotient + 1);
+        if (!group) {
+          group = {
+            quantityPerTable: quotient + 1,
+            tableCount: 0,
+          };
+          existing.perTableGroups.push(group);
+        }
+        group.tableCount += remainder * dish.quantity;
+      }
+
+      // 添加较少人数的组 (商)
+      if (quotient > 0 && dish.tableCount - remainder > 0) {
+        let group = existing.perTableGroups.find((g) => g.quantityPerTable === quotient);
+        if (!group) {
+          group = {
+            quantityPerTable: quotient,
+            tableCount: 0,
+          };
+          existing.perTableGroups.push(group);
+        }
+        group.tableCount += (dish.tableCount - remainder) * dish.quantity;
+      }
+    } else {
+      // 普通菜品：单桌订单直接使用 quantity，多桌订单才需要平均分配
+      const perTableKey = dish.quantity;
+      let group = existing.perTableGroups.find((g) => g.quantityPerTable === perTableKey);
+      if (!group) {
+        group = {
+          quantityPerTable: perTableKey,
+          tableCount: 0,
+        };
+        existing.perTableGroups.push(group);
+      }
+      group.tableCount += dish.quantity * dish.tableCount;
     }
-
-    // Countable 菜品累加人数，普通菜品累加桌数
-    group.tableCount += dish.countable ? dish.quantity : dish.tableCount;
 
     // 处理备注分组（remarks）- 包含 weight 字段
     const remarkKey = (dish.remark || "_none") + "|" + (dish.weight || "_none");
@@ -424,7 +454,7 @@ const mergeDishes = (dishes) => {
     if (!remark) {
       remark = {
         remark: dish.remark || "",
-        weight: dish.weight ? Number(dish.weight) : null,
+        weight: dish.weight ? dish.weight : null,
         quantity: 0,
       };
       existing.remarks.push(remark);

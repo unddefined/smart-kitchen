@@ -134,7 +134,7 @@ export function useDishManager(options = {}) {
           // 批量操作
           if (itemIds.length > 1) {
             const results = await Promise.all(
-              itemIds.map(id => ServingService.completePreparation(id))
+              itemIds.map(id => ServingService.startPreparation(id))
             );
             const successCount = results.filter(r => r?.success).length;
             result = { success: true, count: successCount, total: itemIds.length };

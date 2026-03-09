@@ -61,6 +61,23 @@ export class ServingService {
     }
   }
 
+  // 开始制作菜品（pending → preparing）
+  static async startPreparation(itemId) {
+    try {
+      const result = await api.orderItems.startPreparation(itemId);
+      return {
+        success: true,
+        message: "开始制作",
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: "操作失败：" + error.message,
+      };
+    }
+  }
+
   // 标记菜品完成切配（pending → prep）
   static async completePreparation(itemId) {
     try {

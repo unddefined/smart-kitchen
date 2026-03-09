@@ -270,6 +270,40 @@ export class ServingService {
     return updatedItem;
   }
 
+  /**
+   * 开始制作菜品（pending → preparing）
+   * 验证状态流转合法性并更新状态
+   */
+  async startDishPreparation(itemId: number) {
+    const item = await this.prisma.orderItem.findUnique({
+      where: { id: itemId },
+      include: {
+        dish: true,
+      },
+    });
+
+    if (!item) {
+      throw new Error('订单项不存在');
+    }
+
+    // 验证当前状态是否为 pending
+    if (item.status !== 'pending') {
+      throw new Error(`只有待制作状态的菜品才能开始制作，当前状态为 ${item.status}`);
+    }
+
+    // 更新状态为 preparing
+    const updatedItem = await this.prisma.orderItem.update({
+      where: { id: itemId },
+      data: {
+        status: 'preparing',
+      },
+    });
+
+    this.logger.log(`订单菜品 ${itemId} (${item.dish.name}) 开始制作：pending → preparing`);
+
+    return updatedItem;
+  }
+
   // 标记订单项为已出菜
   async markAsServed(itemId: number) {
     const item = await this.prisma.orderItem.findUnique({
