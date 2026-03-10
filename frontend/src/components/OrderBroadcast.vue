@@ -19,21 +19,16 @@
         </button>
 
         <!-- 内容区域 -->
-        <div class="p-4 pr-10">
+        <div class="p-2 text-lg flex items-center justify-between">
           <!-- 标题和图标 -->
-          <div class="flex items-center gap-2 mb-1">
-            <span v-if="broadcast.icon" class="text-2xl">{{ broadcast.icon }}</span>
-            <h3 class="text-lg font-semibold">{{ broadcast.title }}</h3>
-          </div>
+
+          <span
+            ><span v-if="broadcast.icon">{{ broadcast.icon }}</span>
+            <p class="leading-relaxed">{{ broadcast.message }}</p></span
+          >
 
           <!-- 消息内容 -->
-          <p class="text-sm opacity-90 leading-relaxed">{{ broadcast.message }}</p>
-
-          <!-- 附加信息（台号、时间等） -->
-          <div v-if="broadcast.hallNumber || broadcast.timestamp" class="mt-2 flex items-center gap-3 text-xs opacity-75">
-            <span v-if="broadcast.hallNumber">台号：{{ broadcast.hallNumber }}</span>
-            <span v-if="broadcast.timestamp">{{ formatTime(broadcast.timestamp) }}</span>
-          </div>
+          <span v-if="broadcast.timestamp">{{ formatTime(broadcast.timestamp) }}</span>
         </div>
       </div>
     </transition-group>
@@ -226,35 +221,59 @@ const setupEventListeners = () => {
   });
   unsubscribers.push(unsubscribeOrderUpdated);
 
-  // 订单项变更（加菜/退菜）
-  const unsubscribeItemChanged = listen("order-item-changed", (data) => {
-    console.log("🥗 订单项变更:", data);
+  // 订单项变更 - 监听 item-created（加菜）
+  const unsubscribeItemCreated = listen("item-created", (data) => {
+    console.log("➕ 菜品被添加:", data);
 
-    if (data.action === "added") {
-      // 加菜
-      addBroadcast({
-        type: "add-dish",
-        title: "加菜通知",
-        message: `台号 ${data.hallNumber} 新增菜品：${data.dishName}`,
-        orderId: data.orderId,
-        hallNumber: data.hallNumber,
-        icon: "➕",
-        timestamp: Date.now(),
-      });
-    } else if (data.action === "removed") {
-      // 退菜
-      addBroadcast({
-        type: "remove-dish",
-        title: "退菜通知",
-        message: `台号 ${data.hallNumber} 退菜：${data.dishName}`,
-        orderId: data.orderId,
-        hallNumber: data.hallNumber,
-        icon: "➖",
-        timestamp: Date.now(),
-      });
-    }
+    const item = data.data || data;
+    const dishName = item.dish?.name || "未知菜品";
+    const orderId = item.orderId || data.orderId;
+
+    // ✅ 修复：后端现在会广播 hallNumber 字段
+    let hallNumber = item.hallNumber || data.hallNumber;
+
+    addBroadcast({
+      type: "add-dish",
+      title: "加菜通知",
+      message: `台号 ${hallNumber || "未知"} 新增菜品：${dishName}`,
+      orderId,
+      hallNumber: hallNumber || "未知",
+      icon: "➕",
+      timestamp: Date.now(),
+    });
   });
-  unsubscribers.push(unsubscribeItemChanged);
+  unsubscribers.push(unsubscribeItemCreated);
+
+  // 订单项变更 - 监听 item-deleted（退菜）
+  const unsubscribeItemDeleted = listen("item-deleted", (data) => {
+    console.log("➖ 菜品被删除:", data);
+
+    const item = data.data || data;
+    const dishName = item.dish?.name || data.dishName || "未知菜品";
+    const orderId = item.orderId || data.orderId;
+
+    // ✅ 修复：后端现在会广播 hallNumber 字段
+    let hallNumber = item.hallNumber || data.hallNumber;
+
+    addBroadcast({
+      type: "remove-dish",
+      title: "退菜通知",
+      message: `台号 ${hallNumber || "未知"} 退菜：${dishName}`,
+      orderId,
+      hallNumber: hallNumber || "未知",
+      icon: "➖",
+      timestamp: Date.now(),
+    });
+  });
+  unsubscribers.push(unsubscribeItemDeleted);
+
+  // 订单项状态变更 - 监听 item-updated（可选，用于显示制作进度等）
+  const unsubscribeItemUpdated = listen("item-updated", (data) => {
+    console.log("🔄 菜品状态更新:", data);
+    // 如果需要显示菜品制作进度通知，可以在这里添加逻辑
+    // 目前暂不处理，只记录日志
+  });
+  unsubscribers.push(unsubscribeItemUpdated);
 };
 
 // 生命周期钩子

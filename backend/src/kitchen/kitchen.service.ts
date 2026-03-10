@@ -295,11 +295,13 @@ export class KitchenService {
         },
       },
     });
-    this.broadcastOrderEvent('order-updated', order);
 
     if (!order) {
       throw new Error('订单不存在');
     }
+
+    // 保存旧状态用于广播
+    const previousStatus = order.status;
 
     // 验证状态转换
     if (!this.validateStatusTransition(order.status, 'serving')) {
@@ -330,8 +332,12 @@ export class KitchenService {
       return updatedOrder;
     });
 
-    // 广播订单更新事件
-    this.broadcastOrderEvent('order-updated', updatedOrder);
+    // 广播订单更新事件，包含旧状态信息
+    const broadcastData = {
+      ...updatedOrder,
+      previousStatus, // 添加旧状态字段
+    };
+    this.broadcastOrderEvent('order-updated', broadcastData);
 
     return updatedOrder;
   }
@@ -348,6 +354,9 @@ export class KitchenService {
       throw new Error('订单不存在');
     }
 
+    // 保存旧状态用于广播
+    const previousStatus = order.status;
+
     // 验证状态转换
     if (!this.validateStatusTransition(order.status, 'urged')) {
       throw new Error(`无法从 ${order.status} 状态催菜`);
@@ -358,7 +367,12 @@ export class KitchenService {
       data: { status: 'urged', updatedAt: new Date() },
     });
 
-    this.broadcastOrderEvent('order-updated', updatedOrder);
+    // ✅ 优化：广播时包含 previousStatus 字段
+    const broadcastData = {
+      ...updatedOrder,
+      previousStatus, // 添加旧状态字段
+    };
+    this.broadcastOrderEvent('order-updated', broadcastData);
     return updatedOrder;
   }
 
@@ -386,12 +400,19 @@ export class KitchenService {
     );
 
     if (hasServedItems) {
+      const previousStatus = order.status;
+
       const updatedOrder = await this.prisma.order.update({
         where: { id },
         data: { status: 'serving', updatedAt: new Date() },
       });
 
-      this.broadcastOrderEvent('order-updated', updatedOrder);
+      // ✅ 优化：广播时包含 previousStatus 字段
+      const broadcastData = {
+        ...updatedOrder,
+        previousStatus, // 添加旧状态字段
+      };
+      this.broadcastOrderEvent('order-updated', broadcastData);
       return updatedOrder;
     }
 
@@ -420,6 +441,9 @@ export class KitchenService {
       throw new Error('仍有菜品未上完，无法完成订单');
     }
 
+    // 保存旧状态用于广播
+    const previousStatus = order.status;
+
     // 验证状态转换
     if (!this.validateStatusTransition(order.status, 'done')) {
       throw new Error(`无法从 ${order.status} 状态完成订单`);
@@ -430,7 +454,12 @@ export class KitchenService {
       data: { status: 'done' },
     });
 
-    this.broadcastOrderEvent('order-updated', updatedOrder);
+    // ✅ 优化：广播时包含 previousStatus 字段
+    const broadcastData = {
+      ...updatedOrder,
+      previousStatus, // 添加旧状态字段
+    };
+    this.broadcastOrderEvent('order-updated', broadcastData);
     return updatedOrder;
   }
 }

@@ -24,20 +24,38 @@ export class EventsGateway
   server: Server;
 
   private logger: Logger = new Logger('EventsGateway');
+  private connectionCount = 0;
 
   afterInit(server: Server) {
     this.logger.log('WebSocket Gateway initialized');
-    // 使用 console.log 直接输出，让 Socket.IO 自己决定显示的端口信息
     this.logger.log('WebSocket server ready to accept connections');
+
+    // 定期输出连接状态
+    setInterval(() => {
+      const clientCount = this.server.engine?.clientsCount || 0;
+      this.logger.debug(`当前 WebSocket 连接数：${clientCount}`);
+    }, 60000); // 每分钟输出一次
   }
 
   handleConnection(client: Socket) {
-    this.logger.log(`Client connected: ${client.id}`);
-    console.log('Connected clients count:', this.server.engine?.clientsCount);
+    this.connectionCount++;
+    this.logger.log(
+      `✅ Client connected: ${client.id} (Total: ${this.connectionCount})`,
+    );
+
+    // 发送欢迎消息
+    client.emit('welcome', {
+      message: 'WebSocket 连接成功',
+      clientId: client.id,
+      timestamp: new Date().toISOString(),
+    });
   }
 
   handleDisconnect(client: Socket) {
-    this.logger.log(`Client disconnected: ${client.id}`);
+    this.connectionCount--;
+    this.logger.log(
+      `❌ Client disconnected: ${client.id} (Remaining: ${this.connectionCount})`,
+    );
   }
 
   // 客户端订阅房间
@@ -51,7 +69,7 @@ export class EventsGateway
       : payload.room;
 
     client.join(roomName);
-    this.logger.log(`Client ${client.id} subscribed to room: ${roomName}`);
+    this.logger.log(`📡 Client ${client.id} subscribed to room: ${roomName}`);
 
     return { event: 'subscribed', data: { room: roomName } };
   }
@@ -61,7 +79,7 @@ export class EventsGateway
   handleUnsubscribe(client: Socket, payload: { room: string }) {
     client.leave(payload.room);
     this.logger.log(
-      `Client ${client.id} unsubscribed from room: ${payload.room}`,
+      `📡 Client ${client.id} unsubscribed from room: ${payload.room}`,
     );
 
     return { event: 'unsubscribed', data: { room: payload.room } };
@@ -74,13 +92,36 @@ export class EventsGateway
     payload: { room: string; event: string; data: any },
   ) {
     this.server.to(payload.room).emit(payload.event, payload.data);
-    this.logger.log(`Broadcasted ${payload.event} to room: ${payload.room}`);
+    this.logger.log(`📢 Broadcasted ${payload.event} to room: ${payload.room}`);
   }
 
   // 测试连接
   @SubscribeMessage('ping')
   handlePing(client: Socket) {
-    this.logger.log(`Ping from ${client.id}`);
-    return { event: 'pong', data: { timestamp: new Date().toISOString() } };
+    const latency = Date.now();
+    this.logger.debug(`🏓 Ping from ${client.id}`);
+    return {
+      event: 'pong',
+      data: {
+        timestamp: new Date().toISOString(),
+        latency,
+        clientId: client.id,
+      },
+    };
+  }
+
+  // 获取连接信息
+  @SubscribeMessage('get-connection-info')
+  handleGetConnectionInfo(client: Socket) {
+    const rooms = Array.from(client.rooms);
+    return {
+      event: 'connection-info',
+      data: {
+        clientId: client.id,
+        connected: client.connected,
+        rooms: rooms.filter((r) => r !== client.id), // 排除默认房间
+        timestamp: new Date().toISOString(),
+      },
+    };
   }
 }

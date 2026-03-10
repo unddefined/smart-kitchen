@@ -35,16 +35,19 @@ export class OrderItemsService {
       include: { dish: true },
       orderBy: { createdAt: 'asc' },
     });
-    
+
     // 调试日志
-    this.logger.log(`查询订单 ${orderId} 的菜品项:`, items.map(item => ({
-      id: item.id,
-      dishId: item.dishId,
-      name: item.dish.name,
-      weight: item.weight,
-      quantity: item.quantity,
-    })));
-    
+    this.logger.log(
+      `查询订单 ${orderId} 的菜品项:`,
+      items.map((item) => ({
+        id: item.id,
+        dishId: item.dishId,
+        name: item.dish.name,
+        weight: item.weight,
+        quantity: item.quantity,
+      })),
+    );
+
     return items;
   }
 
@@ -85,8 +88,12 @@ export class OrderItemsService {
       include: { dish: true },
     });
 
-    // 广播订单项创建事件
-    this.broadcastItemEvent('item-created', createdItem);
+    // ✅ 优化：广播时包含订单 hallNumber 信息
+    const broadcastData = {
+      ...createdItem,
+      hallNumber: order.hallNumber, // 添加厅号信息
+    };
+    this.broadcastItemEvent('item-created', broadcastData);
 
     return createdItem;
   }
@@ -122,13 +129,23 @@ export class OrderItemsService {
       throw new Error('已上菜的菜品不能删除');
     }
 
+    // ✅ 优化：在删除前查询订单项获取 dish 信息
+    const itemWithDish = await this.prisma.orderItem.findUnique({
+      where: { id: itemId },
+      include: { dish: true },
+    });
+
     // 删除订单项
     const deletedItem = await this.prisma.orderItem.delete({
       where: { id: itemId },
     });
 
-    // 广播订单项删除事件
-    this.broadcastItemEvent('item-deleted', { ...deletedItem, orderId });
+    // ✅ 广播时包含 dish 和 hallNumber 信息
+    const broadcastData = {
+      ...itemWithDish,
+      hallNumber: order.hallNumber, // 添加厅号信息
+    };
+    this.broadcastItemEvent('item-deleted', broadcastData);
 
     return deletedItem;
   }
