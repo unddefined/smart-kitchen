@@ -256,10 +256,11 @@ const matchesSearch = (dish, keywords) => {
   // 直接使用后端返回的 shortcutCode（已经是拼音首字母缩写）
   const shortcutCode = (dish.shortcutCode || "").toLowerCase();
   
-  // 所有关键词都必须匹配
-  return keywords.every(keyword => {
+  // 多关键词 OR 逻辑：只要匹配任意一个关键词即可
+  return keywords.some(keyword => {
    const kw = keyword.toLowerCase();
-   return dishName.includes(kw) || shortcutCode.includes(kw);
+   // 关键词匹配菜名或 shortcutCode 其中之一即可
+  return dishName.includes(kw) || shortcutCode.includes(kw);
   });
 };
 
@@ -513,6 +514,55 @@ const confirmEdit = () => {
 
   closeEditModal();
 };
+
+// 测试搜索功能
+const testSearch = () => {
+  console.log('=== 搜索功能测试 ===\n');
+  
+  // 模拟菜品数据
+  const mockDishes = [
+    { id: 1, name: '红烧肉', shortcutCode: 'HSR' },
+    { id: 2, name: '牛肉羹', shortcutCode: 'NRG' },
+    { id: 3, name: '红烧牛肉', shortcutCode: 'HSNR' },
+    { id: 4, name: '清炒虾仁', shortcutCode: 'QCXR' },
+  ];
+  
+  // 测试用例
+  const testCases = [
+    { query: 'HSR', expected: ['红烧肉'] },
+    { query: '红烧', expected: ['红烧肉', '红烧牛肉'] },
+    { query: 'HS NR', expected: ['红烧牛肉'] },
+    { query: '肉', expected: ['红烧肉', '牛肉羹', '红烧牛肉'] },
+    { query: 'NRG', expected: ['牛肉羹'] },
+  ];
+  
+  testCases.forEach(({ query, expected }) => {
+   const keywords = query.trim().split(/\s+/).filter(k => k.length > 0);
+    
+    const results = mockDishes.filter(dish => {
+     const dishName = dish.name.toLowerCase();
+      const shortcutCode = dish.shortcutCode.toLowerCase();
+      
+    return keywords.every(kw => {
+       const k = kw.toLowerCase();
+       return dishName.includes(k) || shortcutCode.includes(k);
+      });
+    });
+    
+    const resultNames = results.map(r => r.name);
+    const passed = JSON.stringify(resultNames.sort()) === JSON.stringify(expected.sort());
+    
+    console.log(`查询："${query}"`);
+    console.log(`关键词：[${keywords.join(', ')}]`);
+    console.log(`结果：[${resultNames.join(', ')}]`);
+    console.log(`期望：[${expected.join(', ')}]`);
+    console.log(`${passed ? '✅ 通过' : '❌ 失败'}\n`);
+  });
+};
+
+// 在浏览器控制台运行测试
+// testSearch();
+
 </script>
 
 <style scoped>
