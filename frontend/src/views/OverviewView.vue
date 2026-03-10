@@ -25,7 +25,7 @@
           @mouseleave="startCollapseTimer">
           <div class="flex justify-between items-center cursor-pointer select-none" @click="toggleServedSection">
             <h3 class="text-lg font-medium text-gray-800">已出</h3>
-            <span class="text-sm text-gray-600">
+            <span class="text-lg text-gray-600">
               {{ isServedCollapsed ? "展开" : "收起" }}
             </span>
           </div>

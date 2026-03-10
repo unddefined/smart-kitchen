@@ -8,46 +8,25 @@
       <main class="main-content" :class="{ 'with-test-nav': false }">
         <router-view />
       </main>
-      
+
       <!-- 模态框容器 - 用于 Teleport 目标 -->
       <div id="modal-container" class="fixed inset-0 pointer-events-none"></div>
 
       <!-- 全局 Toast 组件 -->
-      <Toast 
-        v-model:visible="globalToast.visible" 
-        :message="globalToast.message" 
-        :type="globalToast.type" 
-        :duration="globalToast.duration" 
-      />
+      <Toast v-model:visible="globalToast.visible" :message="globalToast.message" :type="globalToast.type" :duration="globalToast.duration" />
 
       <!-- 全局底部导航栏 - 烹调/库存/待办/历史 -->
       <nav class="global-bottom-nav safe-area-bottom">
-        <button
-          :class="{ active: activeModule === 'cooking' }"
-          @click="switchToModule('cooking')"
-          class="nav-item"
-        >
+        <button :class="{ active: activeModule === 'cooking' }" @click="switchToModule('cooking')" class="nav-item">
           <span class="nav-text">烹调</span>
         </button>
-        <button
-          :class="{ active: activeModule === 'store' }"
-          @click="switchToModule('store')"
-          class="nav-item"
-        >
+        <button :class="{ active: activeModule === 'store' }" @click="switchToModule('store')" class="nav-item">
           <span class="nav-text">库存</span>
         </button>
-        <button
-          :class="{ active: activeModule === 'todo' }"
-          @click="switchToModule('todo')"
-          class="nav-item"
-        >
+        <button :class="{ active: activeModule === 'todo' }" @click="switchToModule('todo')" class="nav-item">
           <span class="nav-text">待办</span>
         </button>
-        <button
-          :class="{ active: activeModule === 'history' }"
-          @click="switchToModule('history')"
-          class="nav-item"
-        >
+        <button :class="{ active: activeModule === 'history' }" @click="switchToModule('history')" class="nav-item">
           <span class="nav-text">历史</span>
         </button>
       </nav>
@@ -114,9 +93,7 @@ const switchToModule = (module) => {
 <style>
 /* 移动端基础样式重置 */
 .mobile-app {
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
-    Cantarell, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   touch-action: manipulation; /* 优化触摸体验 */

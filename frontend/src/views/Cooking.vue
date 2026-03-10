@@ -1,9 +1,6 @@
 <!-- eslint-disable prettier/prettier -->
 <template>
   <div class="flex flex-col h-full bg-gray-100 relative">
-    <!-- 订单状态变更广播通知 -->
-    <OrderBroadcast />
-
     <!-- 加载状态覆盖层 -->
     <div v-if="loading" class="absolute inset-0 bg-white bg-opacity-90 flex justify-center items-center z-50">
       <div class="text-center p-5 bg-white rounded-xl shadow-lg">
@@ -27,7 +24,7 @@
 
     <!-- Header区域 -->
     <header class="bg-white border-b p-3 shadow-sm safe-area-top">
-      <div class="flex justify-between items-center mb-4">
+      <div class="flex justify-between items-center mb-3">
         <!-- 左侧：员工头像 + 工位 + 用户名 -->
         <div class="flex items-center gap-2 cursor-pointer" @click="toggleSidebar">
           <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-xl transition-all duration-200 hover:scale-110">
@@ -78,7 +75,7 @@
       </div>
 
       <!-- 功能按钮区域：起菜、催菜、暂停、录入订单 -->
-      <div class="flex w-full justify-between text-black gap-1">
+      <div class="flex w-full justify-between text-black gap-2">
         <button
           :class="[
             'py-1.5 border-none rounded-lg text-xl font-medium cursor-pointer transition-all duration-200 text-center flex-grow-[1.2] md:flex-grow-[1.1] sm:flex-grow-[1]',
@@ -112,6 +109,7 @@
           录入订单
         </button>
       </div>
+      <OrderBroadcast />
     </header>
 
     <!-- Body区域 -->

@@ -181,6 +181,11 @@ export class OrderItemsService {
       throw new Error('已上菜的菜品不能修改');
     }
 
+    // 保存旧值用于对比
+    const previousQuantity = orderItem.quantity;
+    const previousWeight = orderItem.weight;
+    const previousRemark = orderItem.remark;
+
     // 构建更新数据对象
     const dataToUpdate: any = {};
 
@@ -216,8 +221,15 @@ export class OrderItemsService {
       include: { dish: true },
     });
 
-    // 广播订单项更新事件
-    this.broadcastItemEvent('item-updated', updatedItem);
+    // ✅ 优化：广播时包含 hallNumber 字段和旧值
+    const broadcastData = {
+      ...updatedItem,
+      hallNumber: order.hallNumber,
+      previousQuantity,
+      previousWeight,
+      previousRemark,
+    };
+    this.broadcastItemEvent('item-updated', broadcastData);
 
     return updatedItem;
   }

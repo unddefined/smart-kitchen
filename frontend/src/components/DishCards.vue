@@ -4,7 +4,7 @@
       v-for="dish in props.dishes"
       :key="`pending-${dish.itemId}`"
       :class="[
-        'break-inside-avoid mb-2 rounded-xl p-1.5 shadow-lg transition-all duration-300 hover:-translate-y-1.5 hover:scale-105 hover:shadow-xl cursor-pointer relative',
+        'break-inside-avoid mb-2 rounded-xl p-1 shadow-lg transition-all duration-300 hover:-translate-y-1.5 hover:scale-105 hover:shadow-xl cursor-pointer relative',
         getPriorityClass(dish.priority),
         dish.needsProcessing ? 'border-4 border-blue-500' : '',
       ]"
@@ -15,7 +15,7 @@
       <div
         v-if="dish.needsProcessing"
         class="absolute -top-2 left-1/2 transform -translate-x-1/2 text-blue-700 text-xl font-light z-10 whitespace-nowrap">
-        <span class="processing-text">{{ dish.processType }}</span>
+        <span class="">{{ dish.processType }}</span>
       </div>
 
       <!-- 菜品主信息 -->
@@ -153,10 +153,3 @@ const handleContextMenu = (dish, event) => {
   emit("contextmenu", dish);
 };
 </script>
-
-<style scoped>
-/* 保持与原始代码一致的样式 */
-.processing-text {
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
-}
-</style>

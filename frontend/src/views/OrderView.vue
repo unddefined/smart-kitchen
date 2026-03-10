@@ -73,12 +73,12 @@
             {{ isServedCollapsed ? "展开" : "收起" }}
           </span>
         </div>
-        <div class="flex flex-col gap-3">
+        <div class="gap-3 sm:columns-2 md:columns-3 lg:columns-4">
           <div
             v-show="!isServedCollapsed"
             v-for="dish in servedDishes"
             :key="dish.id"
-            class="p-3 rounded-lg border border-gray-300 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer">
+            class="mb-2 break-inside-avoid p-2 rounded-lg border border-gray-300 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer">
             <div class="flex justify-between font-medium text-gray-800 text-xl">
               <span>{{ dish.dish?.name || "未知菜品" }}</span>
               <span>×{{ dish.quantity }}</span>
@@ -96,12 +96,12 @@
       <!-- 待上菜品 -->
       <div class="bg-white rounded-xl p-3 shadow-md">
         <h3 class="text-lg font-medium text-gray-800 mb-2">待上菜品</h3>
-        <div class="flex flex-col gap-3">
+        <div class="gap-3 sm:columns-2 md:columns-3 lg:columns-4">
           <div
             v-for="dish in pendingDishes"
             :key="dish.id"
             :class="[
-              'p-3 rounded-lg border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer',
+              'mb-2 bg-gray-500 break-inside-avoid p-2 rounded-lg border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer',
               getDishPriorityClass(dish.priority || 0),
             ]"
             @click="handleDishClick(dish)">
@@ -110,7 +110,7 @@
                 <span>{{ dish.dish?.name || "未知菜品" }}</span>
                 <span>×{{ dish.quantity }}</span>
               </span>
-              <span class="bg-gray-200 px-2 py-0.5 rounded-full text-base">{{ getOrderItemStatusText(dish.status) }}</span>
+              <span class="px-2 py-0.5 rounded-full text-base bg-gray-300">{{ getOrderItemStatusText(dish.status) }}</span>
             </div>
             <div v-if="dish.weight" class="text-xl text-gray-600 mt-1">
               {{ dish.weight }}
@@ -518,7 +518,7 @@ const dishManager = useDishManager({
 });
 
 // 解构常用方法
-const { getPriorityClass: getDishPriorityClass, handleDishClick: handleDishClickBase, isServedCollapsed} = dishManager;
+const { getPriorityClass: getDishPriorityClass, handleDishClick: handleDishClickBase, isServedCollapsed } = dishManager;
 
 // 计算属性 - 判断取消按钮是否禁用
 const isCancelButtonDisabled = computed(() => {
@@ -1174,7 +1174,7 @@ const confirmModifyDishes = async () => {
       const pendingItems = orderDetail.value?.items?.filter((i) => i.status !== "served");
 
       if (!pendingItems || pendingItems.length === 0) {
-        return CATEGORY_PRIORITY_MAP[categoryName] || 1;
+        return CATEGORY_PRIORITY_MAP[categoryName] || 3;
       }
 
       const categoryPriority = {};
