@@ -24,15 +24,49 @@
         </div>
       </div>
 
+      <!-- 搜索框 -->
+      <div class="mb-3">
+        <div class="relative">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="搜索菜品名称或拼音首字母（空格分隔多个关键词）"
+            class="w-full px-4 py-2 pl-10 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+            @input="handleSearchInput"
+          />
+          <svg
+            class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+            fill="none"
+           stroke="currentColor"
+            viewBox="0 0 24 24">
+            <path
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          <button
+            v-if="searchQuery"
+            @click="clearSearch"
+            class="absolute right-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition-colors">
+            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <p v-if="searchQuery && filteredDishes.length === 0" class="text-sm text-gray-500 mt-1">未找到匹配的菜品</p>
+        <p v-else-if="searchQuery" class="text-sm text-gray-500 mt-1">找到 {{ filteredDishes.length }} 个菜品</p>
+      </div>
+
       <!-- 无菜品提示 -->
-      <div v-if="dishes.length === 0" class="text-center py-4">
-        <p class="text-gray-500">暂无菜品</p>
+      <div v-if="filteredDishes.length === 0" class="text-center py-4">
+        <p class="text-gray-500">{{ searchQuery ? '未找到匹配的菜品' : '暂无菜品' }}</p>
       </div>
 
       <!-- 菜品按钮网格 -->
-      <div class="flex flex-wrap gap-1">
+      <div v-else class="flex flex-wrap gap-1">
         <button
-          v-for="dish in sortedDishes"
+          v-for="dish in filteredDishes"
           :key="dish.id"
           @click="handleDishClick(dish)"
           :class="['p-1 rounded-lg border-2 text-xl font-medium transition-all relative', getDishClasses(dish)]">
@@ -211,28 +245,76 @@ defineExpose({
 const currentDish = ref(null);
 const weightInputRef = ref(null);
 const showLocalEditModal = ref(false); // 本地管理编辑弹窗状态
+const searchQuery = ref(""); // 搜索关键词
+const filteredDishes = ref([]); // 过滤后的菜品列表
+
+// 搜索匹配函数 - 使用后端返回的 shortcutCode
+const matchesSearch = (dish, keywords) => {
+  if (!keywords || keywords.length === 0) return true;
+  
+  const dishName = (dish.name || "").toLowerCase();
+  // 直接使用后端返回的 shortcutCode（已经是拼音首字母缩写）
+  const shortcutCode = (dish.shortcutCode || "").toLowerCase();
+  
+  // 所有关键词都必须匹配
+  return keywords.every(keyword => {
+   const kw = keyword.toLowerCase();
+   return dishName.includes(kw) || shortcutCode.includes(kw);
+  });
+};
+
+// 处理搜索输入
+const handleSearchInput = () => {
+  if (!searchQuery.value.trim()) {
+   filteredDishes.value = sortedDishes.value;
+   return;
+  }
+  
+  // 按空格分割关键词
+  const keywords = searchQuery.value.trim().split(/\s+/).filter(k => k.length > 0);
+  
+  // 过滤菜品
+  filteredDishes.value = sortedDishes.value.filter(dish => matchesSearch(dish, keywords));
+};
+
+// 清空搜索
+const clearSearch = () => {
+  searchQuery.value = "";
+  filteredDishes.value = sortedDishes.value;
+};
 
 // 计算属性 - 按分类排序后内部再按字母排序
 const sortedDishes = computed(() => {
   if (!props.dishes || props.dishes.length === 0) {
-    return [];
+  return [];
   }
 
   // 创建副本进行排序
   return [...props.dishes].sort((a, b) => {
     // 首先按分类的 displayOrder 排序
     // 注意：数据可能包含 category.displayOrder 或 categoryDisplayOrder 字段
-    const categoryOrderA = a.category?.displayOrder ?? a.categoryDisplayOrder ?? Number.MAX_SAFE_INTEGER;
-    const categoryOrderB = b.category?.displayOrder ?? b.categoryDisplayOrder ?? Number.MAX_SAFE_INTEGER;
+   const categoryOrderA = a.category?.displayOrder ?? a.categoryDisplayOrder ?? Number.MAX_SAFE_INTEGER;
+   const categoryOrderB = b.category?.displayOrder ?? b.categoryDisplayOrder ?? Number.MAX_SAFE_INTEGER;
 
     if (categoryOrderA !== categoryOrderB) {
-      return categoryOrderA - categoryOrderB;
+     return categoryOrderA - categoryOrderB;
     }
 
     // 同一分类内按菜名字母顺序排序
-    return (a.name || "").localeCompare(b.name || "", "zh-CN");
+   return (a.name || "").localeCompare(b.name || "", "zh-CN");
   });
 });
+
+// 监听 sortedDishes 变化，自动更新 filteredDishes
+watch(sortedDishes, (newVal) => {
+  // 如果没有搜索内容，显示所有菜品
+  if (!searchQuery.value.trim()) {
+  filteredDishes.value = newVal;
+  } else {
+   // 否则重新应用搜索过滤
+   handleSearchInput();
+  }
+}, { immediate: true });
 
 // 获取菜品样式类
 const getDishClasses = (dish) => {

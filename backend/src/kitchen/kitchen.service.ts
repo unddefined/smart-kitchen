@@ -191,13 +191,24 @@ export class KitchenService {
    * 午餐：9:00-14:00，晚餐：15:00-21:00
    */
   async checkAndUpdateOrderStatus(order: Order) {
+    this.logger.log(`=== 开始检查订单状态 ===`, {
+      orderId: order.id,
+      status: order.status,
+      mealTime: order.mealTime,
+      mealType: order.mealType,
+      currentTime: new Date().toISOString(),
+      serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    });
+
     // 只有 created 或 started 状态的订单才需要检查
     if (order.status !== 'created' && order.status !== 'started') {
+      this.logger.log(`订单状态不需要检查：${order.status}`);
       return order;
     }
 
     // 检查是否有用餐时间设置
     if (!order.mealTime) {
+      this.logger.log(`订单没有设置用餐时间`);
       return order;
     }
 
@@ -206,6 +217,16 @@ export class KitchenService {
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     const currentTimeInMinutes = currentHour * 60 + currentMinute;
+
+    this.logger.log(`时间信息`, {
+      currentTime: now.toISOString(),
+      localTime: now.toString(),
+      currentHour,
+      currentMinute,
+      currentTimeInMinutes,
+      mealTime: mealTime.toISOString(),
+      mealType: order.mealType,
+    });
 
     // 判断是否为午餐或晚餐订单
     const isLunch = order.mealType === 'lunch';
@@ -217,8 +238,15 @@ export class KitchenService {
     const mealDate = new Date(mealTime);
     mealDate.setHours(0, 0, 0, 0);
 
+    this.logger.log(`日期比较`, {
+      today: today.toISOString(),
+      mealDate: mealDate.toISOString(),
+      isNowBeforeMealDate: now < mealDate,
+    });
+
     // 如果还没到用餐日期，不更新状态
     if (now < mealDate) {
+      this.logger.log(`当前时间早于用餐日期，不更新状态`);
       return order;
     }
 
@@ -230,6 +258,16 @@ export class KitchenService {
       // 午餐时间范围：9:00-14:00
       const lunchStart = 9 * 60;
       const lunchEnd = 14 * 60;
+
+      this.logger.log(`午餐时间检查`, {
+        currentTimeInMinutes,
+        lunchStart,
+        lunchEnd,
+        isExpired: currentTimeInMinutes > lunchEnd,
+        shouldStart:
+          currentTimeInMinutes >= lunchStart &&
+          currentTimeInMinutes <= lunchEnd,
+      });
 
       if (currentTimeInMinutes > lunchEnd) {
         isExpired = true;
@@ -244,6 +282,16 @@ export class KitchenService {
       const dinnerStart = 15 * 60;
       const dinnerEnd = 20 * 60;
 
+      this.logger.log(`晚餐时间检查`, {
+        currentTimeInMinutes,
+        dinnerStart,
+        dinnerEnd,
+        isExpired: currentTimeInMinutes > dinnerEnd,
+        shouldStart:
+          currentTimeInMinutes >= dinnerStart &&
+          currentTimeInMinutes <= dinnerEnd,
+      });
+
       if (currentTimeInMinutes > dinnerEnd) {
         isExpired = true;
       } else if (
@@ -255,10 +303,26 @@ export class KitchenService {
     } else {
       // 其他类型（早餐等），默认在用餐时间开始后即可起菜
       shouldStart = now >= mealTime;
+      this.logger.log(`其他餐型检查`, {
+        shouldStart,
+        now: now.toISOString(),
+        mealTime: mealTime.toISOString(),
+      });
     }
+
+    this.logger.log(`检查结果`, {
+      shouldStart,
+      isExpired,
+      currentStatus: order.status,
+    });
 
     // 如果已过期，更新状态为 'cancelled'
     if (isExpired) {
+      this.logger.warn(`订单已过期，将状态更新为 cancelled`, {
+        orderId: order.id,
+        mealTime: order.mealTime,
+        currentTime: now.toISOString(),
+      });
       const cancelledOrder = await this.prisma.order.update({
         where: { id: order.id },
         data: { status: 'cancelled', updatedAt: new Date() },
@@ -270,6 +334,11 @@ export class KitchenService {
 
     // 如果在用餐时间范围内且当前状态是 created，更新状态为 'started'
     if (shouldStart && order.status === 'created') {
+      this.logger.log(`到达用餐时间，将状态更新为 started`, {
+        orderId: order.id,
+        mealType: order.mealType,
+        currentTime: now.toISOString(),
+      });
       const startedOrder = await this.prisma.order.update({
         where: { id: order.id },
         data: { status: 'started', updatedAt: new Date() },
@@ -277,6 +346,12 @@ export class KitchenService {
       this.broadcastOrderEvent('order-updated', startedOrder);
       return startedOrder;
     }
+
+    this.logger.log(`不满足状态更新条件`, {
+      shouldStart,
+      orderStatus: order.status,
+      needsStartedStatus: order.status === 'created',
+    });
 
     return order;
   }

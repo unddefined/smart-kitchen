@@ -62,7 +62,7 @@ export class ServingService {
 
   /**
    * 自动调整订单中后续菜品的优先级 (按分类链式调整)
-   * 当前面分类的所有菜都上完后，后面分类的菜自动 +1
+   * 当前面分类的所有菜都上完后，后面两个分类的菜自动 +1
    *
    * 分类优先级顺序：前菜/凉菜 (3) → 中菜/点心/蒸菜 (2) → 后菜 (1) → 尾菜 (1)
    */
@@ -92,13 +92,13 @@ export class ServingService {
 
       // 定义分类优先级顺序
       const categoryOrder: Record<string, number> = {
-        前菜: 0,
-        凉菜: 0,
-        中菜: 1,
-        点心: 1,
-        蒸菜: 1,
-        后菜: 2,
-        尾菜: 3,
+        前菜：0,
+        凉菜：0,
+        中菜：1,
+        点心：1,
+        蒸菜：1,
+        后菜：2,
+        尾菜：3,
       };
 
       // 获取刚上完的菜品的分类
@@ -114,7 +114,7 @@ export class ServingService {
         return;
       }
 
-      this.logger.log(
+     this.logger.log(
         `订单 ${orderId} 的 ${servedItem.dish.name} (${servedCategoryName}) 已上菜，检查是否需要调整后续分类优先级`,
       );
 
@@ -134,86 +134,94 @@ export class ServingService {
 
       // 如果当前分类还有未上完的菜，不调整
       if (!allServedInCategory) {
-        this.logger.log(
+       this.logger.log(
           `订单 ${orderId} 的 ${servedCategoryName} 分类还有未上完的菜品，暂不调整`,
         );
         return;
       }
 
-      this.logger.log(
-        `订单 ${orderId} 的 ${servedCategoryName} 分类已全部上完，准备提升下一分类优先级`,
+     this.logger.log(
+        `订单 ${orderId} 的 ${servedCategoryName} 分类已全部上完，准备提升后面两个分类优先级`,
       );
 
-      // 找到下一个分类级别
-      const nextCategoryLevel = servedCategoryLevel + 1;
-      const nextCategoryNames = Object.entries(categoryOrder)
-        .filter(([_, level]) => level === nextCategoryLevel)
-        .map(([name, _]) => name);
+      // 找到下两个分类级别
+      const adjustments: Array<{ level: number; names: string[] }> = [];
+      
+      for (let offset = 1; offset <= 2; offset++) {
+        const nextCategoryLevel = servedCategoryLevel + offset;
+        const nextCategoryNames = Object.entries(categoryOrder)
+          .filter(([_, level]) => level === nextCategoryLevel)
+          .map(([name, _]) => name);
 
-      if (nextCategoryNames.length === 0) {
-        this.logger.log(`订单 ${orderId} 已是最后一个分类，无需调整`);
-        return;
-      }
-
-      this.logger.log(
-        `订单 ${orderId} 的下一分类为：${nextCategoryNames.join('、')}`,
-      );
-
-      // 获取下一个分类的所有未上菜菜品
-      const itemsToUpgrade = orderItems.filter((item) => {
-        const categoryName = item.dish?.category?.name;
-        return (
-          categoryName &&
-          categoryOrder[categoryName] === nextCategoryLevel &&
-          item.status !== 'served' &&
-          item.status !== 'cancelled'
-        );
-      });
-
-      if (itemsToUpgrade.length === 0) {
-        this.logger.log(`订单 ${orderId} 的下一分类没有需要调整的菜品`);
-        return;
-      }
-
-      // 遍历所有下一分类的菜品，提升优先级 (最高到 3)
-      for (const item of itemsToUpgrade) {
-        const currentPriority = item.priority || 0;
-        const newPriority = Math.min(currentPriority + 1, 3);
-
-        // 只有当优先级确实改变时才更新
-        if (newPriority > currentPriority) {
-          const updatedItem = await this.prisma.orderItem.update({
-            where: { id: item.id },
-            data: { priority: newPriority },
-          });
-
-          // 广播订单项状态更新事件
-          this.broadcastItemEvent('item-updated', updatedItem);
-
-          this.logger.log(
-            `订单${orderId}的${item.dish.name}优先级从 ${currentPriority} 提升到 ${newPriority}`,
-            {
-              orderId,
-              itemId: item.id,
-              dishName: item.dish.name,
-              categoryName: item.dish?.category?.name,
-              oldPriority: currentPriority,
-              newPriority,
-            },
-          );
+        if (nextCategoryNames.length > 0) {
+          adjustments.push({ level: nextCategoryLevel, names: nextCategoryNames });
         }
       }
 
-      this.logger.log(
-        `订单 ${orderId} 完成优先级调整，共提升 ${itemsToUpgrade.length} 个菜品`,
-      );
+      if (adjustments.length === 0) {
+       this.logger.log(`订单 ${orderId} 已是最后一个分类，无需调整`);
+        return;
+      }
+
+      // 处理每一个需要调整的分类号
+      for (const adjustment of adjustments) {
+       this.logger.log(
+          `订单 ${orderId} 的第${adjustment.level}分类为：${adjustment.names.join('、')}`,
+        );
+
+        // 获取该分类的所有未上菜菜品
+        const itemsToUpgrade = orderItems.filter((item) => {
+          const categoryName = item.dish?.category?.name;
+          return (
+            categoryName &&
+            categoryOrder[categoryName] === adjustment.level &&
+            item.status !== 'served' &&
+            item.status !== 'cancelled'
+          );
+        });
+
+        if (itemsToUpgrade.length === 0) {
+         this.logger.log(`订单 ${orderId} 的第${adjustment.level}分类没有需要调整的菜品`);
+          continue;
+        }
+
+        // 遍历该分类的菜品，提升优先级 (最高到 3)
+        for (const item of itemsToUpgrade) {
+          const currentPriority = item.priority || 0;
+          const newPriority = Math.min(currentPriority + 1, 3);
+
+          // 只有当优先级确实改变时才更新
+          if (newPriority > currentPriority) {
+            const updatedItem = await this.prisma.orderItem.update({
+              where: { id: item.id },
+              data: { priority: newPriority },
+            });
+
+            // 广播订单项状态更新事件
+           this.broadcastItemEvent('item-updated', updatedItem);
+
+           this.logger.log(
+              `订单${orderId}的${item.dish.name}优先级从 ${currentPriority} 提升到 ${newPriority}`,
+              {
+                orderId,
+                itemId: item.id,
+                dishName: item.dish.name,
+                categoryName: item.dish?.category?.name,
+                oldPriority: currentPriority,
+                newPriority,
+              },
+            );
+          } else {
+           this.logger.log(
+              `订单${orderId}的${item.dish.name}优先级已达上限 (${currentPriority})，不再提升`,
+            );
+          }
+        }
+      }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
-      this.logger.error(`调整后续菜品优先级失败：${errorMessage}`, {
-        orderId,
-        servedItemId,
-      });
-      // 不抛出异常，避免影响主流程
+      const errorMessage =
+        error instanceof Error ? error.message : '未知错误';
+     this.logger.error(`调整后续菜品优先级失败：${errorMessage}`, error);
     }
   }
 
