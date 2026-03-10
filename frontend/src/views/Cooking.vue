@@ -33,7 +33,7 @@
           <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-xl transition-all duration-200 hover:scale-110">
             👤
           </div>
-          <div class="font-light text-gray-800 text-xl ml-1">打荷</div>
+          <div class="font-light text-gray-800 text-xl">打荷</div>
           <span class="text-lg font-bold">·</span>
           <div class="font-normal text-gray-800 text-xl">储旭</div>
         </div>

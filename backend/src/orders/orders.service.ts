@@ -225,17 +225,20 @@ export class OrdersService {
    * 更新订单
    */
   async update(id: number, updateOrderDto: any) {
-    const order = await this.prisma.order.findUnique({
+   const order = await this.prisma.order.findUnique({
       where: { id },
     });
 
-    if (!order) {
+   if (!order) {
       throw new Error('订单不存在');
     }
 
+    // 保存旧状态用于广播
+  const previousStatus = order.status;
+
     // 验证状态转换（如果更新状态）
-    if (updateOrderDto.status && updateOrderDto.status !== order.status) {
-      if (
+  if (updateOrderDto.status && updateOrderDto.status !== order.status) {
+     if (
         !this.kitchenService.validateStatusTransition(
           order.status,
           updateOrderDto.status,
@@ -247,7 +250,7 @@ export class OrdersService {
       }
     }
 
-    const updatedOrder = await this.prisma.order.update({
+  const updatedOrder= await this.prisma.order.update({
       where: { id },
       data: {
         ...updateOrderDto,
@@ -255,11 +258,15 @@ export class OrdersService {
       },
     });
 
-    // 广播订单更新事件（包括状态变更和非状态字段更新）
-    this.broadcastOrderEvent('order-updated', updatedOrder);
+    // ✅ 优化：广播时包含 previousStatus 字段，方便前端判断状态转换
+  const broadcastData = {
+      ...updatedOrder,
+     previousStatus, // 添加旧状态字段
+    };
+    this.broadcastOrderEvent('order-updated', broadcastData);
 
     // 只有当状态变更时，才更新订单菜品
-    if (updateOrderDto.status && updateOrderDto.status !== order.status) {
+  if (updateOrderDto.status && updateOrderDto.status !== order.status) {
       await this.kitchenService.updateOrderItemsByStatus(updatedOrder);
     }
 

@@ -157,7 +157,7 @@ export function useDishManager(options = {}) {
             };
             message = `已将${successCount}份"${dishName}"标记为待处理`;
           } else {
-            result = await ServingService.completePreparation(itemIds[0]);
+            result = await ServingService.startPreparation(itemIds[0]);
             message = `已将"${dishName}"标记为待处理`;
           }
           showToastFn.showSuccess(message);

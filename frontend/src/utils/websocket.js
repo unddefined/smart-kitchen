@@ -31,28 +31,55 @@ export function useWebSocket() {
 
     isConnecting = true;
     const wsUrl = url || getWebSocketUrl();
-    console.log('Connecting to WebSocket:', wsUrl);
+    console.log('🔌 Connecting to WebSocket:', wsUrl);
 
     socket.value = io(wsUrl, {
-      transports: ["websocket", "polling"], // 支持多种传输方式
+      transports: ["websocket"], // 强制使用 WebSocket，禁用轮询
       reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      reconnectionAttempts: 10,
-      timeout: 20000,
+      reconnectionDelay: 2000, // 增加初始重连延迟到 2 秒
+      reconnectionDelayMax: 10000, // 最大重连延迟增加到 10 秒
+      reconnectionAttempts: Infinity, // 无限重连尝试
+      timeout: 30000, // 增加连接超时到 30 秒
+      forceNew: false, // 重用现有连接
+      autoConnect: true, // 自动连接
+      // 启用心跳检测
+      pingTimeout: 60000, // 60 秒无响应视为超时
+      pingInterval: 25000, // 每 25 秒发送一次 ping
+      // 升级代理配置
+      upgrade: true,
+      rememberUpgrade: true,
     });
+
+    // ✅ 修复：确保 socket.value 存在后再添加事件监听器
+    if (!socket.value) {
+      console.error('❌ Socket 实例创建失败');
+      isConnecting = false;
+      return;
+    }
 
     socket.value.on("connect", () => {
       console.log("✅ WebSocket 连接成功");
       isConnected.value = true;
       reconnectAttempts.value = 0;
       isConnecting = false;
+      
+      // 重新订阅之前订阅过的房间
+      resubscribeRooms();
     });
 
     socket.value.on("disconnect", (reason) => {
       console.warn("❌ WebSocket 断开连接:", reason);
       isConnected.value = false;
       isConnecting = false;
+      
+      // 根据断开原因输出不同日志
+      if (reason === 'io server disconnect') {
+        console.error('⚠️ 服务器主动断开连接，尝试重新连接...');
+      } else if (reason === 'transport close') {
+        console.warn('⚠️ 传输层关闭，可能是网络问题');
+      } else if (reason === 'pingTimeout') {
+        console.error('⚠️ 心跳超时，服务器无响应');
+      }
     });
 
     socket.value.on("reconnect", (attemptNumber) => {
@@ -62,12 +89,16 @@ export function useWebSocket() {
     });
 
     socket.value.on("reconnect_attempt", (attemptNumber) => {
-      console.log(`🔄 尝试重新连接... (${attemptNumber})`);
+      console.log(`🔄 尝试重新连接... (${attemptNumber}/${socket.value.opts.reconnectionAttempts})`);
     });
 
     socket.value.on("reconnect_failed", () => {
-      console.error("❌ 重新连接失败");
+      console.error("❌ 重新连接失败，已达到最大尝试次数");
       isConnecting = false;
+    });
+
+    socket.value.on("reconnect_error", (error) => {
+      console.error("❌ 重连错误:", error.message);
     });
 
     // 错误处理
@@ -76,14 +107,35 @@ export function useWebSocket() {
       isConnecting = false;
     });
 
+    // 监听 ping 事件（心跳）
+    socket.value.on("ping", () => {
+      console.debug('💓 收到服务器 ping');
+    });
+
+    // 监听 pong 事件（心跳响应）
+    socket.value.on("pong", (latency) => {
+      console.debug(`💓 心跳响应，延迟：${latency}ms`);
+    });
+
     // 监听订阅成功
     socket.value.on("subscribed", (data) => {
       console.log("📡 订阅成功:", data);
+    });
+    
+    // 监听取消订阅成功
+    socket.value.on("unsubscribed", (data) => {
+      console.log("📡 取消订阅成功:", data);
     });
   };
 
   const disconnect = () => {
     if (socket.value) {
+      // 清理连接检查定时器
+      if (connectionCheckTimer) {
+        clearInterval(connectionCheckTimer);
+        connectionCheckTimer = null;
+      }
+
       socket.value.disconnect();
       socket.value = null;
       isConnected.value = false;
@@ -110,11 +162,11 @@ export function useWebSocket() {
     if (!eventListeners.has(eventKey)) {
       eventListeners.set(eventKey, new Set());
     }
-    
+
     const listeners = eventListeners.get(eventKey);
     if (listeners.has(callback)) {
       console.warn(`⚠️ 事件 ${event} 的监听器已存在，跳过重复注册`);
-      return () => {}; // 返回空清理函数
+      return () => { }; // 返回空清理函数
     }
 
     listeners.add(callback);
@@ -123,7 +175,7 @@ export function useWebSocket() {
       socket.value.on(event, callback);
       return () => removeListener(event, callback);
     }
-    return () => {};
+    return () => { };
   };
 
   const removeListener = (event, callback) => {
@@ -131,7 +183,7 @@ export function useWebSocket() {
     if (eventListeners.has(eventKey)) {
       const listeners = eventListeners.get(eventKey);
       listeners.delete(callback);
-      
+
       if (listeners.size === 0) {
         eventListeners.delete(eventKey);
         if (socket.value) {
@@ -151,11 +203,11 @@ export function useWebSocket() {
 
     const payload = stationId ? { room, stationId } : { room };
     const success = sendMessage('subscribe', payload);
-    
+
     if (success) {
       subscribedRooms.add(roomKey);
     }
-    
+
     return success;
   };
 
@@ -171,6 +223,45 @@ export function useWebSocket() {
     return sendMessage('broadcast', { room, event, data });
   };
 
+  // 重新订阅房间（重连后调用）
+  const resubscribeRooms = () => {
+    if (subscribedRooms.size > 0) {
+      console.log(`🔄 重新订阅 ${subscribedRooms.size} 个房间`);
+      subscribedRooms.forEach(roomKey => {
+        const [room, stationId] = roomKey.split(':');
+        const payload = stationId ? { room, stationId: parseInt(stationId) } : { room };
+        sendMessage('subscribe', payload);
+      });
+    }
+  };
+
+  // 获取连接状态信息
+  const getConnectionInfo = () => {
+    if (!socket.value) {
+      return { connected: false, reason: 'No socket instance' };
+    }
+
+    return {
+      connected: isConnected.value,
+      id: socket.value.id,
+      connectedServer: socket.value.connectedServer,
+      attempts: reconnectAttempts.value,
+      rooms: Array.from(subscribedRooms),
+      listeners: eventListeners.size,
+    };
+  };
+
+  // 手动测试连接
+  const ping = () => {
+    if (socket.value && isConnected.value) {
+      const startTime = Date.now();
+      socket.value.emit('ping');
+      console.log('🏓 Ping sent at', new Date(startTime).toISOString());
+      return startTime;
+    }
+    return null;
+  };
+
   return {
     socket: socket.value,
     isConnected,
@@ -183,6 +274,8 @@ export function useWebSocket() {
     subscribe,
     unsubscribe,
     broadcast,
+    getConnectionInfo,
+    ping,
   };
 }
 
@@ -264,7 +357,7 @@ export function useAutoRefresh(options = {}) {
           unsubscribers.push(unsubscribe);
         });
       }
-      
+
       isInitialized.value = true;
     }
   };
@@ -315,12 +408,14 @@ let globalWebSocket = null;
 export function initGlobalWebSocket() {
   if (!globalWebSocket) {
     globalWebSocket = useWebSocket();
+    // ✅ 修复：创建实例后立即连接
+   globalWebSocket.connect();
     // 暴露到 window 对象，方便在 Console 中访问
-    if (typeof window !== 'undefined') {
+   if (typeof window !== 'undefined') {
       window.ws = globalWebSocket;
       window.subscribedRooms = subscribedRooms;
       window.eventListeners = eventListeners;
-      console.log('🌐 全局 WebSocket 已初始化并暴露到 window.ws');
+    console.log('🌐 全局 WebSocket 已初始化并自动连接');
     }
   }
   return globalWebSocket;
