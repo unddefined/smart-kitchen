@@ -1,12 +1,12 @@
 <!-- eslint-disable prettier/prettier -->
 <template>
-  <div class="fixed top-0 left-0 right-0 z-[3000] flex flex-col items-center gap-2 p-4 pt-20 pointer-events-none">
-    <transition-group name="broadcast" tag="div" class="flex flex-col items-center gap-2 w-full max-w-md mx-auto">
+  <div v-show="broadcasts.length > 0" class="mt-2">
+    <transition-group name="broadcast" tag="div" class="items-center w-full mx-auto">
       <div
         v-for="broadcast in broadcasts"
         :key="broadcast.id"
         :class="[
-          'w-full pointer-events-auto rounded-lg shadow-lg overflow-hidden cursor-pointer transition-all duration-300',
+          'w-full rounded-lg overflow-hidden cursor-pointer transition-all duration-300 relative p-1 text-xl mt-2',
           'hover:shadow-xl hover:scale-[1.02]',
           getTypeClasses(broadcast.type),
         ]"
@@ -14,22 +14,13 @@
         <!-- 关闭按钮 -->
         <button
           @click.stop="removeBroadcast(broadcast.id)"
-          class="absolute top-2 right-2 text-white text-xl font-bold w-6 h-6 flex items-center justify-center rounded-full bg-black bg-opacity-20 hover:bg-opacity-30 transition-all duration-200">
+          class="absolute top-2 right-2 text-white font-bold w-6 h-6 flex items-center justify-center rounded-full bg-black bg-opacity-20 hover:bg-opacity-30 transition-all duration-200">
           ×
         </button>
-
         <!-- 内容区域 -->
-        <div class="p-2 text-lg flex items-center justify-between">
-          <!-- 标题和图标 -->
-
-          <span
-            ><span v-if="broadcast.icon">{{ broadcast.icon }}</span>
-            <p class="leading-relaxed">{{ broadcast.message }}</p></span
-          >
-
-          <!-- 消息内容 -->
-          <span v-if="broadcast.timestamp">{{ formatTime(broadcast.timestamp) }}</span>
-        </div>
+        <span
+          ><span v-if="broadcast.icon">{{ broadcast.icon }}</span> <span class="leading-relaxed">{{ broadcast.message }}</span></span
+        >
       </div>
     </transition-group>
   </div>
@@ -43,21 +34,59 @@ import { useWebSocket } from "@/utils/websocket";
 const router = useRouter();
 const { listen, subscribe, unsubscribe } = useWebSocket();
 
+// ✅ 新增：接收父组件传递的当前用餐时间段
+const props = defineProps({
+  currentMealType: {
+    type: String,
+    default: "lunch", // 默认午餐时段
+  },
+  currentDate: {
+    type: String,
+    default: "", // 格式：YYYY-MM-DD
+  },
+});
+
 // 广播列表
 const broadcasts = ref([]);
 const MAX_BROADCASTS = 5; // 最多显示 5 条广播
 const RECENT_BROADCASTS = new Map(); // 用于去重：key -> {type, orderId, timestamp}
 
+// ✅ 新增：判断订单是否属于当前选中的用餐时间段
+const isCurrentMealPeriod = (order) => {
+  // 检查餐型是否匹配
+  if (order.mealType !== props.currentMealType) {
+    console.log("⚠️ 餐型不匹配，跳过订单:", {
+      orderMealType: order.mealType,
+      currentMealType: props.currentMealType,
+    });
+    return false;
+  }
+
+  // 检查日期是否匹配
+  if (props.currentDate && order.mealTime) {
+    const orderDate = new Date(order.mealTime).toISOString().split("T")[0];
+    if (orderDate !== props.currentDate) {
+      console.log("⚠️ 日期不匹配，跳过订单:", {
+        orderDate,
+        currentDate: props.currentDate,
+      });
+      return false;
+    }
+  }
+
+  return true;
+};
+
 // 获取类型对应的样式类
 const getTypeClasses = (type) => {
   const typeMap = {
-    "new-order": "bg-blue-500 text-white",
-    "start-dish": "bg-green-500 text-white",
-    "urgent-dish": "bg-red-500 text-white",
-    "pause-dish": "bg-yellow-500 text-white",
-    "add-dish": "bg-purple-500 text-white",
-    "remove-dish": "bg-orange-500 text-white",
-    "order-complete": "bg-cyan-500 text-white",
+    "new-order": "bg-blue-300 text-black",
+    "start-dish": "bg-green-300 text-black",
+    "urgent-dish": "bg-red-300 text-black",
+    "pause-dish": "bg-yellow-300 text-black",
+    "add-dish": "bg-purple-300 text-black",
+    "remove-dish": "bg-orange-300 text-black",
+    "order-complete": "bg-cyan-500 text-black",
   };
   return typeMap[type] || "bg-gray-500 text-white";
 };
@@ -151,12 +180,18 @@ const setupEventListeners = () => {
   // 新订单创建
   const unsubscribeNewOrder = listen("order-created", (data) => {
     console.log("🆕 新订单创建:", data);
+
+    const order = data.data || data;
+
+    // ✅ 过滤：只处理当前用餐时间段的订单
+    if (!isCurrentMealPeriod(order)) return;
+
     addBroadcast({
       type: "new-order",
       title: "新订单通知",
-      message: `台号 ${data.hallNumber} 新增订单`,
-      orderId: data.id,
-      hallNumber: data.hallNumber,
+      message: `新增订单 ${order.hallNumber}`,
+      orderId: order.id,
+      hallNumber: order.hallNumber,
       icon: "📋",
       timestamp: Date.now(),
     });
@@ -165,55 +200,103 @@ const setupEventListeners = () => {
 
   // 订单状态变更
   const unsubscribeOrderUpdated = listen("order-updated", (data) => {
-    console.log("🔄 订单状态更新:", data);
+    console.log("🔄 订单更新:", data);
 
+    const order = data.data || data;
+
+    // ✅ 过滤：只处理当前用餐时间段的订单
+    if (!isCurrentMealPeriod(order)) return;
+
+    const previousStatus = order.previousStatus || data.previousStatus;
+    const currentStatus = order.status;
+    const hallNumber = order.hallNumber || data.hallNumber;
+    const orderId = order.id || data.id;
+
+    // ========== 处理普通字段变更（台号、人数、桌数等）==========
+    const changes = [];
+
+    // 检查台号变化
+    if (order.hallNumber !== undefined && order.previousHallNumber !== undefined) {
+      if (order.hallNumber !== order.previousHallNumber) {
+        changes.push(`台号：${order.previousHallNumber}→${order.hallNumber}`);
+      }
+    }
+
+    // 检查人数变化
+    if (order.peopleCount !== undefined && order.previousPeopleCount !== undefined) {
+      if (order.peopleCount !== order.previousPeopleCount) {
+        changes.push(`人数：${order.previousPeopleCount}→${order.peopleCount}`);
+      }
+    }
+
+    // 检查桌数变化
+    if (order.tableCount !== undefined && order.previousTableCount !== undefined) {
+      if (order.tableCount !== order.previousTableCount) {
+        changes.push(`桌数：${order.previousTableCount}→${order.tableCount}`);
+      }
+    }
+
+    // 如果有变更，显示广播
+    if (changes.length > 0) {
+      addBroadcast({
+        type: "add-dish",
+        title: "订单信息变更",
+        message: `${hallNumber || "未知"} ${changes.join(", ")}`,
+        orderId,
+        hallNumber: hallNumber || "未知",
+        icon: "✏️",
+        timestamp: Date.now(),
+      });
+    }
+
+    // ========== 处理状态变更 ==========
     // 起菜：status 从 started 变为 serving
-    if (data.previousStatus === "started" && data.status === "serving") {
+    if (previousStatus === "started" && currentStatus === "serving") {
       addBroadcast({
         type: "start-dish",
         title: "起菜通知",
-        message: `台号 ${data.hallNumber} 已起菜`,
-        orderId: data.id,
-        hallNumber: data.hallNumber,
+        message: `${hallNumber} 已起菜`,
+        orderId,
+        hallNumber,
         icon: "🍽️",
         timestamp: Date.now(),
       });
     }
 
     // 催菜：status 变为 urged
-    if (data.status === "urged" && data.previousStatus !== "urged") {
+    if (currentStatus === "urged" && previousStatus !== "urged") {
       addBroadcast({
         type: "urgent-dish",
         title: "催菜通知",
-        message: `台号 ${data.hallNumber} 催菜`,
-        orderId: data.id,
-        hallNumber: data.hallNumber,
+        message: `${hallNumber} 催菜`,
+        orderId,
+        hallNumber,
         icon: "🔥",
         timestamp: Date.now(),
       });
     }
 
     // 暂停：status 从 serving/urged 变回 started
-    if (data.previousStatus === "serving" && data.status === "started") {
+    if (previousStatus === "serving" && currentStatus === "started") {
       addBroadcast({
         type: "pause-dish",
         title: "暂停通知",
-        message: `台号 ${data.hallNumber} 已暂停`,
-        orderId: data.id,
-        hallNumber: data.hallNumber,
+        message: `${hallNumber} 已暂停`,
+        orderId,
+        hallNumber,
         icon: "⏸️",
         timestamp: Date.now(),
       });
     }
 
     // 订单完成：status 变为 done
-    if (data.status === "done" && data.previousStatus !== "done") {
+    if (currentStatus === "done" && previousStatus !== "done") {
       addBroadcast({
         type: "order-complete",
         title: "订单完成",
-        message: `台号 ${data.hallNumber} 订单已完成`,
-        orderId: data.id,
-        hallNumber: data.hallNumber,
+        message: `${hallNumber} 订单已完成`,
+        orderId,
+        hallNumber,
         icon: "✅",
         timestamp: Date.now(),
       });
@@ -226,6 +309,10 @@ const setupEventListeners = () => {
     console.log("➕ 菜品被添加:", data);
 
     const item = data.data || data;
+
+    // ✅ 过滤：只处理当前用餐时间段的订单
+    if (!isCurrentMealPeriod(order)) return;
+
     const dishName = item.dish?.name || "未知菜品";
     const orderId = item.orderId || data.orderId;
 
@@ -235,7 +322,7 @@ const setupEventListeners = () => {
     addBroadcast({
       type: "add-dish",
       title: "加菜通知",
-      message: `台号 ${hallNumber || "未知"} 新增菜品：${dishName}`,
+      message: `${hallNumber || "未知"} 加菜：${dishName}`,
       orderId,
       hallNumber: hallNumber || "未知",
       icon: "➕",
@@ -258,7 +345,7 @@ const setupEventListeners = () => {
     addBroadcast({
       type: "remove-dish",
       title: "退菜通知",
-      message: `台号 ${hallNumber || "未知"} 退菜：${dishName}`,
+      message: `${hallNumber || "未知"} 退菜：${dishName}`,
       orderId,
       hallNumber: hallNumber || "未知",
       icon: "➖",
@@ -267,11 +354,52 @@ const setupEventListeners = () => {
   });
   unsubscribers.push(unsubscribeItemDeleted);
 
-  // 订单项状态变更 - 监听 item-updated（可选，用于显示制作进度等）
+  // 订单项变更 - 监听 item-updated（处理内容变更）
   const unsubscribeItemUpdated = listen("item-updated", (data) => {
-    console.log("🔄 菜品状态更新:", data);
-    // 如果需要显示菜品制作进度通知，可以在这里添加逻辑
-    // 目前暂不处理，只记录日志
+    console.log("🔄 菜品更新:", data);
+
+    // ✅ 修复：data 包含 { data: {...}, timestamp } 结构
+    const item = data.data || data;
+    const dishName = item.dish?.name || "未知菜品";
+    const hallNumber = item.hallNumber || data.hallNumber;
+    const orderId = item.orderId || data.orderId;
+
+    // ========== 处理普通字段变更（数量、重量、备注）==========
+    const changes = [];
+
+    // 检查数量变化
+    if (item.quantity !== undefined && item.previousQuantity !== undefined) {
+      if (item.quantity !== item.previousQuantity) {
+        changes.push(`数量：${item.previousQuantity}→${item.quantity}`);
+      }
+    }
+
+    // 检查重量变化
+    if (item.weight !== undefined && item.previousWeight !== undefined) {
+      if (item.weight !== item.previousWeight) {
+        changes.push(`重量：${item.previousWeight}斤→${item.weight}斤`);
+      }
+    }
+
+    // 检查备注变化
+    if (item.remark !== undefined && item.previousRemark !== undefined) {
+      if (item.remark !== item.previousRemark) {
+        changes.push(`备注已更新`);
+      }
+    }
+
+    // 如果有变更，显示广播
+    if (changes.length > 0) {
+      addBroadcast({
+        type: "add-dish",
+        title: "菜品信息变更",
+        message: `${hallNumber || "未知"} ${dishName} - ${changes.join(", ")}`,
+        orderId,
+        hallNumber: hallNumber || "未知",
+        icon: "✏️",
+        timestamp: Date.now(),
+      });
+    }
   });
   unsubscribers.push(unsubscribeItemUpdated);
 };
