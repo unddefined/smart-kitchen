@@ -92,13 +92,13 @@ export class ServingService {
 
       // 定义分类优先级顺序
       const categoryOrder: Record<string, number> = {
-        前菜：0,
-        凉菜：0,
-        中菜：1,
-        点心：1,
-        蒸菜：1,
-        后菜：2,
-        尾菜：3,
+        前菜: 0,
+        凉菜: 0,
+        中菜: 1,
+        点心: 1,
+        蒸菜: 1,
+        后菜: 2,
+        尾菜: 3,
       };
 
       // 获取刚上完的菜品的分类
@@ -114,7 +114,7 @@ export class ServingService {
         return;
       }
 
-     this.logger.log(
+      this.logger.log(
         `订单 ${orderId} 的 ${servedItem.dish.name} (${servedCategoryName}) 已上菜，检查是否需要调整后续分类优先级`,
       );
 
@@ -134,19 +134,19 @@ export class ServingService {
 
       // 如果当前分类还有未上完的菜，不调整
       if (!allServedInCategory) {
-       this.logger.log(
+        this.logger.log(
           `订单 ${orderId} 的 ${servedCategoryName} 分类还有未上完的菜品，暂不调整`,
         );
         return;
       }
 
-     this.logger.log(
+      this.logger.log(
         `订单 ${orderId} 的 ${servedCategoryName} 分类已全部上完，准备提升后面两个分类优先级`,
       );
 
       // 找到下两个分类级别
       const adjustments: Array<{ level: number; names: string[] }> = [];
-      
+
       for (let offset = 1; offset <= 2; offset++) {
         const nextCategoryLevel = servedCategoryLevel + offset;
         const nextCategoryNames = Object.entries(categoryOrder)
@@ -154,18 +154,21 @@ export class ServingService {
           .map(([name, _]) => name);
 
         if (nextCategoryNames.length > 0) {
-          adjustments.push({ level: nextCategoryLevel, names: nextCategoryNames });
+          adjustments.push({
+            level: nextCategoryLevel,
+            names: nextCategoryNames,
+          });
         }
       }
 
       if (adjustments.length === 0) {
-       this.logger.log(`订单 ${orderId} 已是最后一个分类，无需调整`);
+        this.logger.log(`订单 ${orderId} 已是最后一个分类，无需调整`);
         return;
       }
 
       // 处理每一个需要调整的分类号
       for (const adjustment of adjustments) {
-       this.logger.log(
+        this.logger.log(
           `订单 ${orderId} 的第${adjustment.level}分类为：${adjustment.names.join('、')}`,
         );
 
@@ -181,7 +184,9 @@ export class ServingService {
         });
 
         if (itemsToUpgrade.length === 0) {
-         this.logger.log(`订单 ${orderId} 的第${adjustment.level}分类没有需要调整的菜品`);
+          this.logger.log(
+            `订单 ${orderId} 的第${adjustment.level}分类没有需要调整的菜品`,
+          );
           continue;
         }
 
@@ -198,9 +203,9 @@ export class ServingService {
             });
 
             // 广播订单项状态更新事件
-           this.broadcastItemEvent('item-updated', updatedItem);
+            this.broadcastItemEvent('item-updated', updatedItem);
 
-           this.logger.log(
+            this.logger.log(
               `订单${orderId}的${item.dish.name}优先级从 ${currentPriority} 提升到 ${newPriority}`,
               {
                 orderId,
@@ -212,16 +217,15 @@ export class ServingService {
               },
             );
           } else {
-           this.logger.log(
+            this.logger.log(
               `订单${orderId}的${item.dish.name}优先级已达上限 (${currentPriority})，不再提升`,
             );
           }
         }
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : '未知错误';
-     this.logger.error(`调整后续菜品优先级失败：${errorMessage}`, error);
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      this.logger.error(`调整后续菜品优先级失败：${errorMessage}`, error);
     }
   }
 
