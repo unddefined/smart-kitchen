@@ -41,9 +41,7 @@ export class ServingService {
     basePriority: number = 0,
   ): number {
     // 如果是后来加菜的，优先级为 3 级 (催菜级别)
-    if (isAddedLater) {
-      return 3;
-    }
+    if (isAddedLater) return 3;
 
     // 根据菜品分类设置默认优先级
     // 前菜：3 级，中菜：2 级，后菜：1 级，尾菜：1 级
@@ -86,9 +84,7 @@ export class ServingService {
         },
       });
 
-      if (orderItems.length === 0) {
-        return;
-      }
+      if (orderItems.length === 0) return;
 
       // 定义分类优先级顺序
       const categoryOrder: Record<string, number> = {
@@ -103,16 +99,12 @@ export class ServingService {
 
       // 获取刚上完的菜品的分类
       const servedItem = orderItems.find((item) => item.id === servedItemId);
-      if (!servedItem?.dish?.category?.name) {
-        return;
-      }
+      if (!servedItem?.dish?.category?.name) return;
 
       const servedCategoryName = servedItem.dish.category.name;
       const servedCategoryLevel = categoryOrder[servedCategoryName];
 
-      if (servedCategoryLevel === undefined) {
-        return;
-      }
+      if (servedCategoryLevel === undefined) return;
 
       this.logger.log(
         `订单 ${orderId} 的 ${servedItem.dish.name} (${servedCategoryName}) 已上菜，检查是否需要调整后续分类优先级`,
@@ -204,18 +196,6 @@ export class ServingService {
 
             // 广播订单项状态更新事件
             this.broadcastItemEvent('item-updated', updatedItem);
-
-            this.logger.log(
-              `订单${orderId}的${item.dish.name}优先级从 ${currentPriority} 提升到 ${newPriority}`,
-              {
-                orderId,
-                itemId: item.id,
-                dishName: item.dish.name,
-                categoryName: item.dish?.category?.name,
-                oldPriority: currentPriority,
-                newPriority,
-              },
-            );
           } else {
             this.logger.log(
               `订单${orderId}的${item.dish.name}优先级已达上限 (${currentPriority})，不再提升`,
@@ -224,8 +204,12 @@ export class ServingService {
         }
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
-      this.logger.error(`调整后续菜品优先级失败：${errorMessage}`, error);
+      throw new Error(
+        `自动调整订单 ${orderId} 后续菜品优先级失败: ${
+          error instanceof Error ? error.message : '未知错误'
+        }`,
+        error,
+      );
     }
   }
 
@@ -288,9 +272,7 @@ export class ServingService {
       where: { id: itemId },
     });
 
-    if (!item) {
-      throw new Error('订单项不存在');
-    }
+    if (!item) throw new Error('订单项不存在');
 
     const updatedItem = await this.prisma.orderItem.update({
       where: { id: itemId },
@@ -301,7 +283,7 @@ export class ServingService {
   }
 
   /**
-   * 开始制作菜品（pending → preparing）
+   * 开始预处理菜品（pending → preparing）
    * 验证状态流转合法性并更新状态
    */
   async startDishPreparation(itemId: number) {
@@ -312,14 +294,12 @@ export class ServingService {
       },
     });
 
-    if (!item) {
-      throw new Error('订单项不存在');
-    }
+    if (!item) throw new Error('订单项不存在');
 
     // 验证当前状态是否为 pending
     if (item.status !== 'pending') {
       throw new Error(
-        `只有待制作状态的菜品才能开始制作，当前状态为 ${item.status}`,
+        `只有待切配状态的菜品才能开始预处理，当前状态为 ${item.status}`,
       );
     }
 
@@ -334,7 +314,7 @@ export class ServingService {
     this.broadcastItemEvent('item-updated', updatedItem);
 
     this.logger.log(
-      `订单菜品 ${itemId} (${item.dish.name}) 开始制作：pending → preparing`,
+      `订单菜品 ${itemId} (${item.dish.name}) 切配完成：pending → preparing`,
     );
 
     return updatedItem;
@@ -346,9 +326,7 @@ export class ServingService {
       where: { id: itemId },
     });
 
-    if (!item) {
-      throw new Error('订单项不存在');
-    }
+    if (!item) throw new Error('订单项不存在');
 
     const updatedItem = await this.prisma.orderItem.update({
       where: { id: itemId },
@@ -455,9 +433,7 @@ export class ServingService {
       include: { order: true, dish: true },
     });
 
-    if (!item) {
-      throw new Error('订单菜品不存在');
-    }
+    if (!item) throw new Error('订单菜品不存在');
 
     const updatedItem = await this.prisma.orderItem.update({
       where: { id: itemId },
@@ -486,16 +462,14 @@ export class ServingService {
     };
   }
 
-  // 标记菜品制作完成
+  // 标记菜品准备下锅
   async completeDishPreparation(itemId: number) {
     const item = await this.prisma.orderItem.findUnique({
       where: { id: itemId },
       include: { order: true, dish: true },
     });
 
-    if (!item) {
-      throw new Error('订单菜品不存在');
-    }
+    if (!item) throw new Error('订单菜品不存在');
 
     const updatedItem = await this.prisma.orderItem.update({
       where: { id: itemId },
@@ -503,7 +477,7 @@ export class ServingService {
     });
 
     this.logger.log(
-      `菜品制作完成：订单${item.order.hallNumber}的${item.dish.name}`,
+      `菜品准备下锅：订单${item.order.hallNumber}的${item.dish.name}`,
       {
         orderId: item.orderId,
         dishId: item.dishId,
@@ -517,15 +491,14 @@ export class ServingService {
       success: true,
       itemId: updatedItem.id,
       status: updatedItem.status,
-      message: `菜品${item.dish.name}制作完成`,
+      message: `菜品${item.dish.name}准备下锅`,
     };
   }
 
   // 标记菜品已上菜（批量）
   async serveDishes(itemIds: number[]) {
-    if (!itemIds || itemIds.length === 0) {
+    if (!itemIds || itemIds.length === 0)
       throw new Error('菜品 ID 列表不能为空');
-    }
 
     return await this.prisma.$transaction(async (tx) => {
       const results = [];
@@ -565,14 +538,6 @@ export class ServingService {
             },
           });
 
-          this.logger.log(
-            `批量上菜：订单${item.order.hallNumber}的${item.dish.name}`,
-            {
-              orderId: item.orderId,
-              dishId: item.dishId,
-            },
-          );
-
           results.push({
             success: true,
             itemId: updatedItem.id,
@@ -591,9 +556,12 @@ export class ServingService {
               await this.ordersService.resumeOrderAfterServe(item.orderId);
               this.logger.log(`订单 ${item.orderId} 已自动恢复为 serving 状态`);
             } catch (error) {
-              const errorMessage =
-                error instanceof Error ? error.message : '未知错误';
-              this.logger.error(`恢复订单状态失败：${errorMessage}`);
+              throw new Error(
+                `恢复订单状态失败：${
+                  error instanceof Error ? error.message : '未知错误'
+                }`,
+                error,
+              );
             }
           }
 
@@ -637,9 +605,7 @@ export class ServingService {
       include: { order: true, dish: true },
     });
 
-    if (!item) {
-      throw new Error('订单菜品不存在');
-    }
+    if (!item) throw new Error('订单菜品不存在');
 
     // 根据 MVP文档，优先级为 0 的菜品（未起）不能直接上菜
     if (item.priority === 0) {

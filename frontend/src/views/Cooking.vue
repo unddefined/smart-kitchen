@@ -23,7 +23,7 @@
     </div>
 
     <!-- Header区域 -->
-    <header class="bg-white border-b p-3 shadow-sm safe-area-top">
+    <header class="bg-white border-b px-3 py-2 shadow-sm">
       <div class="flex justify-between items-center mb-3">
         <!-- 左侧：员工头像 + 工位 + 用户名 -->
         <div class="flex items-center gap-2 cursor-pointer" @click="toggleSidebar">
