@@ -113,10 +113,6 @@ const switchToModule = (module) => {
   overflow-y: auto;
 }
 
-.main-content.with-test-nav {
-  margin-top: 50px; /* 为测试导航留出空间 */
-}
-
 /* 全局底部导航栏 - 烹调/库存/待办/历史 */
 .global-bottom-nav {
   position: fixed;
@@ -146,6 +142,7 @@ const switchToModule = (module) => {
 
 .nav-item.active {
   color: #3b82f6;
+  font-weight: bold;
 }
 
 .nav-text {

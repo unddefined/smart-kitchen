@@ -14,7 +14,7 @@ export function useWebSocket() {
   const getWebSocketUrl = () => {
     // 生产环境使用服务器地址
     if (import.meta.env.PROD) {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       // 修复：添加端口号和正确的 /ws 命名空间
       return `${protocol}//${window.location.host}:3001/ws`;
     }
@@ -25,13 +25,13 @@ export function useWebSocket() {
   const connect = (url = null) => {
     // 防止重复连接
     if (isConnecting || (socket.value && isConnected.value)) {
-      console.log('⚠️ WebSocket 已在连接或已连接，跳过连接');
+      console.log("⚠️ WebSocket 已在连接或已连接，跳过连接");
       return;
     }
 
     isConnecting = true;
     const wsUrl = url || getWebSocketUrl();
-    console.log('🔌 Connecting to WebSocket:', wsUrl);
+    console.log("🔌 Connecting to WebSocket:", wsUrl);
 
     socket.value = io(wsUrl, {
       transports: ["websocket"], // 强制使用 WebSocket，禁用轮询
@@ -52,7 +52,7 @@ export function useWebSocket() {
 
     // ✅ 修复：确保 socket.value 存在后再添加事件监听器
     if (!socket.value) {
-      console.error('❌ Socket 实例创建失败');
+      console.error("❌ Socket 实例创建失败");
       isConnecting = false;
       return;
     }
@@ -62,7 +62,7 @@ export function useWebSocket() {
       isConnected.value = true;
       reconnectAttempts.value = 0;
       isConnecting = false;
-      
+
       // 重新订阅之前订阅过的房间
       resubscribeRooms();
     });
@@ -71,14 +71,14 @@ export function useWebSocket() {
       console.warn("❌ WebSocket 断开连接:", reason);
       isConnected.value = false;
       isConnecting = false;
-      
+
       // 根据断开原因输出不同日志
-      if (reason === 'io server disconnect') {
-        console.error('⚠️ 服务器主动断开连接，尝试重新连接...');
-      } else if (reason === 'transport close') {
-        console.warn('⚠️ 传输层关闭，可能是网络问题');
-      } else if (reason === 'pingTimeout') {
-        console.error('⚠️ 心跳超时，服务器无响应');
+      if (reason === "io server disconnect") {
+        console.error("⚠️ 服务器主动断开连接，尝试重新连接...");
+      } else if (reason === "transport close") {
+        console.warn("⚠️ 传输层关闭，可能是网络问题");
+      } else if (reason === "pingTimeout") {
+        console.error("⚠️ 心跳超时，服务器无响应");
       }
     });
 
@@ -89,7 +89,9 @@ export function useWebSocket() {
     });
 
     socket.value.on("reconnect_attempt", (attemptNumber) => {
-      console.log(`🔄 尝试重新连接... (${attemptNumber}/${socket.value.opts.reconnectionAttempts})`);
+      console.log(
+        `🔄 尝试重新连接... (${attemptNumber}/${socket.value.opts.reconnectionAttempts})`,
+      );
     });
 
     socket.value.on("reconnect_failed", () => {
@@ -109,7 +111,7 @@ export function useWebSocket() {
 
     // 监听 ping 事件（心跳）
     socket.value.on("ping", () => {
-      console.debug('💓 收到服务器 ping');
+      console.debug("💓 收到服务器 ping");
     });
 
     // 监听 pong 事件（心跳响应）
@@ -121,7 +123,7 @@ export function useWebSocket() {
     socket.value.on("subscribed", (data) => {
       console.log("📡 订阅成功:", data);
     });
-    
+
     // 监听取消订阅成功
     socket.value.on("unsubscribed", (data) => {
       console.log("📡 取消订阅成功:", data);
@@ -202,7 +204,7 @@ export function useWebSocket() {
     }
 
     const payload = stationId ? { room, stationId } : { room };
-    const success = sendMessage('subscribe', payload);
+    const success = sendMessage("subscribe", payload);
 
     if (success) {
       subscribedRooms.add(roomKey);
@@ -212,7 +214,7 @@ export function useWebSocket() {
   };
 
   const unsubscribe = (room) => {
-    const success = sendMessage('unsubscribe', { room });
+    const success = sendMessage("unsubscribe", { room });
     if (success) {
       subscribedRooms.delete(room);
     }
@@ -220,17 +222,19 @@ export function useWebSocket() {
   };
 
   const broadcast = (room, event, data) => {
-    return sendMessage('broadcast', { room, event, data });
+    return sendMessage("broadcast", { room, event, data });
   };
 
   // 重新订阅房间（重连后调用）
   const resubscribeRooms = () => {
     if (subscribedRooms.size > 0) {
       console.log(`🔄 重新订阅 ${subscribedRooms.size} 个房间`);
-      subscribedRooms.forEach(roomKey => {
-        const [room, stationId] = roomKey.split(':');
-        const payload = stationId ? { room, stationId: parseInt(stationId) } : { room };
-        sendMessage('subscribe', payload);
+      subscribedRooms.forEach((roomKey) => {
+        const [room, stationId] = roomKey.split(":");
+        const payload = stationId
+          ? { room, stationId: parseInt(stationId) }
+          : { room };
+        sendMessage("subscribe", payload);
       });
     }
   };
@@ -238,7 +242,7 @@ export function useWebSocket() {
   // 获取连接状态信息
   const getConnectionInfo = () => {
     if (!socket.value) {
-      return { connected: false, reason: 'No socket instance' };
+      return { connected: false, reason: "No socket instance" };
     }
 
     return {
@@ -255,8 +259,8 @@ export function useWebSocket() {
   const ping = () => {
     if (socket.value && isConnected.value) {
       const startTime = Date.now();
-      socket.value.emit('ping');
-      console.log('🏓 Ping sent at', new Date(startTime).toISOString());
+      socket.value.emit("ping");
+      console.log("🏓 Ping sent at", new Date(startTime).toISOString());
       return startTime;
     }
     return null;
@@ -282,23 +286,23 @@ export function useWebSocket() {
 /**
  * WebSocket 自动刷新 Composable
  * 用于组件中自动监听 WebSocket 事件并刷新数据
- * 
+ *
  * @param {Object} options - 配置选项
  * @param {Function} options.refreshFn - 刷新数据的函数
  * @param {Array<string>} options.rooms - 要订阅的房间列表
  * @param {Array<Object>} options.events - 要监听的事件配置 [{event: 'order-updated', rooms: ['orders', 'all']}]
  * @param {boolean} options.autoConnect - 是否自动连接，默认 true
  * @param {string} options.logPrefix - 日志前缀，默认 'WebSocket'
- * 
+ *
  * @returns {Object} - 包含 unsubscribe 方法和 WebSocket 实例
  */
 export function useAutoRefresh(options = {}) {
   const {
     refreshFn,
-    rooms = ['orders', 'all'],
+    rooms = ["orders", "all"],
     events = [],
     autoConnect = true,
-    logPrefix = 'WebSocket',
+    logPrefix = "WebSocket",
   } = options;
 
   const ws = useWebSocket();
@@ -315,7 +319,7 @@ export function useAutoRefresh(options = {}) {
   // 订阅所有房间
   const subscribeRooms = () => {
     if (!isInitialized.value) {
-      rooms.forEach(room => {
+      rooms.forEach((room) => {
         ws.subscribe(room);
         console.log(`${logPrefix} 订阅房间：${room}`);
       });
@@ -328,12 +332,12 @@ export function useAutoRefresh(options = {}) {
       if (!events || events.length === 0) {
         // 如果没有配置事件，使用默认配置
         const defaultEvents = [
-          { event: 'order-created', rooms: ['orders', 'all'] },
-          { event: 'order-updated', rooms: ['orders', 'all'] },
-          { event: 'order-deleted', rooms: ['orders', 'all'] },
-          { event: 'item-created', rooms: ['order-items', 'all'] },
-          { event: 'item-updated', rooms: ['order-items', 'all'] },
-          { event: 'item-deleted', rooms: ['order-items', 'all'] },
+          { event: "order-created", rooms: ["orders", "all"] },
+          { event: "order-updated", rooms: ["orders", "all"] },
+          { event: "order-deleted", rooms: ["orders", "all"] },
+          { event: "item-created", rooms: ["order-items", "all"] },
+          { event: "item-updated", rooms: ["order-items", "all"] },
+          { event: "item-deleted", rooms: ["order-items", "all"] },
         ];
 
         defaultEvents.forEach(({ event, rooms: eventRooms }) => {
@@ -364,7 +368,7 @@ export function useAutoRefresh(options = {}) {
 
   // 清理所有监听
   const cleanup = () => {
-    unsubscribers.forEach(unsubscribe => {
+    unsubscribers.forEach((unsubscribe) => {
       try {
         unsubscribe();
       } catch (error) {
@@ -409,16 +413,46 @@ export function initGlobalWebSocket() {
   if (!globalWebSocket) {
     globalWebSocket = useWebSocket();
     // ✅ 修复：创建实例后立即连接
-   globalWebSocket.connect();
+    globalWebSocket.connect();
     // 暴露到 window 对象，方便在 Console 中访问
-   if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       window.ws = globalWebSocket;
       window.subscribedRooms = subscribedRooms;
       window.eventListeners = eventListeners;
-    console.log('🌐 全局 WebSocket 已初始化并自动连接');
+      console.log("🌐 全局 WebSocket 已初始化并自动连接");
+
+      // ✅ 新增：连接成功后自动订阅默认房间
+      // 等待连接成功后再订阅
+      const checkConnectionAndSubscribe = () => {
+        if (globalWebSocket.isConnected.value) {
+          // 自动订阅常用房间
+          subscribeToDefaultRooms();
+          console.log("✅ 已自动订阅默认房间");
+        } else {
+          // 如果还没连接成功，等待 100ms 后重试
+          setTimeout(checkConnectionAndSubscribe, 100);
+        }
+      };
+      checkConnectionAndSubscribe();
     }
   }
   return globalWebSocket;
+}
+
+/**
+ * 订阅默认的房间列表
+ */
+function subscribeToDefaultRooms() {
+  const defaultRooms = ["orders", "order-items", "dishes", "all"];
+
+  defaultRooms.forEach((room) => {
+    if (globalWebSocket) {
+      const success = globalWebSocket.subscribe(room);
+      if (success) {
+        console.log(`✅ 自动订阅房间：${room}`);
+      }
+    }
+  });
 }
 
 /**
