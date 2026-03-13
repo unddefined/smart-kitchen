@@ -311,13 +311,15 @@ const setupEventListeners = () => {
     const item = data.data || data;
 
     // ✅ 过滤：只处理当前用餐时间段的订单
-    if (!isCurrentMealPeriod(order)) return;
+    // 修复：使用 item.order 而不是未定义的 order
+    const orderInfo = item.order || data.order || {};
+    if (!isCurrentMealPeriod(orderInfo)) return;
 
     const dishName = item.dish?.name || "未知菜品";
     const orderId = item.orderId || data.orderId;
 
     // ✅ 修复：后端现在会广播 hallNumber 字段
-    let hallNumber = item.hallNumber || data.hallNumber;
+    let hallNumber = item.hallNumber || data.hallNumber || orderInfo.hallNumber;
 
     addBroadcast({
       type: "add-dish",
@@ -336,11 +338,16 @@ const setupEventListeners = () => {
     console.log("➖ 菜品被删除:", data);
 
     const item = data.data || data;
+
+    // ✅ 修复：添加用餐时段过滤
+    const orderInfo = item.order || data.order || {};
+    if (!isCurrentMealPeriod(orderInfo)) return;
+
     const dishName = item.dish?.name || data.dishName || "未知菜品";
     const orderId = item.orderId || data.orderId;
 
     // ✅ 修复：后端现在会广播 hallNumber 字段
-    let hallNumber = item.hallNumber || data.hallNumber;
+    let hallNumber = item.hallNumber || data.hallNumber || orderInfo.hallNumber;
 
     addBroadcast({
       type: "remove-dish",
@@ -360,8 +367,13 @@ const setupEventListeners = () => {
 
     // ✅ 修复：data 包含 { data: {...}, timestamp } 结构
     const item = data.data || data;
+
+    // ✅ 修复：添加用餐时段过滤
+    const orderInfo = item.order || data.order || {};
+    if (!isCurrentMealPeriod(orderInfo)) return;
+
     const dishName = item.dish?.name || "未知菜品";
-    const hallNumber = item.hallNumber || data.hallNumber;
+    const hallNumber = item.hallNumber || data.hallNumber || orderInfo.hallNumber;
     const orderId = item.orderId || data.orderId;
 
     // ========== 处理普通字段变更（数量、重量、备注）==========
