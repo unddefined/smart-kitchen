@@ -10,6 +10,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { KitchenModule } from './kitchen/kitchen.module';
 import { OrderItemsModule } from './order-items/order-items.module';
 import { LoggerModule } from 'nestjs-pino';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { LoggerModule } from 'nestjs-pino';
         },
       },
     }),
+    CommonModule, // 全局公共模块（提供 BroadcastService）
     PrismaModule,
     UsersModule,
     DishesModule,

@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { Order } from '@prisma/client';
 import type { PrismaClient } from '@prisma/client';
 import { EventsGateway } from '../events.gateway';
+import { BroadcastService } from '../common/services/broadcast.service';
 
 // 订单状态机定义（根据 MVP文档）
 const ORDER_STATUS_TRANSITIONS: Record<string, string[]> = {
@@ -21,22 +22,8 @@ export class KitchenService {
   constructor(
     private prisma: PrismaService,
     private eventsGateway: EventsGateway,
+    private broadcastService: BroadcastService,
   ) {}
-
-  /**
-   * 广播订单事件到指定房间
-   */
-  private broadcastOrderEvent(
-    event: string,
-    data: any,
-    rooms: string[] = ['orders', 'all'],
-  ) {
-    const timestamp = new Date().toISOString();
-    rooms.forEach((room) => {
-      this.eventsGateway.server.to(room).emit(event, { data, timestamp });
-    });
-    this.logger.log(`已广播 ${event} 事件到房间：${rooms.join(', ')}`);
-  }
 
   /**
    * 验证订单状态转换是否合法
@@ -258,7 +245,11 @@ export class KitchenService {
         data: { status: 'cancelled', updatedAt: new Date() },
       });
       await this.updateOrderItemsByStatus(cancelledOrder);
-      this.broadcastOrderEvent('order-updated', cancelledOrder);
+      await this.broadcastService.broadcastOrderEvent(
+        'order-updated',
+        cancelledOrder,
+        ['orders', 'all'],
+      );
       return cancelledOrder;
     }
 
@@ -268,7 +259,11 @@ export class KitchenService {
         where: { id: order.id },
         data: { status: 'started', updatedAt: new Date() },
       });
-      this.broadcastOrderEvent('order-updated', startedOrder);
+      await this.broadcastService.broadcastOrderEvent(
+        'order-updated',
+        startedOrder,
+        ['orders', 'all'],
+      );
       return startedOrder;
     }
 
@@ -329,7 +324,11 @@ export class KitchenService {
       ...updatedOrder,
       previousStatus, // 添加旧状态字段
     };
-    this.broadcastOrderEvent('order-updated', broadcastData);
+    await this.broadcastService.broadcastOrderEvent(
+      'order-updated',
+      broadcastData,
+      ['orders', 'all'],
+    );
 
     return updatedOrder;
   }
@@ -362,7 +361,11 @@ export class KitchenService {
       ...updatedOrder,
       previousStatus, // 添加旧状态字段
     };
-    this.broadcastOrderEvent('order-updated', broadcastData);
+    await this.broadcastService.broadcastOrderEvent(
+      'order-updated',
+      broadcastData,
+      ['orders', 'all'],
+    );
     return updatedOrder;
   }
 
@@ -402,7 +405,11 @@ export class KitchenService {
         ...updatedOrder,
         previousStatus, // 添加旧状态字段
       };
-      this.broadcastOrderEvent('order-updated', broadcastData);
+      await this.broadcastService.broadcastOrderEvent(
+        'order-updated',
+        broadcastData,
+        ['orders', 'all'],
+      );
       return updatedOrder;
     }
 
@@ -444,7 +451,11 @@ export class KitchenService {
       ...updatedOrder,
       previousStatus, // 添加旧状态字段
     };
-    this.broadcastOrderEvent('order-updated', broadcastData);
+    await this.broadcastService.broadcastOrderEvent(
+      'order-updated',
+      broadcastData,
+      ['orders', 'all'],
+    );
     return updatedOrder;
   }
 }

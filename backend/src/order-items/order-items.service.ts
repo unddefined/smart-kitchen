@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events.gateway';
+import { BroadcastService } from '../common/services/broadcast.service';
 
 @Injectable()
 export class OrderItemsService {
@@ -9,22 +10,8 @@ export class OrderItemsService {
   constructor(
     private prisma: PrismaService,
     private eventsGateway: EventsGateway,
+    private broadcastService: BroadcastService,
   ) {}
-
-  /**
-   * 广播订单项事件到指定房间
-   */
-  private broadcastItemEvent(
-    event: string,
-    data: any,
-    rooms: string[] = ['order-items', 'all'],
-  ) {
-    const timestamp = new Date().toISOString();
-    rooms.forEach((room) => {
-      this.eventsGateway.server.to(room).emit(event, { data, timestamp });
-    });
-    this.logger.log(`已广播 ${event} 事件到房间：${rooms.join(', ')}`);
-  }
 
   /**
    * 查询订单的所有菜品项
@@ -76,12 +63,8 @@ export class OrderItemsService {
       include: { dish: true },
     });
 
-    // ✅ 优化：广播时包含订单 hallNumber 信息
-    const broadcastData = {
-      ...createdItem,
-      hallNumber: order.hallNumber, // 添加厅号信息
-    };
-    this.broadcastItemEvent('item-created', broadcastData);
+    // 使用 BroadcastService 广播创建事件
+    await this.broadcastService.broadcastItemEvent('item-created', createdItem);
 
     return createdItem;
   }
@@ -128,12 +111,11 @@ export class OrderItemsService {
       where: { id: itemId },
     });
 
-    // ✅ 广播时包含 dish 和 hallNumber 信息
-    const broadcastData = {
-      ...itemWithDish,
-      hallNumber: order.hallNumber, // 添加厅号信息
-    };
-    this.broadcastItemEvent('item-deleted', broadcastData);
+    // 使用 BroadcastService 广播删除事件
+    await this.broadcastService.broadcastItemEvent(
+      'item-deleted',
+      itemWithDish,
+    );
 
     return deletedItem;
   }
@@ -209,15 +191,17 @@ export class OrderItemsService {
       include: { dish: true },
     });
 
-    // ✅ 优化：广播时包含 hallNumber 字段和旧值
+    // 使用 BroadcastService 广播更新事件，包含新旧值对比
     const broadcastData = {
       ...updatedItem,
-      hallNumber: order.hallNumber,
       previousQuantity,
       previousWeight,
       previousRemark,
     };
-    this.broadcastItemEvent('item-updated', broadcastData);
+    await this.broadcastService.broadcastItemEvent(
+      'item-updated',
+      broadcastData,
+    );
 
     return updatedItem;
   }

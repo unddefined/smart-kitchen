@@ -4,6 +4,7 @@ import { OrdersService } from '../orders/orders.service';
 import { OrderItemsService } from '../order-items/order-items.service';
 import { KitchenService } from '../kitchen/kitchen.service';
 import { EventsGateway } from '../events.gateway';
+import { BroadcastService } from '../common/services/broadcast.service';
 
 @Injectable()
 export class ServingService {
@@ -15,22 +16,8 @@ export class ServingService {
     private kitchenService: KitchenService,
     private orderItemsService: OrderItemsService,
     private ordersService: OrdersService,
+    private broadcastService: BroadcastService,
   ) {}
-
-  /**
-   * 广播订单项事件到指定房间
-   */
-  private broadcastItemEvent(
-    event: string,
-    data: any,
-    rooms: string[] = ['order-items', 'all'],
-  ) {
-    const timestamp = new Date().toISOString();
-    rooms.forEach((room) => {
-      this.eventsGateway.server.to(room).emit(event, { data, timestamp });
-    });
-    this.logger.log(`已广播 ${event} 事件到房间：${rooms.join(', ')}`);
-  }
 
   /**
    * 计算菜品优先级 (与数据库函数保持一致)
@@ -195,7 +182,10 @@ export class ServingService {
             });
 
             // 广播订单项状态更新事件
-            this.broadcastItemEvent('item-updated', updatedItem);
+            await this.broadcastService.broadcastItemEvent(
+              'item-updated',
+              updatedItem,
+            );
           } else {
             this.logger.log(
               `订单${orderId}的${item.dish.name}优先级已达上限 (${currentPriority})，不再提升`,
@@ -311,7 +301,7 @@ export class ServingService {
       },
     });
 
-    this.broadcastItemEvent('item-updated', updatedItem);
+    await this.broadcastService.broadcastItemEvent('item-updated', updatedItem);
 
     this.logger.log(
       `订单菜品 ${itemId} (${item.dish.name}) 切配完成：pending → preparing`,
@@ -336,7 +326,7 @@ export class ServingService {
       },
     });
 
-    this.broadcastItemEvent('item-updated', updatedItem);
+    await this.broadcastService.broadcastItemEvent('item-updated', updatedItem);
 
     return updatedItem;
   }
@@ -452,7 +442,7 @@ export class ServingService {
     );
 
     // 广播订单项优先级更新事件
-    this.broadcastItemEvent('item-updated', updatedItem);
+    await this.broadcastService.broadcastItemEvent('item-updated', updatedItem);
 
     return {
       success: true,
@@ -485,7 +475,7 @@ export class ServingService {
     );
 
     // 广播订单项状态更新事件
-    this.broadcastItemEvent('item-updated', updatedItem);
+    await this.broadcastService.broadcastItemEvent('item-updated', updatedItem);
 
     return {
       success: true,
@@ -548,7 +538,10 @@ export class ServingService {
           });
 
           // 广播订单项状态更新事件
-          this.broadcastItemEvent('item-updated', updatedItem);
+          await this.broadcastService.broadcastItemEvent(
+            'item-updated',
+            updatedItem,
+          );
 
           // 处理订单状态
           if (item.order.status === 'urged') {
@@ -643,7 +636,10 @@ export class ServingService {
       );
 
       // 3. 广播订单项状态更新事件
-      this.broadcastItemEvent('item-updated', updatedItem);
+      await this.broadcastService.broadcastItemEvent(
+        'item-updated',
+        updatedItem,
+      );
 
       // 4. 如果订单状态为 urged，检查是否需要恢复为 serving
       if (item.order.status === 'urged') {
