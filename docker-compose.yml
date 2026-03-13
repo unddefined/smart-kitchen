@@ -7,8 +7,14 @@ services:
       DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@8.145.34.30:5432/${DB_NAME}
       NODE_ENV: production
       PORT: 3001
+      # 设置时区为中国标准时间
+      TZ: Asia/Shanghai
     ports:
       - "3001:3001"
+    volumes:
+      # 挂载主机时区配置，确保容器时间与主机一致
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     restart: unless-stopped
     networks:
       - backend-network
@@ -23,7 +29,7 @@ services:
     image: crpi-obg02yu23b1k3mun-vpc.cn-wulanchabu.personal.cr.aliyuncs.com/walker-11572/smart-kitchen-frontend:latest
     container_name: smart-kitchen-frontend-prod
     ports:
-      - "80:80"  # 直接暴露前端容器的 80 端口
+      - "80:80" # 直接暴露前端容器的 80 端口
     restart: unless-stopped
     networks:
       - backend-network
