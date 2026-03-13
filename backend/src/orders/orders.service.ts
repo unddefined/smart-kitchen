@@ -46,9 +46,6 @@ export class OrdersService {
    * 创建订单
    */
   async create(createOrderDto: Order) {
-    this.logger.log('=== 开始创建订单 ===');
-    this.logger.log('接收到的数据:', JSON.stringify(createOrderDto));
-
     // 解析 mealTime 和 mealType
     let mealTimeDate: Date | null = null;
     let mealTypeValue: 'lunch' | 'dinner' | 'breakfast' | 'other' | null = null;
@@ -61,15 +58,9 @@ export class OrdersService {
           throw new Error('无效的用餐时间格式');
         }
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
-        this.logger.error(
-          '用餐时间解析失败:',
-          errorMessage,
-          createOrderDto.mealTime,
-        );
         throw new Error(
           `用餐时间格式错误：${typeof createOrderDto.mealTime === 'string' ? createOrderDto.mealTime : 'invalid date'}`,
+          error,
         );
       }
     }
@@ -94,13 +85,6 @@ export class OrdersService {
         mealTypeValue = 'other';
       }
     }
-
-    this.logger.log(
-      '解析后的值 - mealTime:',
-      mealTimeDate,
-      'mealType:',
-      mealTypeValue,
-    );
 
     const order = await this.prisma.order.create({
       data: {
@@ -173,9 +157,7 @@ export class OrdersService {
           const month = String(d.getMonth() + 1).padStart(2, '0');
           const day = String(d.getDate()).padStart(2, '0');
           orderDateStr = `${year}-${month}-${day}`;
-        } else {
-          return false;
-        }
+        } else return false;
 
         return orderDateStr === filterDateStr;
       });
@@ -211,9 +193,7 @@ export class OrdersService {
       },
     });
 
-    if (!order) {
-      return null;
-    }
+    if (!order) return null;
 
     // 检查并可能更新订单状态
     const updatedOrder =
@@ -229,9 +209,7 @@ export class OrdersService {
       where: { id },
     });
 
-    if (!order) {
-      throw new Error('订单不存在');
-    }
+    if (!order) throw new Error('订单不存在');
 
     // 保存旧状态和旧值用于广播
     const previousStatus = order.status;
@@ -272,9 +250,8 @@ export class OrdersService {
     this.broadcastOrderEvent('order-updated', broadcastData);
 
     // 只有当状态变更时，才更新订单菜品
-    if (updateOrderDto.status && updateOrderDto.status !== order.status) {
+    if (updateOrderDto.status && updateOrderDto.status !== order.status)
       await this.kitchenService.updateOrderItemsByStatus(updatedOrder);
-    }
 
     return updatedOrder;
   }
@@ -287,14 +264,11 @@ export class OrdersService {
       where: { id },
     });
 
-    if (!order) {
-      throw new Error('订单不存在');
-    }
+    if (!order) throw new Error('订单不存在');
 
     // 检查订单状态，不能取消已完成的订单
-    if (order.status === 'done' || order.status === 'cancelled') {
+    if (order.status === 'done' || order.status === 'cancelled')
       throw new Error('无法取消已完成或已取消的订单');
-    }
 
     const cancelledOrder = await this.prisma.order.update({
       where: { id },
@@ -343,9 +317,7 @@ export class OrdersService {
       where: { id },
     });
 
-    if (!order) {
-      throw new Error('订单不存在');
-    }
+    if (!order) throw new Error('订单不存在');
 
     // 使用事务同时删除订单及其关联项
     await this.prisma.$transaction(async (tx) => {
