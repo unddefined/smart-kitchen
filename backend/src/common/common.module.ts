@@ -10,7 +10,8 @@ import { EventsGateway } from '../events.gateway';
  */
 @Global()
 @Module({
-  providers: [BroadcastService, PrismaModule, EventsGateway],
+  imports: [PrismaModule], // 导入 PrismaModule 而不是列为 provider
+  providers: [BroadcastService, EventsGateway],
   exports: [BroadcastService],
 })
 export class CommonModule {}
