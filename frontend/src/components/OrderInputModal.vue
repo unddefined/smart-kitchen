@@ -15,24 +15,24 @@
         </div>
 
         <!-- 输入区域 -->
-        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+        <div class="text-xl flex-1 overflow-y-auto p-4 space-y-4">
           <!-- 用餐信息输入（全部同一行） -->
           <div class="flex space-x-4">
             <div class="flex items-center space-x-3 flex-1">
-              <label class="text-xl whitespace-nowrap">总人数</label>
+              <label class="whitespace-nowrap">总人数</label>
               <input
                 v-model.number="personCount"
                 type="number"
                 min="1"
                 placeholder="人数"
-                class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <label class="text-xl whitespace-nowrap">桌数</label>
+                class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label class="whitespace-nowrap">桌数</label>
               <input
                 v-model.number="tableCount"
                 type="number"
                 min="1"
                 placeholder="桌数"
-                class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
           </div>
 
@@ -59,11 +59,11 @@
           <!-- 用餐时间 -->
           <div class="flex space-x-4 items-center">
             <label class="text-xl font-medium text-gray-700 whitespace-nowrap">用餐时间</label>
-            <div class="flex space-x-2 items-center flex-nowrap">
+            <div class="flex items-center flex-nowrap justify-between flex-1">
               <input
                 v-model="mealDate"
                 type="date"
-                class="text-xl px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[80px]" />
+                class="text-xl p-1 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-auto" />
               <span class="flex rounded overflow-hidden">
                 <button
                   :class="[
