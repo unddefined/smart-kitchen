@@ -9,6 +9,9 @@
         <router-view />
       </main>
 
+      <!-- PWA 安装提示 -->
+      <PWAInstallPrompt v-if="showInstallPrompt" @close="showInstallPrompt = false" />
+
       <!-- 模态框容器 - 用于 Teleport 目标 -->
       <div id="modal-container" class="fixed inset-0 pointer-events-none"></div>
 
@@ -35,10 +38,11 @@
 </template>
 
 <script setup>
-import { ref, watch, provide } from "vue";
+import { ref, watch, provide, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import TestNavigation from "./components/TestNavigation.vue";
 import Toast from "./components/Toast.vue";
+import PWAInstallPrompt from "./components/PWAInstallPrompt.vue";
 import { useToast } from "@/composables/useToast";
 
 const router = useRouter();
@@ -52,6 +56,10 @@ const { toast: globalToast, showToast, showSuccess, showError, showInfo, hideToa
 
 // 提供全局 toast 方法给所有子组件
 provide("toast", { showToast, showSuccess, showError, showInfo });
+
+// PWA 安装提示状态
+const showInstallPrompt = ref(false);
+let deferredPrompt = null;
 
 // 根据当前路由确定激活模块
 const activeModule = ref("cooking");
@@ -88,6 +96,37 @@ const switchToModule = (module) => {
     router.push(routePath);
   }
 };
+
+// PWA 安装逻辑
+onMounted(() => {
+  // 监听 beforeinstallprompt 事件
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    showInstallPrompt.value = true;
+    console.log("PWA 安装提示已触发");
+  });
+
+  // 监听 appinstalled 事件
+  window.addEventListener("appinstalled", () => {
+    console.log("PWA 已安装");
+    showInstallPrompt.value = false;
+    deferredPrompt = null;
+  });
+
+  // 提供全局安装方法
+  window.installPWA = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log("用户选择:", outcome);
+      if (outcome === "accepted") {
+        deferredPrompt = null;
+        showInstallPrompt.value = false;
+      }
+    }
+  };
+});
 </script>
 
 <style>

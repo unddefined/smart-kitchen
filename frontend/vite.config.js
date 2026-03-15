@@ -28,13 +28,8 @@ export default defineConfig(({ mode }) => {
           lang: "zh-CN",
           icons: [
             {
-              src: "src/assets/icons/icon-192.png",
-              sizes: "192x192",
-              type: "image/png",
-            },
-            {
-              src: "src/assets/icons/icon-512.png",
-              sizes: "512x512",
+              src: "pwa.png",
+              sizes: "336x336",
               type: "image/png",
             },
           ],
