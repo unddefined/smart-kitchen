@@ -109,7 +109,7 @@
           录入订单
         </button>
       </div>
-      <OrderBroadcast />
+      <OrderBroadcast :currentMealType="mealType" :currentDate="selectedDate" />
     </header>
 
     <!-- Body区域 -->
