@@ -39,6 +39,13 @@ export class OrderItemsService {
       throw new Error('订单不存在');
     }
 
+    // 检查这是否是订单的第一个菜品
+    const existingItemsCount = await this.prisma.orderItem.count({
+      where: { orderId },
+    });
+
+    const isFirstDish = existingItemsCount === 0;
+
     // 处理 quantity 字段
     let quantity = 1;
     if (createOrderItemDto.quantity !== undefined) {
@@ -63,8 +70,12 @@ export class OrderItemsService {
       include: { dish: true },
     });
 
-    // 使用 BroadcastService 广播创建事件
-    await this.broadcastService.broadcastItemEvent('item-created', createdItem);
+    // ✅ 优化：如果是订单的第一个菜品，不广播加菜事件（避免与新订单广播冲突）
+    if (!isFirstDish)
+      await this.broadcastService.broadcastItemEvent(
+        'item-created',
+        createdItem,
+      );
 
     return createdItem;
   }

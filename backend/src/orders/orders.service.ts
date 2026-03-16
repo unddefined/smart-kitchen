@@ -101,6 +101,9 @@ export class OrdersService {
 
     this.logger.log('订单创建成功 - ID:', order.id);
 
+    // ✅ 广播新订单创建事件
+    this.broadcastOrderEvent('order-created', order);
+
     return order;
   }
 
