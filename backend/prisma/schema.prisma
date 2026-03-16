@@ -79,7 +79,7 @@ model Order {
   mealTime    DateTime? @map("meal_time") // 用餐时间（年月日时分）⭐ 使用TIMESTAMP类型
   mealType    String?   @map("meal_type") @db.VarChar(10) // 用餐时间（午/晚/打包）
   startTime   DateTime? @map("start_time") // 起菜时间（若为打包菜，start_time = meal_time）
-  remark      String?   @db.Text // 备注
+  remark      String? @db.Text // 备注
   updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
 
   orderItems OrderItem[]
@@ -89,16 +89,17 @@ model Order {
 
 // 订单菜品表
 model OrderItem {
-  id        Int       @id @default(autoincrement())
-  orderId   Int       @map("order_id")
-  dishId    Int       @map("dish_id")
-  quantity  Int       @default(1) // 菜品数量（整数）
-  weight    String?   @db.VarChar(20) // 如 5 两，1 斤
-  status    String    @default("pending") @db.VarChar(20) // pending → prep → ready → served → cancelled
-  priority  Int       @default(0) // 优先级：0-未起菜，1-不急，2-等一下，3-催菜，-1-已出
-  remark    String? // 备注
-  servedAt  DateTime? @map("served_at") // 上菜时间
-  createdAt DateTime  @default(now()) @map("created_at")
+  id                Int       @id @default(autoincrement())
+  orderId           Int       @map("order_id")
+  dishId            Int       @map("dish_id")
+  quantity          Int       @default(1) // 菜品数量（整数）
+  weight            String?   @db.VarChar(20) // 如 5 两，1 斤
+  status            String    @default("pending") @db.VarChar(20) // pending → prep → ready → served → cancelled
+  priority          Int       @default(0) // 优先级：0-未起菜，1-不急，2-等一下，3-催菜，-1-已出
+  previousPriority  Int?      @map("previous_priority") @default(0) // 缓存的优先级：用于暂停时保存，恢复时还原
+  remark            String? // 备注
+  servedAt          DateTime? @map("served_at") // 上菜时间
+  createdAt         DateTime  @default(now()) @map("created_at")
 
   order Order @relation(fields: [orderId], references: [id])
   dish  Dish  @relation(fields: [dishId], references: [id])

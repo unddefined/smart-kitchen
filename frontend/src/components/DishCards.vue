@@ -26,7 +26,7 @@
       </div>
 
       <!-- 菜品详细标注 - 使用 generateDisplayDetails 生成 -->
-      <div class="text-lg text-gray-800 leading-relaxed font-medium flex flex-col items-center justify-center">
+      <div class="text-xl text-gray-800 leading-relaxed font-medium flex flex-col items-center justify-center">
         <div v-for="(detail, idx) in generateDisplayDetails(dish)" :key="idx" class="text-center break-all min-w-[80px]">
           {{ detail }}
         </div>

@@ -46,7 +46,7 @@ export class KitchenService {
 
   /**
    * 根据订单状态更新订单菜品 - 支持事务
-   * 如果订单状态从 serving/urged 回退到 started/paused，重置所有菜品优先级为 0
+   * 暂停时重置优先级为 0 并缓存当前优先级，恢复时从缓存还原
    */
   async updateOrderItemsByStatus(
     order: Order,
@@ -57,33 +57,156 @@ export class KitchenService {
   ) {
     const client = tx || this.prisma;
 
+    // 暂停订单：保存当前优先级到缓存，然后重置为 0
     if (order.status === 'started') {
-      // 检查是否有需要重置优先级的菜品
-      const itemsWithPriority = await client.orderItem.findMany({
+      const items = await client.orderItem.findMany({
         where: {
           orderId: order.id,
-          priority: { gt: 0 },
+          status: { not: 'served' },
+        },
+        include: {
+          dish: true,
         },
       });
 
-      // 批量更新优先级为 0（排除已出菜的菜品）
-      if (itemsWithPriority.length > 0) {
-        await client.orderItem.updateMany({
-          where: {
-            orderId: order.id,
-            status: { not: 'served' },
-          },
-          data: { priority: 0 },
-        });
-
-        this.logger.log(
-          `订单${order.id}状态回退到 ${order.status}，所有菜品优先级重置为 0`,
-          { orderId: order.id, resetCount: itemsWithPriority.length },
-        );
+      // 批量保存并重置优先级
+      for (const item of items) {
+        if (item.priority !== 0) {
+          await client.orderItem.update({
+            where: { id: item.id },
+            data: {
+              previousPriority: item.priority, // 保存到缓存
+              priority: 0, // 重置为 0
+            },
+          });
+        }
       }
     } else if (order.status === 'serving') {
-      // 当订单状态变为 serving 时，初始化所有菜品的优先级
-      await this.initializeDishPriorities(order.id, client);
+      // 当订单状态变为 serving 时，只在首次起菜时初始化优先级
+      // 如果是从 started 状态恢复，保持原有优先级不变
+      // 由 startServing 方法负责判断是否首次起菜
+    }
+  }
+
+  /**
+   * 从缓存还原订单中所有菜品的优先级 - 支持事务
+   * 将 previous_priority 字段的值恢复到 priority 字段
+   */
+  async restorePrioritiesFromCache(
+    orderId: number,
+    tx?: Omit<
+      PrismaClient,
+      '$connect' | '$disconnect' | '$on' | '$transaction' | '$extends'
+    >,
+  ) {
+    const client = tx || this.prisma;
+
+    // 查询所有未出菜且有缓存优先级的菜品
+    const orderItems = await client.orderItem.findMany({
+      where: {
+        orderId,
+        status: { not: 'served' },
+      },
+    });
+
+    if (orderItems.length === 0) return;
+
+    // 批量还原优先级
+    for (const item of orderItems) {
+      if (
+        item.previousPriority !== null &&
+        item.previousPriority !== undefined
+      ) {
+        await client.orderItem.update({
+          where: { id: item.id },
+          data: {
+            priority: item.previousPriority,
+            previousPriority: null, // 还原后清空缓存
+          },
+        });
+      }
+    }
+  }
+
+  /**
+   * 从暂停恢复：还原缓存的优先级并初始化未缓存的菜品 - 支持事务
+   * 1. 先还原有缓存的菜品优先级 (保留之前的调整)
+   * 2. 再初始化没有缓存的菜品 (新增的或未调整过的)
+   */
+  async restoreAndInitializePriorities(
+    orderId: number,
+    tx?: Omit<
+      PrismaClient,
+      '$connect' | '$disconnect' | '$on' | '$transaction' | '$extends'
+    >,
+  ) {
+    const client = tx || this.prisma;
+
+    // 1. 查询所有未出菜且有缓存优先级的菜品
+    const itemsWithCache = await client.orderItem.findMany({
+      where: {
+        orderId,
+        status: { not: 'served' },
+        previousPriority: { not: null },
+      },
+    });
+
+    // 2. 批量还原缓存的优先级
+    if (itemsWithCache.length > 0) {
+      for (const item of itemsWithCache) {
+        const cachedPriority = item.previousPriority;
+        if (cachedPriority !== null && cachedPriority !== undefined) {
+          await client.orderItem.update({
+            where: { id: item.id },
+            data: {
+              priority: cachedPriority,
+              previousPriority: null, // 还原后清空缓存
+            },
+          });
+        }
+      }
+    }
+
+    // 3. 查询所有未出菜且没有缓存的菜品 (需要重新初始化)
+    const itemsWithoutCache = await client.orderItem.findMany({
+      where: {
+        orderId,
+        status: { not: 'served' },
+        OR: [{ previousPriority: null }, { previousPriority: { equals: 0 } }],
+      },
+      include: {
+        dish: {
+          include: {
+            category: true,
+          },
+        },
+      },
+    });
+
+    // 4. 对没有缓存的菜品进行初始化
+    if (itemsWithoutCache.length > 0) {
+      const priorityMap: Record<string, number> = {
+        前菜: 3,
+        中菜: 2,
+        点心: 2,
+        蒸菜: 2,
+        后菜: 1,
+        尾菜: 1,
+        凉菜: 3,
+      };
+
+      for (const item of itemsWithoutCache) {
+        const categoryName = item.dish.category.name;
+        const priority = priorityMap[categoryName] || 0;
+
+        await client.orderItem.update({
+          where: { id: item.id },
+          data: {
+            priority,
+            previousPriority: null, // 确保缓存字段为空
+          },
+        });
+      }
     }
   }
 
@@ -272,6 +395,7 @@ export class KitchenService {
 
   /**
    * 起菜 - 将订单状态更新为 serving 并初始化菜品优先级
+   * 只在首次起菜时初始化优先级，暂停后恢复从缓存还原
    */
   async startServing(id: number) {
     const order = await this.prisma.order.findUnique({
@@ -307,14 +431,24 @@ export class KitchenService {
         },
       });
 
-      // 2. 初始化所有菜品的优先级
-      await this.initializeDishPriorities(id, tx);
-
-      this.logger.log(`订单${id}已起菜`, {
-        orderId: id,
-        previousStatus: order.status,
-        newStatus: 'serving',
-      });
+      // 2. 判断是首次起菜还是从暂停恢复
+      if (order.status === 'started' && !order.startTime) {
+        // 首次起菜：初始化优先级
+        await this.initializeDishPriorities(id, tx);
+        this.logger.log(`订单${id}首次起菜，已初始化菜品优先级`, {
+          orderId: id,
+          previousStatus: order.status,
+          newStatus: 'serving',
+        });
+      } else if (order.status === 'started' && order.startTime) {
+        // 从暂停恢复：先还原缓存的优先级，再重新初始化未缓存的菜品
+        await this.restoreAndInitializePriorities(id, tx);
+        this.logger.log(`订单${id}从暂停状态恢复，已还原并初始化菜品优先级`, {
+          orderId: id,
+          previousStatus: order.status,
+          newStatus: 'serving',
+        });
+      }
 
       return updatedOrder;
     });
