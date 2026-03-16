@@ -22,7 +22,10 @@ export class PinoLoggerService implements OnModuleInit {
 
     // 初始化默认 context
     this.logger = this.logger.child({ context: this.defaultContext });
-    console.log('[PinoLoggerService] Constructor initialized with context:', this.defaultContext);
+    console.log(
+      '[PinoLoggerService] Constructor initialized with context:',
+      this.defaultContext,
+    );
   }
 
   async onModuleInit() {

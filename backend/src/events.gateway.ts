@@ -6,8 +6,10 @@ import {
   OnGatewayDisconnect,
   OnGatewayInit,
 } from '@nestjs/websockets';
-import { Logger } from '@nestjs/common';
+import { Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
+import { EnhancedBroadcastService } from './common/services/enhanced-broadcast.service';
+import { EventEmitter } from 'events';
 
 @WebSocketGateway({
   cors: {
@@ -18,13 +20,38 @@ import { Server, Socket } from 'socket.io';
   namespace: 'ws',
 })
 export class EventsGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+  implements
+    OnGatewayInit,
+    OnGatewayConnection,
+    OnGatewayDisconnect,
+    OnModuleInit,
+    OnModuleDestroy
 {
   @WebSocketServer()
   server: Server;
 
   private logger: Logger = new Logger('EventsGateway');
   private connectionCount = 0;
+  private eventEmitter = new EventEmitter();
+
+  // 注入 EnhancedBroadcastService（可选）
+  private enhancedBroadcastService?: EnhancedBroadcastService;
+
+  /**
+   * 设置增强广播服务（在 AppModule 或 EventsModule 中初始化）
+   */
+  setEnhancedBroadcastService(service: EnhancedBroadcastService) {
+    this.enhancedBroadcastService = service;
+  }
+
+  onModuleInit() {
+    this.logger.log('[EventsGateway] Module initialized');
+  }
+
+  onModuleDestroy() {
+    this.eventEmitter.removeAllListeners();
+    this.logger.log('[EventsGateway] Module destroyed');
+  }
 
   afterInit(server: Server) {
     this.logger.log('WebSocket Gateway initialized');
@@ -37,7 +64,7 @@ export class EventsGateway
     }, 60000); // 每分钟输出一次
   }
 
-  handleConnection(client: Socket) {
+  async handleConnection(client: Socket) {
     this.connectionCount++;
     this.logger.log(
       `✅ Client connected: ${client.id} (Total: ${this.connectionCount})`,
@@ -49,13 +76,54 @@ export class EventsGateway
       clientId: client.id,
       timestamp: new Date().toISOString(),
     });
+
+    // 通知 EnhancedBroadcastService
+    this.eventEmitter.emit('client-connected', client.id);
+
+    // 如果有增强广播服务，触发客户端连接处理
+    if (this.enhancedBroadcastService) {
+      try {
+        // 通过反射或直接调用处理连接
+        const method = (
+          this.enhancedBroadcastService as unknown as Record<string, unknown>
+        ).handleClientConnect;
+        if (typeof method === 'function') {
+          await (method as (id: string) => Promise<void>).call(
+            this.enhancedBroadcastService,
+            client.id,
+          );
+        }
+      } catch (error) {
+        this.logger.error('Error notifying EnhancedBroadcastService:', error);
+      }
+    }
   }
 
-  handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket) {
     this.connectionCount--;
     this.logger.log(
       `❌ Client disconnected: ${client.id} (Remaining: ${this.connectionCount})`,
     );
+
+    // 通知 EnhancedBroadcastService
+    this.eventEmitter.emit('client-disconnected', client.id);
+
+    // 如果有增强广播服务，触发客户端断开处理
+    if (this.enhancedBroadcastService) {
+      try {
+        const method = (
+          this.enhancedBroadcastService as unknown as Record<string, unknown>
+        ).handleClientDisconnect;
+        if (typeof method === 'function') {
+          await (method as (id: string) => Promise<void>).call(
+            this.enhancedBroadcastService,
+            client.id,
+          );
+        }
+      } catch (error) {
+        this.logger.error('Error notifying EnhancedBroadcastService:', error);
+      }
+    }
   }
 
   // 客户端订阅房间
@@ -123,5 +191,109 @@ export class EventsGateway
         timestamp: new Date().toISOString(),
       },
     };
+  }
+
+  // 消息确认处理
+  @SubscribeMessage('message-ack')
+  async handleMessageAck(client: Socket, payload: { messageId: string }) {
+    if (this.enhancedBroadcastService) {
+      try {
+        await this.enhancedBroadcastService.acknowledgeMessage(
+          client.id,
+          payload.messageId,
+        );
+        return { success: true, messageId: payload.messageId };
+      } catch (error) {
+        this.logger.error(
+          `Failed to ack message ${payload.messageId}:`,
+          error instanceof Error ? error.message : error,
+        );
+        return { success: false, error: 'Acknowledgment failed' };
+      }
+    } else {
+      // 降级处理：如果没有增强广播服务，直接返回成功
+      this.logger.debug(
+        `Received ACK for message ${payload.messageId} (no enhanced service)`,
+      );
+      return {
+        success: true,
+        messageId: payload.messageId,
+        note: 'No enhanced broadcast service',
+      };
+    }
+  }
+
+  // 请求房间状态同步（用于重连后）
+  @SubscribeMessage('sync-room-state')
+  async handleSyncRoomState(
+    client: Socket,
+    payload: { room: string; sinceSequence?: number },
+  ) {
+    if (this.enhancedBroadcastService) {
+      try {
+        const state = await this.enhancedBroadcastService.syncRoomState(
+          payload.room,
+          payload.sinceSequence,
+        );
+
+        if (state) {
+          client.emit('room-state-sync', {
+            room: payload.room,
+            state,
+          });
+          return { success: true, synced: true };
+        } else {
+          return {
+            success: true,
+            synced: false,
+            reason: 'No updates since provided sequence',
+          };
+        }
+      } catch (error) {
+        this.logger.error(
+          `Failed to sync room ${payload.room}:`,
+          error instanceof Error ? error.message : error,
+        );
+        return { success: false, error: 'Sync failed' };
+      }
+    } else {
+      return {
+        success: false,
+        error: 'Enhanced broadcast service not available',
+      };
+    }
+  }
+
+  // 请求消息历史（用于重连后补发）
+  @SubscribeMessage('get-message-history')
+  handleGetMessageHistory(
+    client: Socket,
+    payload: { room?: string; limit?: number },
+  ) {
+    if (this.enhancedBroadcastService) {
+      try {
+        const history = this.enhancedBroadcastService.getMessageHistory(
+          payload.room,
+          payload.limit || 50,
+        );
+
+        return {
+          success: true,
+          history,
+          count: history.length,
+        };
+      } catch (error) {
+        this.logger.error(
+          `Failed to get message history:`,
+          error instanceof Error ? error.message : error,
+        );
+        return { success: false, error: 'Failed to retrieve history' };
+      }
+    } else {
+      return {
+        success: false,
+        error: 'Enhanced broadcast service not available',
+      };
+    }
   }
 }

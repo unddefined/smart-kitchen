@@ -65,6 +65,11 @@ export function useWebSocket() {
 
       // 重新订阅之前订阅过的房间
       resubscribeRooms();
+
+      // 重连后同步状态（如果是重连）
+      if (reconnectAttempts.value > 0) {
+        syncStateAfterReconnect();
+      }
     });
 
     socket.value.on("disconnect", (reason) => {
@@ -168,7 +173,7 @@ export function useWebSocket() {
     const listeners = eventListeners.get(eventKey);
     if (listeners.has(callback)) {
       console.warn(`⚠️ 事件 ${event} 的监听器已存在，跳过重复注册`);
-      return () => { }; // 返回空清理函数
+      return () => {}; // 返回空清理函数
     }
 
     listeners.add(callback);
@@ -177,7 +182,7 @@ export function useWebSocket() {
       socket.value.on(event, callback);
       return () => removeListener(event, callback);
     }
-    return () => { };
+    return () => {};
   };
 
   const removeListener = (event, callback) => {
@@ -225,6 +230,124 @@ export function useWebSocket() {
     return sendMessage("broadcast", { room, event, data });
   };
 
+  /**
+   * 发送需要确认的消息
+   * @param {string} room - 房间名
+   * @param {string} event - 事件名
+   * @param {any} data - 数据
+   * @returns {Promise<string>} 消息 ID
+   */
+  const broadcastWithAck = (room, event, data) => {
+    return new Promise((resolve, reject) => {
+      if (!socket.value || !isConnected.value) {
+        reject(new Error("WebSocket 未连接"));
+        return;
+      }
+
+      // 监听消息确认响应
+      const ackHandler = (response) => {
+        if (response.success && response.messageId) {
+          resolve(response.messageId);
+        } else {
+          reject(new Error(response.error || "Message acknowledgment failed"));
+        }
+        // 清理监听器
+        socket.value.off("message-ack-response", ackHandler);
+      };
+
+      socket.value.on("message-ack-response", ackHandler);
+
+      // 发送带确认要求的消息
+      socket.value.emit(
+        "broadcast-with-ack",
+        { room, event, data },
+        (response) => {
+          // 处理回调响应
+          if (response && response.messageId) {
+            resolve(response.messageId);
+            socket.value.off("message-ack-response", ackHandler);
+          }
+        },
+      );
+
+      // 设置超时
+      setTimeout(() => {
+        socket.value.off("message-ack-response", ackHandler);
+        reject(new Error("Message acknowledgment timeout"));
+      }, 10000); // 10 秒超时
+    });
+  };
+
+  /**
+   * 确认收到消息
+   * @param {string} messageId - 消息 ID
+   */
+  const acknowledgeMessage = (messageId) => {
+    if (socket.value && isConnected.value) {
+      socket.value.emit("message-ack", { messageId });
+    }
+  };
+
+  /**
+   * 请求房间状态同步（用于重连后）
+   * @param {string} room - 房间名
+   * @param {number} sinceSequence - 可选，从此序列号之后开始同步
+   * @returns {Promise<Object|null>} 房间状态
+   */
+  const syncRoomState = (room, sinceSequence) => {
+    return new Promise((resolve, reject) => {
+      if (!socket.value || !isConnected.value) {
+        reject(new Error("WebSocket 未连接"));
+        return;
+      }
+
+      const responseHandler = (state) => {
+        resolve(state);
+        socket.value.off("room-state-sync-response", responseHandler);
+      };
+
+      socket.value.on("room-state-sync-response", responseHandler);
+
+      socket.value.emit("sync-room-state", { room, sinceSequence });
+
+      // 设置超时
+      setTimeout(() => {
+        socket.value.off("room-state-sync-response", responseHandler);
+        reject(new Error("Room state sync timeout"));
+      }, 5000);
+    });
+  };
+
+  /**
+   * 获取消息历史（用于重连后补发）
+   * @param {string} room - 可选，房间名
+   * @param {number} limit - 限制数量
+   * @returns {Promise<Array>} 消息历史
+   */
+  const getMessageHistory = (room, limit = 50) => {
+    return new Promise((resolve, reject) => {
+      if (!socket.value || !isConnected.value) {
+        reject(new Error("WebSocket 未连接"));
+        return;
+      }
+
+      const historyHandler = (history) => {
+        resolve(history);
+        socket.value.off("message-history-response", historyHandler);
+      };
+
+      socket.value.on("message-history-response", historyHandler);
+
+      socket.value.emit("get-message-history", { room, limit });
+
+      // 设置超时
+      setTimeout(() => {
+        socket.value.off("message-history-response", historyHandler);
+        reject(new Error("Message history fetch timeout"));
+      }, 5000);
+    });
+  };
+
   // 重新订阅房间（重连后调用）
   const resubscribeRooms = () => {
     if (subscribedRooms.size > 0) {
@@ -236,6 +359,46 @@ export function useWebSocket() {
           : { room };
         sendMessage("subscribe", payload);
       });
+    }
+  };
+
+  // 重连后同步状态
+  const syncStateAfterReconnect = async () => {
+    console.log("🔄 开始重连后的状态同步...");
+
+    try {
+      // 获取所有订阅的房间
+      const roomsToSync = Array.from(subscribedRooms).map(
+        (key) => key.split(":")[0],
+      );
+
+      for (const room of roomsToSync) {
+        try {
+          // 请求房间状态同步
+          const state = await syncRoomState(room);
+          if (state) {
+            console.log(`📦 房间 ${room} 状态已同步:`, state);
+            // 触发房间状态更新事件
+            socket.value.emit("room-state-updated", { room, state });
+          }
+
+          // 获取消息历史
+          const history = await getMessageHistory(room, 20);
+          if (history && history.length > 0) {
+            console.log(`📜 房间 ${room} 获取到 ${history.length} 条历史消息`);
+            // 逐条处理历史消息
+            history.forEach((msg) => {
+              socket.value.emit(msg.event, msg.data);
+            });
+          }
+        } catch (error) {
+          console.warn(`⚠️ 房间 ${room} 状态同步失败:`, error.message);
+        }
+      }
+
+      console.log("✅ 重连后状态同步完成");
+    } catch (error) {
+      console.error("❌ 重连后状态同步失败:", error.message);
     }
   };
 

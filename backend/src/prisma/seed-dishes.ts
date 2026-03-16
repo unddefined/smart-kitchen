@@ -114,16 +114,19 @@ const dishData: Record<string, DishData[]> = {
 function generateShortcutCode(dishName: string): string {
   try {
     // 使用 pinyin-pro 将中文转换为拼音首字母
-  const result = pinyin(dishName, {
+    const result = pinyin(dishName, {
       pattern: 'first',
       type: 'array',
     });
-    
+
     // 将数组连接成字符串并转大写，移除声调符号和非字母字符
-    return result.join('').toUpperCase().replace(/[^A-Z]/g, '');
+    return result
+      .join('')
+      .toUpperCase()
+      .replace(/[^A-Z]/g, '');
   } catch (error) {
     // 如果转换失败，回退到原始方法（取前 4 个字符）
-  console.warn(`⚠️  拼音转换失败 "${dishName}", 使用默认方法`);
+    console.warn(`⚠️  拼音转换失败 "${dishName}", 使用默认方法`);
     return dishName.replace(/\s/g, '').substring(0, 4).toUpperCase();
   }
 }
@@ -209,17 +212,17 @@ async function seedDishes() {
 
         try {
           // 生成快捷码 (拼音首字母)
-         const shortcutCode = generateShortcutCode(dish.name);
+          const shortcutCode = generateShortcutCode(dish.name);
 
           // 使用 upsert 确保幂等性
           await prisma.dish.upsert({
             where: { name: dish.name },
             update: {},
             create: {
-             name: dish.name,
-             stationId: station.id,
+              name: dish.name,
+              stationId: station.id,
               categoryId: category.id,
-             shortcutCode,
+              shortcutCode,
               countable: dish.countable || false,
               needPrep: dish.needPrep || false,
               isActive: true,

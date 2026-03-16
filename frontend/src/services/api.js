@@ -35,10 +35,11 @@ async function request(url, options = {}) {
       data = text ? JSON.parse(text) : null;
     }
 
-    // 📢 写操作自动触发 WebSocket 广播（带防抖）
-    const writeMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
+    // 📢 写操作自动触发 WebSocket 广播（带防抖和确认机制）
+    const writeMethods = ["POST", "PUT", "PATCH", "DELETE"];
     if (writeMethods.includes(options.method?.toUpperCase())) {
-      debouncedBroadcast(url, options.method, data);
+      // 使用增强的广播服务（需要确认）
+      await enhancedBroadcast(url, options.method, data);
     }
 
     return data;
@@ -48,7 +49,7 @@ async function request(url, options = {}) {
   }
 }
 
-// 防抖广播 - 合并短时间内的多次广播
+// 防抖广播 - 合并短时间内的多次广播（保留向后兼容）
 function debouncedBroadcast(url, method, responseData) {
   const resourceInfo = extractResourceInfo(url);
   const debounceKey = `${resourceInfo.resource}-${method}`;
@@ -64,10 +65,51 @@ function debouncedBroadcast(url, method, responseData) {
     delete broadcastDebounceTimers[debounceKey];
   }, BROADCAST_DEBOUNCE_DELAY);
 
-  console.log('⏱️ 广播已防抖:', {
+  console.log("⏱️ 广播已防抖:", {
     key: debounceKey,
-    delay: BROADCAST_DEBOUNCE_DELAY + 'ms',
+    delay: BROADCAST_DEBOUNCE_DELAY + "ms",
   });
+}
+
+// 增强广播 - 带确认机制和重试
+async function enhancedBroadcast(url, method, responseData) {
+  try {
+    const ws = useWebSocket();
+
+    // 确定资源类型和事件名称
+    const resourceInfo = extractResourceInfo(url);
+    const eventType = `${resourceInfo.resource}-${methodToEvent(method)}`;
+
+    // 使用带确认的广播
+    const messageId = await ws.broadcastWithAck(resourceInfo.room, eventType, {
+      type: eventType,
+      method: method.toUpperCase(),
+      url: url,
+      timestamp: new Date().toISOString(),
+      data: responseData?.data || responseData,
+    });
+
+    // 同时广播到全局变更房间
+    await ws.broadcastWithAck("all", "global-change", {
+      resource: resourceInfo.resource,
+      action: methodToEvent(method),
+      timestamp: new Date().toISOString(),
+      data: responseData?.data || responseData,
+    });
+
+    console.log("📢 增强广播发送成功:", {
+      type: eventType,
+      method: method.toUpperCase(),
+      url: url,
+      messageId,
+    });
+
+    return messageId;
+  } catch (error) {
+    console.warn("⚠️ 增强广播失败，降级到普通广播:", error.message);
+    // 降级到普通广播
+    performBroadcast(url, method, responseData);
+  }
 }
 
 // 执行广播
@@ -89,21 +131,21 @@ function performBroadcast(url, method, responseData) {
     });
 
     // 广播全局变更到 all 房间
-    ws.broadcast('all', 'global-change', {
+    ws.broadcast("all", "global-change", {
       resource: resourceInfo.resource,
       action: methodToEvent(method),
       timestamp: new Date().toISOString(),
       data: responseData.data || responseData,
     });
 
-    console.log('📢 广播数据变更:', {
+    console.log("📢 广播数据变更:", {
       type: eventType,
       method: method.toUpperCase(),
       url: url,
       data: responseData.data || responseData,
     });
   } catch (error) {
-    console.warn('⚠️ WebSocket 广播失败:', error.message);
+    console.warn("⚠️ WebSocket 广播失败:", error.message);
   }
 }
 
@@ -111,11 +153,15 @@ function performBroadcast(url, method, responseData) {
 function extractResourceInfo(url) {
   // 匹配 /api/orders/123/items 或 /api/orders/123 等
   const patterns = [
-    { regex: /^\/api\/orders\/(\d+)\/items/, resource: 'order-items', room: 'order-items' },
-    { regex: /^\/api\/orders\/(\d+)/, resource: 'orders', room: 'orders' },
-    { regex: /^\/api\/dishes\/(\d+)/, resource: 'dishes', room: 'dishes' },
-    { regex: /^\/api\/users\/(\d+)/, resource: 'users', room: 'users' },
-    { regex: /^\/api\/serving\/(.*)/, resource: 'serving', room: 'serving' },
+    {
+      regex: /^\/api\/orders\/(\d+)\/items/,
+      resource: "order-items",
+      room: "order-items",
+    },
+    { regex: /^\/api\/orders\/(\d+)/, resource: "orders", room: "orders" },
+    { regex: /^\/api\/dishes\/(\d+)/, resource: "dishes", room: "dishes" },
+    { regex: /^\/api\/users\/(\d+)/, resource: "users", room: "users" },
+    { regex: /^\/api\/serving\/(.*)/, resource: "serving", room: "serving" },
   ];
 
   for (const pattern of patterns) {
@@ -126,20 +172,20 @@ function extractResourceInfo(url) {
   }
 
   // 默认情况
-  const parts = url.split('/').filter(Boolean);
-  const resource = parts[parts.length - 1] || 'unknown';
+  const parts = url.split("/").filter(Boolean);
+  const resource = parts[parts.length - 1] || "unknown";
   return { resource, room: resource };
 }
 
 // HTTP 方法转换为事件后缀
 function methodToEvent(method) {
   const map = {
-    'POST': 'created',
-    'PUT': 'updated',
-    'PATCH': 'updated',
-    'DELETE': 'deleted',
+    POST: "created",
+    PUT: "updated",
+    PATCH: "updated",
+    DELETE: "deleted",
   };
-  return map[method.toUpperCase()] || 'changed';
+  return map[method.toUpperCase()] || "changed";
 }
 
 // API服务对象
