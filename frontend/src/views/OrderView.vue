@@ -527,13 +527,10 @@ const isCancelButtonDisabled = computed(() => {
   return orderDetail.value.status === "done" || orderDetail.value.status === "cancelled";
 });
 
-// 计算属性 - 判断是否可以完成订单
+// 计算属性 - 判断是否可以完成订单，只有出餐中或催菜状态的订单才能完成
 const canCompleteOrder = computed(() => {
   if (!orderDetail.value) return false;
-  // 只有出餐中或催菜状态的订单，且所有菜品都已上完才能完成
-  const isServingStatus = orderDetail.value.status === "serving" || orderDetail.value.status === "urged";
-  const allItemsServed = pendingDishes.value.length === 0;
-  return isServingStatus && allItemsServed;
+  return orderDetail.value.status === "serving" || orderDetail.value.status === "urged";
 });
 
 // 计算已上菜的菜品 ID 列表（用于禁用这些菜品）

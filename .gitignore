@@ -6,7 +6,24 @@
 frontend/dev-dist/*
 **/*.log
 
-# Environment files (保留生产环境配置)
+# Environment files (仅保留示例模板)
+.env
+.env.local
+.env.*.local
+!.env.example
+backend/.env
+backend/.env.local
+backend/.env.*.local
+!backend/.env.example
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+!frontend/.env.example
+# 生产环境文件一律不提交
+.env.production
+.env.production.server
+backend/.env.production
+frontend/.env.production
 
 # IDE and editor files
 .vscode/

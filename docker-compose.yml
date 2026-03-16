@@ -2,9 +2,11 @@ services:
   backend:
     image: crpi-obg02yu23b1k3mun-vpc.cn-wulanchabu.personal.cr.aliyuncs.com/walker-11572/smart-kitchen-backend:latest
     container_name: smart-kitchen-backend-prod
+    env_file:
+      - .env.production
     environment:
-      # 使用 ECS 本地 PostgreSQL（而非阿里云 RDS）
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@8.145.34.30:5432/${DB_NAME}
+      # 优先使用 env_file 中的变量，这里仅作为备选
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${DB_USER}:${DB_PASSWORD}@8.145.34.30:5432/${DB_NAME}}
       NODE_ENV: production
       PORT: 3001
       # 设置时区为中国标准时间

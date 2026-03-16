@@ -74,7 +74,7 @@ watch(
       activeModule.value = "history";
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 // 模块路由映射
