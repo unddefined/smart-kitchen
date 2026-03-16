@@ -200,14 +200,26 @@
                 v-for="order in availableOrders"
                 :key="order.id"
                 @click="toggleOrderSelection(order.id)"
+                :disabled="isOrderDisabled(order.id, currentActionType)"
                 :class="[
                   'py-2 px-3 rounded-lg text-xl font-medium transition-all duration-200 flex items-center justify-between gap-2',
-                  selectedOrderIds.includes(order.id) ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+                  isOrderDisabled(order.id, currentActionType)
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-50'
+                    : selectedOrderIds.includes(order.id)
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
                 ]">
                 <span class="truncate">{{ order.displayName }}</span>
-                <span :class="selectedOrderIds.includes(order.id) ? 'text-blue-100 flex-shrink-0' : 'text-gray-400 flex-shrink-0'">{{
-                  order.displayId
-                }}</span>
+                <span
+                  :class="
+                    isOrderDisabled(order.id, currentActionType)
+                      ? 'text-gray-400 flex-shrink-0'
+                      : selectedOrderIds.includes(order.id)
+                        ? 'text-blue-100 flex-shrink-0'
+                        : 'text-gray-400 flex-shrink-0'
+                  "
+                  >{{ order.displayId }}</span
+                >
               </button>
             </div>
           </div>
@@ -712,6 +724,28 @@ const toggleOrderSelection = (orderId) => {
     selectedOrderIds.value.splice(index, 1);
   } else {
     selectedOrderIds.value.push(orderId);
+  }
+};
+
+// 判断订单是否应该被禁用（根据当前操作类型）
+const isOrderDisabled = (orderId, actionType) => {
+  const order = orders.value.find((o) => o.id === orderId);
+  if (!order) return true; // 订单不存在时禁用
+
+  switch (actionType) {
+    case "start": // 起菜操作：只有待起菜（started）状态的订单可用
+      return order.status !== "started";
+
+    case "pause": // 暂停操作：已暂停（started）或未起菜（created）的订单禁用
+      // 只有出餐中（serving）或已催菜（urged）的订单可以暂停
+      return order.status !== "serving" && order.status !== "urged";
+
+    case "urged": // 催菜操作：已催菜（urged）或未起菜（created/started）的订单禁用
+      // 只有出餐中（serving）的订单可以催菜
+      return order.status !== "serving";
+
+    default:
+      return false;
   }
 };
 

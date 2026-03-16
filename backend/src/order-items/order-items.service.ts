@@ -39,12 +39,11 @@ export class OrderItemsService {
       throw new Error('订单不存在');
     }
 
-    // 检查这是否是订单的第一个菜品
-    const existingItemsCount = await this.prisma.orderItem.count({
-      where: { orderId },
-    });
-
-    const isFirstDish = existingItemsCount === 0;
+    // ✅ 优化：检查订单是否是刚创建的（5 秒内），避免与新订单广播冲突
+    const now = new Date();
+    const orderCreatedAt = new Date(order.createdAt);
+    const timeDiffMs = now.getTime() - orderCreatedAt.getTime();
+    const isJustCreated = timeDiffMs < 30000; // 30 秒内视为订单初始化阶段
 
     // 处理 quantity 字段
     let quantity = 1;
@@ -70,8 +69,9 @@ export class OrderItemsService {
       include: { dish: true },
     });
 
-    // ✅ 优化：如果是订单的第一个菜品，不广播加菜事件（避免与新订单广播冲突）
-    if (!isFirstDish)
+    // ✅ 优化：如果是订单刚创建时的首个菜品，不广播加菜事件
+    // 这样可以避免新订单和首道菜的重复通知
+    if (!isJustCreated)
       await this.broadcastService.broadcastItemEvent(
         'item-created',
         createdItem,

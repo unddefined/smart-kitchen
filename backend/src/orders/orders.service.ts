@@ -281,6 +281,9 @@ export class OrdersService {
       },
     });
 
+    // ✅ 广播订单取消事件
+    this.broadcastOrderEvent('order-cancelled', cancelledOrder);
+
     return cancelledOrder;
   }
 

@@ -371,6 +371,7 @@ export class KitchenService {
 
   /**
    * 恢复 - 催菜后上了一道菜时自动恢复为 serving
+   * 根据 MVP文档：当 status = 'urged'并在上了一道菜后，该订单的 status = 'serving'
    */
   async resumeOrderAfterServe(id: number) {
     const order = await this.prisma.order.findUnique({
@@ -378,42 +379,37 @@ export class KitchenService {
       include: { orderItems: true },
     });
 
-    if (!order) {
-      throw new Error('订单不存在');
-    }
+    if (!order) throw new Error('订单不存在');
 
     // 只有在 urged 状态下才执行恢复逻辑
-    if (order.status !== 'urged') {
-      return order;
-    }
+    if (order.status !== 'urged') return order;
 
-    // 检查是否有已上菜的菜品
-    const hasServedItems = order.orderItems.some(
-      (item) => item.status === 'served',
+    // 根据 MVP文档，只要在 urged 状态下有菜品被上菜（无论之前是否有其他菜已上），
+    // 就立即恢复为 serving 状态
+    const previousStatus = order.status;
+
+    const updatedOrder = await this.prisma.order.update({
+      where: { id },
+      data: { status: 'serving', updatedAt: new Date() },
+    });
+
+    this.logger.log(`订单 ${id} 已从 urged 恢复为 serving 状态`, {
+      orderId: id,
+      previousStatus,
+      newStatus: 'serving',
+    });
+
+    // ✅ 优化：广播时包含 previousStatus 字段
+    const broadcastData = {
+      ...updatedOrder,
+      previousStatus, // 添加旧状态字段
+    };
+    await this.broadcastService.broadcastOrderEvent(
+      'order-updated',
+      broadcastData,
+      ['orders', 'all'],
     );
-
-    if (hasServedItems) {
-      const previousStatus = order.status;
-
-      const updatedOrder = await this.prisma.order.update({
-        where: { id },
-        data: { status: 'serving', updatedAt: new Date() },
-      });
-
-      // ✅ 优化：广播时包含 previousStatus 字段
-      const broadcastData = {
-        ...updatedOrder,
-        previousStatus, // 添加旧状态字段
-      };
-      await this.broadcastService.broadcastOrderEvent(
-        'order-updated',
-        broadcastData,
-        ['orders', 'all'],
-      );
-      return updatedOrder;
-    }
-
-    return order;
+    return updatedOrder;
   }
 
   /**

@@ -304,6 +304,30 @@ const setupEventListeners = () => {
   });
   unsubscribers.push(unsubscribeOrderUpdated);
 
+  // ✅ 监听订单取消事件
+  const unsubscribeOrderCancelled = listen("order-cancelled", (data) => {
+    console.log("❌ 订单取消:", data);
+
+    const order = data.data || data;
+
+    // ✅ 过滤：只处理当前用餐时间段的订单
+    if (!isCurrentMealPeriod(order)) return;
+
+    const hallNumber = order.hallNumber || data.hallNumber;
+    const orderId = order.id || data.id;
+
+    addBroadcast({
+      type: "remove-dish",
+      title: "订单取消通知",
+      message: `${hallNumber} 订单已取消`,
+      orderId,
+      hallNumber: hallNumber || "未知",
+      icon: "🚫",
+      timestamp: Date.now(),
+    });
+  });
+  unsubscribers.push(unsubscribeOrderCancelled);
+
   // 订单项变更 - 监听 item-created（加菜）
   const unsubscribeItemCreated = listen("item-created", (data) => {
     console.log("➕ 菜品被添加:", data);
@@ -484,3 +508,5 @@ defineExpose({
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 </style>
+
+

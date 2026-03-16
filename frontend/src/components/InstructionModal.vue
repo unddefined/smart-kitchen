@@ -8,7 +8,11 @@
         <div class="p-4 border-b flex items-center justify-between bg-gradient-to-r from-blue-500 to-blue-600">
           <h3 class="text-lg font-bold text-white flex items-center">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
             订单录入使用说明
           </h3>
@@ -148,9 +152,7 @@
 
         <!-- 底部按钮 -->
         <div class="p-4 border-t bg-gray-50 flex justify-end">
-          <button 
-            @click="closeModal"
-            class="px-6 py-2.5 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors">
+          <button @click="closeModal" class="px-6 py-2.5 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors">
             我知道了
           </button>
         </div>
@@ -169,13 +171,13 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(['update:visible', 'close']);
+const emit = defineEmits(["update:visible", "close"]);
 
 /**
  * 关闭弹窗
  */
 const closeModal = () => {
-  emit('update:visible', false);
-  emit('close');
+  emit("update:visible", false);
+  emit("close");
 };
 </script>
