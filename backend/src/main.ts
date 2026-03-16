@@ -1,40 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import * as dotenv from 'dotenv';
-import * as path from 'path';
 import { Logger } from 'nestjs-pino';
 
-// 加载环境变量（从项目根目录）
-const envPath = path.resolve(__dirname, '../../.env');
-console.log('[Main] Loading environment from:', envPath);
-
-const dotenvResult = dotenv.config({ path: envPath });
-if (dotenvResult.parsed) {
-  console.log(
-    '[Main] Loaded variables:',
-    Object.keys(dotenvResult.parsed).length,
-  );
-
-  // 展开变量引用
-  Object.keys(dotenvResult.parsed).forEach((key) => {
-    let value = dotenvResult.parsed[key] || '';
-    let iterations = 0;
-
-    while (value.includes('${') && iterations < 10) {
-      const newValue = value.replace(/\$\{([^}]+)\}/g, (_, varName) => {
-        return process.env[varName] || dotenvResult.parsed?.[varName] || '';
-      });
-
-      if (newValue === value) break;
-      value = newValue;
-      iterations++;
-    }
-
-    process.env[key] = value;
-  });
-
-  console.log('[Main] DATABASE_URL configured:', !!process.env.DATABASE_URL);
-}
+// 注意：环境变量由 @nestjs/config 在 AppModule 中自动加载
+// 无需手动加载 .env 文件
 
 async function bootstrap() {
   try {
