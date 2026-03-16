@@ -1,9 +1,6 @@
 <template>
   <div id="app" class="mobile-app">
     <div class="app-container">
-      <!-- 测试导航（仅在开发环境显示） -->
-      <TestNavigation v-if="false" />
-
       <!-- 主要内容区域 -->
       <main class="main-content" :class="{ 'with-test-nav': false }">
         <router-view />
@@ -40,7 +37,6 @@
 <script setup>
 import { ref, watch, provide, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import TestNavigation from "./components/TestNavigation.vue";
 import Toast from "./components/Toast.vue";
 import PWAInstallPrompt from "./components/PWAInstallPrompt.vue";
 import { useToast } from "@/composables/useToast";
