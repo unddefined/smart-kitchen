@@ -118,7 +118,9 @@ export class ServingService {
       const result = await api.serving.serveDishes(itemIds);
       return {
         success: result.success,
-        message: result.message || `成功上菜 ${result.successCount} 个，失败 ${result.failCount} 个`,
+        message:
+          result.message ||
+          `成功上菜 ${result.successCount} 个，失败 ${result.failCount} 个`,
         data: result,
       };
     } catch (error) {

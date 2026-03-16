@@ -5,6 +5,14 @@ const API_BASE_URL =
 // 导入 WebSocket 工具
 import { useWebSocket } from "@/utils/websocket";
 
+// 导入错误处理工具
+import {
+  handleResponseError,
+  handleNetworkError,
+  showError,
+  logError,
+} from "@/utils/error-handler";
+
 // 📡 广播防抖机制 - 避免批量操作时频繁广播
 const broadcastDebounceTimers = {};
 const BROADCAST_DEBOUNCE_DELAY = 1000; // 1000ms 防抖延迟
@@ -23,7 +31,8 @@ async function request(url, options = {}) {
     const response = await fetch(`${API_BASE_URL}${url}`, config);
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      // 使用增强的错误处理
+      throw await handleResponseError(response);
     }
 
     // 处理空响应（特别是 DELETE 请求可能返回 204 No Content）
@@ -44,8 +53,18 @@ async function request(url, options = {}) {
 
     return data;
   } catch (error) {
-    console.error("API 请求失败:", error);
-    throw error;
+    // 区分处理网络错误和响应错误
+    const formattedError = error?.statusCode
+      ? error
+      : handleNetworkError(error);
+
+    // 记录错误日志
+    logError(formattedError, `API Request: ${options.method || "GET"} ${url}`);
+
+    // 显示用户友好的错误提示
+    showError(formattedError);
+
+    throw formattedError;
   }
 }
 

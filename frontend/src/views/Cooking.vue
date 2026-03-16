@@ -616,7 +616,7 @@ watch(
       }
     }
   },
-  { deep: true },
+  { deep: true }
 );
 
 // 组件卸载时清除定时器
@@ -805,7 +805,9 @@ const confirmAction = async () => {
           break;
         case "pause":
           // 暂停订单 - 将状态更新为 started
-          result = await OrderService.updateOrder(activeOrderId.value, { status: "started" });
+          result = await OrderService.updateOrder(activeOrderId.value, {
+            status: "started",
+          });
           break;
       }
 
@@ -861,7 +863,9 @@ const confirmAction = async () => {
               break;
             case "pause":
               if (order.status !== "serving" && order.status !== "urged") continue;
-              result = await OrderService.updateOrder(orderId, { status: "started" });
+              result = await OrderService.updateOrder(orderId, {
+                status: "started",
+              });
               break;
           }
 

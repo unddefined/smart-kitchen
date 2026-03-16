@@ -18,7 +18,7 @@ export function useDishLoader() {
   const loadDishes = async () => {
     loading.value = true;
     error.value = null;
-    
+
     try {
       // 使用按上菜顺序排序的菜品数据
       const loadedDishes = await DishService.getAllDishesInServingOrder();
@@ -26,7 +26,7 @@ export function useDishLoader() {
     } catch (error) {
       console.error("加载菜品数据失败:", error);
       error.value = "加载菜品失败，请稍后重试";
-      
+
       // 回退到字母排序
       try {
         const fallbackDishes = await DishService.getAllDishes();

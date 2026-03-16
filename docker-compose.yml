@@ -5,8 +5,7 @@ services:
     env_file:
       - .env.production
     environment:
-      # 优先使用 env_file 中的变量，这里仅作为备选
-      DATABASE_URL: ${DATABASE_URL:-postgresql://${DB_USER}:${DB_PASSWORD}@8.145.34.30:5432/${DB_NAME}}
+      # 直接使用 env_file 中的 DATABASE_URL，无需重复定义
       NODE_ENV: production
       PORT: 3001
       # 设置时区为中国标准时间

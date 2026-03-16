@@ -6,20 +6,35 @@ export class OrderService {
   static async createOrder(orderData) {
     try {
       // 打印调试信息
-      console.log('=== OrderService 接收到的订单数据 ===');
-      console.log('orderData:', orderData);
-      console.log('hallNumber:', orderData?.hallNumber, 'type:', typeof orderData?.hallNumber);
-      console.log('peopleCount:', orderData?.peopleCount, 'type:', typeof orderData?.peopleCount);
-      console.log('tableCount:', orderData?.tableCount, 'type:', typeof orderData?.tableCount);
+      console.log("=== OrderService 接收到的订单数据 ===");
+      console.log("orderData:", orderData);
+      console.log(
+        "hallNumber:",
+        orderData?.hallNumber,
+        "type:",
+        typeof orderData?.hallNumber,
+      );
+      console.log(
+        "peopleCount:",
+        orderData?.peopleCount,
+        "type:",
+        typeof orderData?.peopleCount,
+      );
+      console.log(
+        "tableCount:",
+        orderData?.tableCount,
+        "type:",
+        typeof orderData?.tableCount,
+      );
 
       // 验证必要字段 - 分别检查每个字段
       const errors = [];
       if (!orderData.hallNumber || !orderData.hallNumber.trim()) {
-        console.error('❌ hallNumber 验证失败');
+        console.error("❌ hallNumber 验证失败");
         errors.push("台号不能为空");
       }
       if (!orderData.peopleCount || orderData.peopleCount < 1) {
-        console.error('❌ peopleCount 验证失败');
+        console.error("❌ peopleCount 验证失败");
         errors.push("人数必须大于 0");
       }
       if (errors.length > 0) {
@@ -161,7 +176,7 @@ export class OrderService {
   static async completeOrder(orderId) {
     try {
       const order = await api.orders.complete(orderId);
-      
+
       return {
         success: true,
         message: "订单已完成",
@@ -180,11 +195,11 @@ export class OrderService {
     try {
       // 将筛选参数传递给后端
       const queryParams = {};
-      
+
       if (filters.date) {
         queryParams.date = filters.date;
       }
-      
+
       if (filters.mealType) {
         queryParams.mealType = filters.mealType;
       }
@@ -400,7 +415,7 @@ export class OrderService {
   static async cancelOrder(orderId) {
     try {
       const order = await api.orders.cancel(orderId);
-      
+
       return {
         success: true,
         message: "订单取消成功",
@@ -418,7 +433,7 @@ export class OrderService {
   static async deleteOrder(orderId) {
     try {
       await api.orders.delete(orderId);
-      
+
       return {
         success: true,
         message: "订单删除成功",
@@ -435,7 +450,7 @@ export class OrderService {
   static async completeOrder(orderId) {
     try {
       const order = await api.orders.complete(orderId);
-      
+
       return {
         success: true,
         message: "订单已完成",
@@ -479,15 +494,15 @@ export class OrderService {
 
     // 9:00-15:00 为午餐时段
     if (hour >= 9 && hour < 15) {
-      return 'lunch';
+      return "lunch";
     }
     // 15:00-24:00 为晚餐时段
     else if (hour >= 15 && hour < 24) {
-      return 'dinner';
+      return "dinner";
     }
     // 0:00-9:00 默认为午餐（第二天早餐时段）
     else {
-      return 'lunch';
+      return "lunch";
     }
   }
 }

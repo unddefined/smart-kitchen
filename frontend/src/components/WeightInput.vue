@@ -14,7 +14,7 @@
         :class="[
           'px-2 py-2 text-xl font-medium transition-all duration-200',
           internalUnit === '两' ? 'bg-blue-500 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100',
-          disabled && 'opacity-50 cursor-not-allowed'
+          disabled && 'opacity-50 cursor-not-allowed',
         ]"
         :disabled="disabled"
         @click="handleUnitClick('两')">
@@ -24,7 +24,7 @@
         :class="[
           'px-2 py-2 text-xl font-medium border-l border-gray-200 transition-all duration-200',
           internalUnit === '斤' ? 'bg-blue-500 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100',
-          disabled && 'opacity-50 cursor-not-allowed'
+          disabled && 'opacity-50 cursor-not-allowed',
         ]"
         :disabled="disabled"
         @click="handleUnitClick('斤')">
@@ -34,7 +34,7 @@
         :class="[
           'px-2 py-2 text-xl font-medium border-l border-gray-200 transition-all duration-200',
           internalUnit === '只' ? 'bg-blue-500 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100',
-          disabled && 'opacity-50 cursor-not-allowed'
+          disabled && 'opacity-50 cursor-not-allowed',
         ]"
         :disabled="disabled"
         @click="handleUnitClick('只')">
@@ -88,14 +88,14 @@ watch(
   () => props.modelValue,
   (newVal) => {
     internalValue.value = newVal;
-  },
+  }
 );
 
 watch(
   () => props.unit,
   (newVal) => {
     internalUnit.value = newVal;
-  },
+  }
 );
 
 // 处理单位点击

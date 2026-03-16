@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger } from 'nestjs-pino';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 // 注意：环境变量由 @nestjs/config 在 AppModule 中自动加载
 // 无需手动加载 .env 文件
@@ -21,6 +22,9 @@ async function bootstrap() {
 
     // 设置全局 API 前缀
     app.setGlobalPrefix('api');
+
+    // 注册全局异常过滤器
+    app.useGlobalFilters(new AllExceptionsFilter());
 
     // 启用 CORS
     app.enableCors({

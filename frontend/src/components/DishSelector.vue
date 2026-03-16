@@ -32,18 +32,9 @@
             type="text"
             placeholder="搜索菜品名称或拼音首字母（空格分隔多个关键词）"
             class="w-full px-4 py-2 pl-10 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
-            @input="handleSearchInput"
-          />
-          <svg
-            class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
-            fill="none"
-           stroke="currentColor"
-            viewBox="0 0 24 24">
-            <path
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             stroke-width="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            @input="handleSearchInput" />
+          <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
           </svg>
           <button
             v-if="searchQuery"
@@ -60,7 +51,9 @@
 
       <!-- 无菜品提示 -->
       <div v-if="filteredDishes.length === 0" class="text-center py-4">
-        <p class="text-gray-500">{{ searchQuery ? '未找到匹配的菜品' : '暂无菜品' }}</p>
+        <p class="text-gray-500">
+          {{ searchQuery ? "未找到匹配的菜品" : "暂无菜品" }}
+        </p>
       </div>
 
       <!-- 菜品按钮网格 -->
@@ -150,7 +143,7 @@
               v-model="currentDish.remark"
               rows="3"
               placeholder="大份，少辣，去葱等备注信息"
-              class=" text-xl w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+              class="text-xl w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
           </div>
         </div>
 
@@ -251,31 +244,34 @@ const filteredDishes = ref([]); // 过滤后的菜品列表
 // 搜索匹配函数 - 使用后端返回的 shortcutCode
 const matchesSearch = (dish, keywords) => {
   if (!keywords || keywords.length === 0) return true;
-  
+
   const dishName = (dish.name || "").toLowerCase();
   // 直接使用后端返回的 shortcutCode（已经是拼音首字母缩写）
   const shortcutCode = (dish.shortcutCode || "").toLowerCase();
-  
+
   // 多关键词 OR 逻辑：只要匹配任意一个关键词即可
-  return keywords.some(keyword => {
-   const kw = keyword.toLowerCase();
-   // 关键词匹配菜名或 shortcutCode 其中之一即可
-  return dishName.includes(kw) || shortcutCode.includes(kw);
+  return keywords.some((keyword) => {
+    const kw = keyword.toLowerCase();
+    // 关键词匹配菜名或 shortcutCode 其中之一即可
+    return dishName.includes(kw) || shortcutCode.includes(kw);
   });
 };
 
 // 处理搜索输入
 const handleSearchInput = () => {
   if (!searchQuery.value.trim()) {
-   filteredDishes.value = sortedDishes.value;
-   return;
+    filteredDishes.value = sortedDishes.value;
+    return;
   }
-  
+
   // 按空格分割关键词
-  const keywords = searchQuery.value.trim().split(/\s+/).filter(k => k.length > 0);
-  
+  const keywords = searchQuery.value
+    .trim()
+    .split(/\s+/)
+    .filter((k) => k.length > 0);
+
   // 过滤菜品
-  filteredDishes.value = sortedDishes.value.filter(dish => matchesSearch(dish, keywords));
+  filteredDishes.value = sortedDishes.value.filter((dish) => matchesSearch(dish, keywords));
 };
 
 // 清空搜索
@@ -287,35 +283,39 @@ const clearSearch = () => {
 // 计算属性 - 按分类排序后内部再按字母排序
 const sortedDishes = computed(() => {
   if (!props.dishes || props.dishes.length === 0) {
-  return [];
+    return [];
   }
 
   // 创建副本进行排序
   return [...props.dishes].sort((a, b) => {
     // 首先按分类的 displayOrder 排序
     // 注意：数据可能包含 category.displayOrder 或 categoryDisplayOrder 字段
-   const categoryOrderA = a.category?.displayOrder ?? a.categoryDisplayOrder ?? Number.MAX_SAFE_INTEGER;
-   const categoryOrderB = b.category?.displayOrder ?? b.categoryDisplayOrder ?? Number.MAX_SAFE_INTEGER;
+    const categoryOrderA = a.category?.displayOrder ?? a.categoryDisplayOrder ?? Number.MAX_SAFE_INTEGER;
+    const categoryOrderB = b.category?.displayOrder ?? b.categoryDisplayOrder ?? Number.MAX_SAFE_INTEGER;
 
     if (categoryOrderA !== categoryOrderB) {
-     return categoryOrderA - categoryOrderB;
+      return categoryOrderA - categoryOrderB;
     }
 
     // 同一分类内按菜名字母顺序排序
-   return (a.name || "").localeCompare(b.name || "", "zh-CN");
+    return (a.name || "").localeCompare(b.name || "", "zh-CN");
   });
 });
 
 // 监听 sortedDishes 变化，自动更新 filteredDishes
-watch(sortedDishes, (newVal) => {
-  // 如果没有搜索内容，显示所有菜品
-  if (!searchQuery.value.trim()) {
-  filteredDishes.value = newVal;
-  } else {
-   // 否则重新应用搜索过滤
-   handleSearchInput();
-  }
-}, { immediate: true });
+watch(
+  sortedDishes,
+  (newVal) => {
+    // 如果没有搜索内容，显示所有菜品
+    if (!searchQuery.value.trim()) {
+      filteredDishes.value = newVal;
+    } else {
+      // 否则重新应用搜索过滤
+      handleSearchInput();
+    }
+  },
+  { immediate: true }
+);
 
 // 获取菜品样式类
 const getDishClasses = (dish) => {
@@ -517,52 +517,54 @@ const confirmEdit = () => {
 
 // 测试搜索功能
 const testSearch = () => {
-  console.log('=== 搜索功能测试 ===\n');
-  
+  console.log("=== 搜索功能测试 ===\n");
+
   // 模拟菜品数据
   const mockDishes = [
-    { id: 1, name: '红烧肉', shortcutCode: 'HSR' },
-    { id: 2, name: '牛肉羹', shortcutCode: 'NRG' },
-    { id: 3, name: '红烧牛肉', shortcutCode: 'HSNR' },
-    { id: 4, name: '清炒虾仁', shortcutCode: 'QCXR' },
+    { id: 1, name: "红烧肉", shortcutCode: "HSR" },
+    { id: 2, name: "牛肉羹", shortcutCode: "NRG" },
+    { id: 3, name: "红烧牛肉", shortcutCode: "HSNR" },
+    { id: 4, name: "清炒虾仁", shortcutCode: "QCXR" },
   ];
-  
+
   // 测试用例
   const testCases = [
-    { query: 'HSR', expected: ['红烧肉'] },
-    { query: '红烧', expected: ['红烧肉', '红烧牛肉'] },
-    { query: 'HS NR', expected: ['红烧牛肉'] },
-    { query: '肉', expected: ['红烧肉', '牛肉羹', '红烧牛肉'] },
-    { query: 'NRG', expected: ['牛肉羹'] },
+    { query: "HSR", expected: ["红烧肉"] },
+    { query: "红烧", expected: ["红烧肉", "红烧牛肉"] },
+    { query: "HS NR", expected: ["红烧牛肉"] },
+    { query: "肉", expected: ["红烧肉", "牛肉羹", "红烧牛肉"] },
+    { query: "NRG", expected: ["牛肉羹"] },
   ];
-  
+
   testCases.forEach(({ query, expected }) => {
-   const keywords = query.trim().split(/\s+/).filter(k => k.length > 0);
-    
-    const results = mockDishes.filter(dish => {
-     const dishName = dish.name.toLowerCase();
+    const keywords = query
+      .trim()
+      .split(/\s+/)
+      .filter((k) => k.length > 0);
+
+    const results = mockDishes.filter((dish) => {
+      const dishName = dish.name.toLowerCase();
       const shortcutCode = dish.shortcutCode.toLowerCase();
-      
-    return keywords.every(kw => {
-       const k = kw.toLowerCase();
-       return dishName.includes(k) || shortcutCode.includes(k);
+
+      return keywords.every((kw) => {
+        const k = kw.toLowerCase();
+        return dishName.includes(k) || shortcutCode.includes(k);
       });
     });
-    
-    const resultNames = results.map(r => r.name);
+
+    const resultNames = results.map((r) => r.name);
     const passed = JSON.stringify(resultNames.sort()) === JSON.stringify(expected.sort());
-    
+
     console.log(`查询："${query}"`);
-    console.log(`关键词：[${keywords.join(', ')}]`);
-    console.log(`结果：[${resultNames.join(', ')}]`);
-    console.log(`期望：[${expected.join(', ')}]`);
-    console.log(`${passed ? '✅ 通过' : '❌ 失败'}\n`);
+    console.log(`关键词：[${keywords.join(", ")}]`);
+    console.log(`结果：[${resultNames.join(", ")}]`);
+    console.log(`期望：[${expected.join(", ")}]`);
+    console.log(`${passed ? "✅ 通过" : "❌ 失败"}\n`);
   });
 };
 
 // 在浏览器控制台运行测试
 // testSearch();
-
 </script>
 
 <style scoped>

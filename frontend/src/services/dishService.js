@@ -29,19 +29,19 @@ export class DishService {
     try {
       // 先获取分组数据
       const groupedData = await this.getDishesGroupedByCategory();
-      
+
       // 展平为单一数组，保持分类顺序
       const allDishes = [];
-      groupedData.forEach(group => {
-        group.dishes.forEach(dish => {
+      groupedData.forEach((group) => {
+        group.dishes.forEach((dish) => {
           allDishes.push({
             ...dish,
             categoryName: group.category.name,
-            categoryDisplayOrder: group.category.displayOrder
+            categoryDisplayOrder: group.category.displayOrder,
           });
         });
       });
-      
+
       return allDishes;
     } catch (error) {
       console.error("获取上菜顺序菜品失败:", error);

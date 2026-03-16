@@ -75,7 +75,7 @@ watch(
       }, props.duration);
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 // 组件卸载时清除定时器
