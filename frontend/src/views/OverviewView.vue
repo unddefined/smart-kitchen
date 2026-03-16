@@ -16,7 +16,7 @@
 
     <!-- 正常内容 -->
     <template v-else>
-      <div class="flex-1 overflow-y-auto p-4">
+      <div class="flex-1 overflow-y-auto p-2">
         <!-- 已出菜品瀑布流 -->
         <div
           class="mb-3 transition-all duration-300"
