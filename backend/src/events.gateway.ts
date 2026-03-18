@@ -17,7 +17,7 @@ import { EventEmitter } from 'events';
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   },
-  namespace: 'ws',
+  path: '/ws/socket.io', // Socket.IO 的自定义路径
 })
 export class EventsGateway
   implements
