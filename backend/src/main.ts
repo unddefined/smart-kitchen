@@ -42,7 +42,7 @@ async function bootstrap() {
       await app.listen(port, host);
 
       console.log("[Main] Server started successfully on", `${host}:${port}`);
-      console.log("[Main] WebSocket available at ws://${host}:${port}/ws");
+      console.log("[Main] WebSocket available at ws://${host}:${port}/socket.io/");
       console.log("[Main] Log level:", process.env.LOG_LEVEL || "info");
       console.log("[Main] Query logging:", process.env.QUERY_LOGGING === "true" ? "enabled" : "disabled");
    } catch (error) {

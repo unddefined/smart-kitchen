@@ -16,10 +16,10 @@ export function useWebSocket() {
       if (import.meta.env.PROD) {
          const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
          // 使用当前 host，不添加端口号（由 Nginx 处理反向代理）
-         return `${protocol}//${window.location.host}/ws`;
+         return `${protocol}//${window.location.host}`;
       }
       // 开发环境使用本地地址
-      return import.meta.env.VITE_WS_URL || "ws://localhost:3001/ws";
+      return import.meta.env.VITE_WS_URL || "ws://localhost:3001";
    };
 
    const connect = (url = null) => {
