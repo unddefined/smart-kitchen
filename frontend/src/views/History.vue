@@ -1,9 +1,9 @@
 <template>
-  <div class="history-container">
-    <h2>历史记录</h2>
-    <p>待实现历史记录功能</p>
-    <p>显示历史订单信息、订单操作记录、库存操作记录</p>
-  </div>
+   <div class="history-container">
+      <h2>历史记录</h2>
+      <p>待实现历史记录功能</p>
+      <p>显示历史订单信息、订单操作记录、库存操作记录</p>
+   </div>
 </template>
 
 <script setup>
@@ -12,7 +12,7 @@
 
 <style scoped>
 .history-container {
-  padding: 20px;
-  text-align: center;
+   padding: 20px;
+   text-align: center;
 }
 </style>
