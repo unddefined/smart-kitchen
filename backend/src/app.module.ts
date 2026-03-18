@@ -43,12 +43,10 @@ const isProduction = process.env.NODE_ENV === 'production';
                 ignore: 'pid,hostname',
               },
             },
-        // 生产环境简化日志字段
+        // 生产环境简化日志字段，开发环境添加 environment 标识
         customProps: isProduction
           ? () => ({})
-          : {
-              environment: 'development',
-            },
+          : () => ({ environment: 'development' }),
       },
     }),
     CommonModule,
