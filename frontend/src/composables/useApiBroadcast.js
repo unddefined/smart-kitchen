@@ -1,5 +1,5 @@
 // API 广播 Composable Hook - 处理 WebSocket 广播和防抖逻辑
-import { useRef } from "vue";
+import { ref } from "vue";
 import { useWebSocket } from "@/utils/websocket";
 
 // 📡 广播防抖机制 - 避免批量操作时频繁广播
@@ -173,8 +173,8 @@ function debouncedBroadcast(url, method, responseData) {
  */
 export function useApiBroadcast() {
   // 内部状态（如果需要响应式状态可以添加）
-  const isBroadcasting = useRef(false);
-  const lastBroadcastTime = useRef(null);
+  const isBroadcasting = ref(false);
+  const lastBroadcastTime = ref(null);
 
   /**
    * 执行带防抖的广播
