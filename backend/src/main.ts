@@ -8,7 +8,9 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   try {
-    console.log('[Main] Creating NestJS application with bufferLogs...');
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    console.log(`[Main] Creating NestJS application in ${isProduction ? 'production' : 'development'} mode...`);
 
     // 关键修复：启用 bufferLogs 防止日志系统阻塞启动
     const app = await NestFactory.create(AppModule, {
@@ -41,6 +43,8 @@ async function bootstrap() {
 
     console.log('[Main] Server started successfully on', `${host}:${port}`);
     console.log('[Main] WebSocket available at ws://${host}:${port}/ws');
+    console.log('[Main] Log level:', process.env.LOG_LEVEL || 'info');
+    console.log('[Main] Query logging:', process.env.QUERY_LOGGING === 'true' ? 'enabled' : 'disabled');
   } catch (error) {
     console.error('[Main] Fatal error during startup:', error);
     process.exit(1);

@@ -129,7 +129,7 @@ export const useServingStore = defineStore("serving", {
     async updateItemPriority(itemId, priority, reason) {
       try {
         const response = await fetch(`/api/serving/items/${itemId}/priority`, {
-          method: "PUT",
+          method: "PATCH",
           headers: {
             "Content-Type": "application/json",
           },

@@ -81,7 +81,7 @@ GET /api/serving/orders/:orderId/status
 
 #### 更新菜品优先级（催菜）
 ```
-PUT /api/serving/items/:itemId/priority
+PATCH /api/serving/items/:itemId/priority
 Body: { priority: 3, reason: "客户催菜" }
 ```
 
@@ -90,9 +90,15 @@ Body: { priority: 3, reason: "客户催菜" }
 POST /api/serving/items/:itemId/complete-prep
 ```
 
-#### 标记已上菜
+#### 标记已上菜（单个）
 ```
-POST /api/serving/items/:itemId/serve
+POST /api/serving/items/:id/serve
+```
+
+#### 标记已上菜（批量）
+```
+POST /api/serving/items/batch-serve
+Body: { itemIds: [1, 2, 3] }
 ```
 
 #### 自动调整优先级

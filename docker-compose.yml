@@ -19,6 +19,12 @@ services:
     restart: unless-stopped
     networks:
       - backend-network
+    # 日志配置 - 限制日志大小和数量，防止磁盘占用过大
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"  # 每个日志文件最大 10MB
+        max-file: "3"    # 最多保留 3 个日志文件
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/api/health"]
       interval: 30s
@@ -36,6 +42,12 @@ services:
       - backend-network
     depends_on:
       - backend
+    # 日志配置 - 限制日志大小和数量
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"  # 每个日志文件最大 10MB
+        max-file: "3"    # 最多保留 3 个日志文件
 
 networks:
   backend-network:

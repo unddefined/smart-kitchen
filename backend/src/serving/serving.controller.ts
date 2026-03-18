@@ -29,9 +29,9 @@ export class ServingController {
 
   /**
    * 更新菜品优先级（催菜功能）
-   * PUT /api/serving/items/:itemId/priority
+   * PATCH /api/serving/items/:itemId/priority
    */
-  @Put('items/:itemId/priority')
+  @Patch('items/:itemId/priority')
   async updateItemPriority(
     @Param('itemId', ParseIntPipe) itemId: number,
     @Body() updateData: { priority: number; reason?: string },
@@ -67,9 +67,9 @@ export class ServingController {
 
   /**
    * 标记菜品已上菜（批量）
-   * POST /api/serving/items/serve-batch
+   * POST /api/serving/items/batch-serve
    */
-  @Post('items/serve-batch')
+  @Post('items/batch-serve')
   async serveDishes(@Body() body: { itemIds: number[] }) {
     const { itemIds } = body;
     this.logger.log(`批量标记 ${itemIds.length} 个菜品已上菜`);
@@ -78,12 +78,12 @@ export class ServingController {
 
   /**
    * 标记菜品已上菜（单个）
-   * POST /api/serving/items/:itemId/serve
+   * POST /api/serving/items/:id/serve
    */
-  @Post('items/:itemId/serve')
-  async serveDish(@Param('itemId', ParseIntPipe) itemId: number) {
-    this.logger.log(`标记订单菜品 ${itemId} 已上菜`);
-    return await this.servingService.serveDish(itemId);
+  @Post('items/:id/serve')
+  async serveDish(@Param('id', ParseIntPipe) id: number) {
+    this.logger.log(`标记订单菜品 ${id} 已上菜`);
+    return await this.servingService.serveDish(id);
   }
 
   /**

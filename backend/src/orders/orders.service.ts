@@ -43,9 +43,10 @@ export class OrdersService {
   }
 
   /**
-   * 创建订单
+   * 创建订单（支持同时创建订单项）
+   * 使用事务保证订单和订单项的原子性
    */
-  async create(createOrderDto: Order) {
+  async create(createOrderDto: any) {
     // 解析 mealTime 和 mealType
     let mealTimeDate: Date | null = null;
     let mealTypeValue: 'lunch' | 'dinner' | 'breakfast' | 'other' | null = null;
@@ -86,25 +87,51 @@ export class OrdersService {
       }
     }
 
-    const order = await this.prisma.order.create({
-      data: {
-        hallNumber: createOrderDto.hallNumber,
-        peopleCount: createOrderDto.peopleCount,
-        tableCount: createOrderDto.tableCount || 1,
-        mealTime: mealTimeDate,
-        mealType: mealTypeValue,
-        status: 'created',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
+    // 使用事务创建订单及其关联的菜品项
+    const result = await this.prisma.$transaction(async (tx) => {
+      // 1. 创建订单
+      const order = await tx.order.create({
+        data: {
+          hallNumber: createOrderDto.hallNumber,
+          peopleCount: createOrderDto.peopleCount,
+          tableCount: createOrderDto.tableCount || 1,
+          mealTime: mealTimeDate,
+          mealType: mealTypeValue,
+          status: 'created',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+      // 2. 如果有提供菜品项数据，批量创建
+      if (
+        createOrderDto.items &&
+        Array.isArray(createOrderDto.items) &&
+        createOrderDto.items.length > 0
+      ) {
+        await tx.orderItem.createMany({
+          data: createOrderDto.items.map((item: any) => ({
+            orderId: order.id,
+            dishId: item.dishId,
+            quantity: item.quantity ? parseFloat(item.quantity.toString()) : 1,
+            weight: item.weight || null,
+            status: item.status || 'pending',
+            priority: item.priority || 0,
+            remark: item.remark || null,
+            createdAt: new Date(),
+          })),
+        });
+      }
+
+      return order;
     });
 
-    this.logger.log('订单创建成功 - ID:', order.id);
+    this.logger.log('订单创建成功 - ID:', result.id);
 
     // ✅ 广播新订单创建事件
-    this.broadcastOrderEvent('order-created', order);
+    this.broadcastOrderEvent('order-created', result);
 
-    return order;
+    return result;
   }
 
   /**

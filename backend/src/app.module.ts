@@ -13,6 +13,8 @@ import { OrderItemsModule } from './order-items/order-items.module';
 import { LoggerModule } from 'nestjs-pino';
 import { CommonModule } from './common/common.module';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 @Module({
   imports: [
     // 配置模块 - 全局可用，自动加载 .env 文件
@@ -22,18 +24,31 @@ import { CommonModule } from './common/common.module';
       ignoreEnvFile: false, // 不忽略 .env 文件
       expandVariables: true, // 支持 ${VAR} 变量引用
     }),
-    // 日志模块
+    // 日志模块 - 根据环境配置不同格式
     LoggerModule.forRoot({
       pinoHttp: {
-        level: process.env.LOG_LEVEL || 'info',
-        transport: {
-          target: 'pino-pretty',
-          options: {
-            colorize: true,
-            translateTime: 'SYS:standard',
-            ignore: 'pid,hostname',
-          },
+        level: process.env.LOG_LEVEL || (isProduction ? 'info' : 'debug'),
+        // 生产环境使用 JSON 格式日志，便于集中收集
+        // 开发环境使用人类可读格式
+        formatters: {
+          level: (label) => ({ level: label.toUpperCase() }),
         },
+        transport: isProduction
+          ? undefined // 生产环境输出原始 JSON 到 stdout，由 Docker 收集
+          : {
+              target: 'pino-pretty',
+              options: {
+                colorize: true,
+                translateTime: 'SYS:standard',
+                ignore: 'pid,hostname',
+              },
+            },
+        // 生产环境简化日志字段
+        customProps: isProduction
+          ? () => ({})
+          : {
+              environment: 'development',
+            },
       },
     }),
     CommonModule,
