@@ -15,31 +15,34 @@ npm install dompurify
 ## 核心工具函数
 
 ### 位置
+
 `frontend/src/utils/sanitizer.js`
 
 ### 主要函数
 
 #### 1. `sanitizeString(input)`
+
 清理单个字符串，移除所有 HTML 标签和脚本。
 
 ```javascript
-import { sanitizeString } from '@/utils/sanitizer';
+import { sanitizeString } from "@/utils/sanitizer";
 
 const userInput = '<script>alert("XSS")</script>Hello';
-const clean = sanitizeString(userInput); 
+const clean = sanitizeString(userInput);
 // 输出："Hello"
 ```
 
 #### 2. `sanitizeObject(obj)`
+
 递归清理对象中的所有字符串属性。
 
 ```javascript
-import { sanitizeObject } from '@/utils/sanitizer';
+import { sanitizeObject } from "@/utils/sanitizer";
 
 const data = {
-  name: '<b>Test</b>',
-  remark: '<script>alert("xss")</script>少辣',
-  quantity: 2
+   name: "<b>Test</b>",
+   remark: '<script>alert("xss")</script>少辣',
+   quantity: 2,
 };
 
 const clean = sanitizeObject(data);
@@ -47,15 +50,16 @@ const clean = sanitizeObject(data);
 ```
 
 #### 3. `sanitizeOrderItemData(itemData)`
+
 专门用于清理订单菜品数据，重点处理 `remark` 字段。
 
 ```javascript
-import { sanitizeOrderItemData } from '@/utils/sanitizer';
+import { sanitizeOrderItemData } from "@/utils/sanitizer";
 
 const itemData = {
-  dishId: 1,
-  quantity: 2,
-  remark: '<img src=x onerror=alert(1)>不要香菜'
+   dishId: 1,
+   quantity: 2,
+   remark: "<img src=x onerror=alert(1)>不要香菜",
 };
 
 const clean = sanitizeOrderItemData(itemData);
@@ -63,17 +67,21 @@ const clean = sanitizeOrderItemData(itemData);
 ```
 
 #### 4. `sanitizeOrderData(orderData)`
+
 清理订单数据，包括台号、备注等字段。
 
 #### 5. `sanitizeDishData(dishData)`
+
 清理菜品数据，包括菜名、描述等。
 
 #### 6. `sanitizeUserData(userData)`
+
 清理用户数据，包括用户名、邮箱等。
 
 ## API 层自动防护
 
 ### 位置
+
 `frontend/src/services/api.js`
 
 所有发送到后端的 POST/PUT/PATCH 请求都会自动进行数据净化：
@@ -81,23 +89,23 @@ const clean = sanitizeOrderItemData(itemData);
 ```javascript
 // 自动净化订单数据
 api.orders.create({
-  hallNumber: 'T01<script>',
-  remark: '<img src=x onerror=alert(1)>测试'
+   hallNumber: "T01<script>",
+   remark: "<img src=x onerror=alert(1)>测试",
 });
 // 实际发送的数据已被清理
 
 // 自动净化菜品数据
 api.dishes.create({
-  name: '<b>宫保鸡丁</b>',
-  description: '经典川菜<script>'
+   name: "<b>宫保鸡丁</b>",
+   description: "经典川菜<script>",
 });
 // 实际发送的数据已被清理
 
 // 自动净化订单菜品数据
 api.orderItems.create(orderId, {
-  dishId: 1,
-  quantity: 2,
-  remark: '<script>alert("xss")</script>不要香菜'
+   dishId: 1,
+   quantity: 2,
+   remark: '<script>alert("xss")</script>不要香菜',
 });
 // remark 字段已被清理
 ```
@@ -107,18 +115,22 @@ api.orderItems.create(orderId, {
 以下 API 调用会自动进行数据净化：
 
 ### 订单相关
+
 - ✅ `api.orders.create()` - 创建订单
 - ✅ `api.orders.update()` - 更新订单信息
 
 ### 订单菜品相关
+
 - ✅ `api.orderItems.create()` - 添加菜品到订单
 - ✅ `api.orderItems.update()` - 更新订单菜品信息
 
 ### 菜品相关
+
 - ✅ `api.dishes.create()` - 创建菜品
 - ✅ `api.dishes.update()` - 更新菜品
 
 ### 用户相关
+
 - ✅ `api.users.create()` - 创建用户
 - ✅ `api.users.update()` - 更新用户
 
@@ -128,35 +140,35 @@ api.orderItems.create(orderId, {
 
 ```vue
 <template>
-  <form @submit.prevent="handleSubmit">
-    <input v-model="formData.remark" placeholder="备注" />
-    <button type="submit">提交</button>
-  </form>
+   <form @submit.prevent="handleSubmit">
+      <input v-model="formData.remark" placeholder="备注" />
+      <button type="submit">提交</button>
+   </form>
 </template>
 
 <script>
-import { sanitizeString } from '@/utils/sanitizer';
+import { sanitizeString } from "@/utils/sanitizer";
 
 export default {
-  data() {
-    return {
-      formData: {
-        remark: ''
-      }
-    };
-  },
-  methods: {
-    handleSubmit() {
-      // 在提交前再次清理
-      const cleanedData = {
-        ...this.formData,
-        remark: sanitizeString(this.formData.remark)
+   data() {
+      return {
+         formData: {
+            remark: "",
+         },
       };
-      
-      // 发送到 API
-      this.$api.orderItems.create(orderId, cleanedData);
-    }
-  }
+   },
+   methods: {
+      handleSubmit() {
+         // 在提交前再次清理
+         const cleanedData = {
+            ...this.formData,
+            remark: sanitizeString(this.formData.remark),
+         };
+
+         // 发送到 API
+         this.$api.orderItems.create(orderId, cleanedData);
+      },
+   },
 };
 </script>
 ```
@@ -184,7 +196,7 @@ export default {
 ```javascript
 // 示例 1：脚本注入
 const maliciousInput = '<script>alert("XSS")</script>';
-sanitizeString(maliciousInput); 
+sanitizeString(maliciousInput);
 // 输出：""
 
 // 示例 2：图片事件处理器
@@ -229,19 +241,19 @@ sanitizeString(encodedAttack);
 ```javascript
 // 测试用例
 const testCases = [
-  '<script>alert("XSS")</script>',
-  '<img src=x onerror=alert("XSS")>',
-  '<svg onload=alert("XSS")>',
-  '"><script>alert("XSS")</script>',
-  "';alert('XSS');//",
+   '<script>alert("XSS")</script>',
+   '<img src=x onerror=alert("XSS")>',
+   '<svg onload=alert("XSS")>',
+   '"><script>alert("XSS")</script>',
+   "';alert('XSS');//",
 ];
 
-testCases.forEach(test => {
-  const cleaned = sanitizeString(test);
-  console.log(`输入：${test}`);
-  console.log(`输出：${cleaned}`);
-  console.log(`包含 script: ${cleaned.includes('<script>')}`);
-  console.log('---');
+testCases.forEach((test) => {
+   const cleaned = sanitizeString(test);
+   console.log(`输入：${test}`);
+   console.log(`输出：${cleaned}`);
+   console.log(`包含 script: ${cleaned.includes("<script>")}`);
+   console.log("---");
 });
 ```
 
