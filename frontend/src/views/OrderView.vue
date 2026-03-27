@@ -1,10 +1,7 @@
 <template>
    <div class="flex flex-col h-full bg-gray-100 p-3 overflow-y-auto">
       <!-- 加载状态 -->
-      <div v-if="loading" class="flex flex-col items-center justify-center h-full p-5">
-         <div class="w-10 h-10 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin mb-4"></div>
-         <p class="text-gray-600 text-base">正在加载订单详情...</p>
-      </div>
+      <LoadingSpinner v-if="loading" message="正在加载订单详情..." size="lg" />
 
       <!-- 错误状态 -->
       <div v-else-if="error" class="flex flex-col items-center justify-center h-full p-5 text-center">
@@ -250,6 +247,7 @@ import { ref, computed, watch } from "vue";
 import { OrderService } from "@/services";
 import ConfirmModal from "@/components/ConfirmModal.vue";
 import DishCard from "@/components/DishCard.vue";
+import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import { useToast } from "@/composables/useToast";
 import { useDishModifier } from "@/composables/useDishModifier";
 import { useDishManager } from "@/composables/useDishManager";

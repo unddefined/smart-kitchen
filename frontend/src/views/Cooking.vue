@@ -3,10 +3,7 @@
    <div class="flex flex-col h-full bg-gray-100 relative">
       <!-- 加载状态覆盖层 -->
       <div v-if="loading" class="absolute inset-0 bg-white bg-opacity-90 flex justify-center items-center z-50">
-         <div class="text-center p-5 bg-white rounded-xl shadow-lg">
-            <div class="w-10 h-10 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-            <p class="text-gray-600 text-base">正在加载订单数据...</p>
-         </div>
+         <LoadingSpinner message="正在加载订单数据..." size="xl" />
       </div>
 
       <!-- 错误状态覆盖层 -->
@@ -312,6 +309,7 @@ import OverviewView from "./OverviewView.vue";
 import OrderView from "./OrderView.vue";
 import OrderInputModal from "../components/OrderInputModal.vue";
 import OrderBroadcast from "../components/OrderBroadcast.vue";
+import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import { OrderService } from "@/services";
 import { useToast } from "@/composables/useToast";
 import { useOrderAutoRefresh } from "@/composables/useOrderAutoRefresh";

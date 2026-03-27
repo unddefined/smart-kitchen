@@ -1,12 +1,7 @@
 <template>
    <div class="flex flex-col h-full bg-gray-100">
       <!-- 加载状态 -->
-      <div v-if="loading" class="flex items-center justify-center h-full">
-         <div class="text-center">
-            <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto"></div>
-            <p class="mt-4 text-gray-600">加载中...</p>
-         </div>
-      </div>
+      <LoadingSpinner v-if="loading" message="加载中..." size="xl" />
 
       <!-- 错误提示 -->
       <div v-else-if="error" class="p-4 bg-red-100 rounded-lg m-4">
@@ -132,6 +127,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useToast } from "@/composables/useToast";
 import { useDishManager } from "@/composables/useDishManager";
 import DishCards from "@/components/DishCards.vue";
+import LoadingSpinner from "@/components/LoadingSpinner.vue";
 
 // 自定义 v-longpress 指令
 const vLongpress = {
