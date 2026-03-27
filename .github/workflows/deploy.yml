@@ -1,300 +1,300 @@
 name: Smart Kitchen CI/CD Pipeline
 
 on:
-  push:
-    branches: ["main", "master"]
-  # 允许手动触发
-  workflow_dispatch:
+   push:
+      branches: ["main", "master"]
+   # 允许手动触发
+   workflow_dispatch:
 
 # 【新增】必须赋予写入包的权限
 permissions:
-  contents: read
-  packages: write
+   contents: read
+   packages: write
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-  # 不再硬编码 DATABASE_URL，改用 Secrets
-  # DATABASE_URL 将在具体 job 中通过 secrets 引用
+   REGISTRY: ghcr.io
+   IMAGE_NAME: ${{ github.repository }}
+   # 不再硬编码 DATABASE_URL，改用 Secrets
+   # DATABASE_URL 将在具体 job 中通过 secrets 引用
 
 jobs:
-  # ================================
-  # 【新增】数据库迁移 Job（独立执行）
-  # ================================
-  database-migration:
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+   # ================================
+   # 【新增】数据库迁移 Job（独立执行）
+   # ================================
+   database-migration:
+      runs-on: ubuntu-latest
+      environment: production
+      steps:
+         - name: Checkout Code
+           uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '25'
-          cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
+         - name: Setup Node.js
+           uses: actions/setup-node@v4
+           with:
+              node-version: "25"
+              cache: "npm"
+              cache-dependency-path: backend/package-lock.json
 
-      - name: Install Dependencies
-        working-directory: ./backend
-        run: npm ci
+         - name: Install Dependencies
+           working-directory: ./backend
+           run: npm ci
 
-      - name: Run Prisma Migrate Deploy
-        working-directory: ./backend
-        env:
-          # 使用 Secrets 管理敏感信息
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: npx prisma migrate deploy
+         - name: Run Prisma Migrate Deploy
+           working-directory: ./backend
+           env:
+              # 使用 Secrets 管理敏感信息
+              DATABASE_URL: ${{ secrets.DATABASE_URL }}
+           run: npx prisma migrate deploy
 
-      - name: Verify Migration Success
-        working-directory: ./backend
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: npx prisma db seed || echo "No seed script configured"
+         - name: Verify Migration Success
+           working-directory: ./backend
+           env:
+              DATABASE_URL: ${{ secrets.DATABASE_URL }}
+           run: npx prisma db seed || echo "No seed script configured"
 
-  # ================================
-  # 【优化】后端构建 Job（仅当后端文件变更时执行）
-  # ================================
-  build-backend:
-    needs: database-migration
-    runs-on: ubuntu-latest
-    outputs:
-      backend-changed: ${{ steps.filter.outputs.backend }}
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+   # ================================
+   # 【优化】后端构建 Job（仅当后端文件变更时执行）
+   # ================================
+   build-backend:
+      needs: database-migration
+      runs-on: ubuntu-latest
+      outputs:
+         backend-changed: ${{ steps.filter.outputs.backend }}
+      steps:
+         - name: Checkout Code
+           uses: actions/checkout@v4
 
-      # 【新增】检查文件变更，实现增量构建
-      - name: Check for backend changes
-        uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            backend:
-              - 'backend/**'
-              - 'docker-compose.yml'
-              - '.github/workflows/deploy.yml'
+         # 【新增】检查文件变更，实现增量构建
+         - name: Check for backend changes
+           uses: dorny/paths-filter@v3
+           id: filter
+           with:
+              filters: |
+                 backend:
+                   - 'backend/**'
+                   - 'docker-compose.yml'
+                   - '.github/workflows/deploy.yml'
 
-      - name: Log in to GHCR
-        if: steps.filter.outputs.backend == 'true'
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PAT }}
-          logout: false
+         - name: Log in to GHCR
+           if: steps.filter.outputs.backend == 'true'
+           uses: docker/login-action@v3
+           with:
+              registry: ${{ env.REGISTRY }}
+              username: ${{ github.actor }}
+              password: ${{ secrets.GHCR_PAT }}
+              logout: false
 
-      - name: Login to Aliyun ACR
-        if: steps.filter.outputs.backend == 'true'
-        uses: docker/login-action@v3
-        with:
-          registry: crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com
-          username: ${{ secrets.ALIYUN_USERNAME }}
-          password: ${{ secrets.ALIYUN_PASSWORD }}
-          logout: false
+         - name: Login to Aliyun ACR
+           if: steps.filter.outputs.backend == 'true'
+           uses: docker/login-action@v3
+           with:
+              registry: crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com
+              username: ${{ secrets.ALIYUN_USERNAME }}
+              password: ${{ secrets.ALIYUN_PASSWORD }}
+              logout: false
 
-      - name: Set up Docker Buildx
-        if: steps.filter.outputs.backend == 'true'
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver: docker-container
-          buildkitd-flags: --debug
-          # 【优化】配置 BuildKit 缓存目录
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+         - name: Set up Docker Buildx
+           if: steps.filter.outputs.backend == 'true'
+           uses: docker/setup-buildx-action@v3
+           with:
+              driver: docker-container
+              buildkitd-flags: --debug
+              # 【优化】配置 BuildKit 缓存目录
+              cache-from: type=gha
+              cache-to: type=gha,mode=max
 
-      - name: Extract metadata for backend (Aliyun ACR)
-        if: steps.filter.outputs.backend == 'true'
-        id: meta-backend-acr
-        uses: docker/metadata-action@v5
-        with:
-          images: crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com/walker-11572/smart-kitchen-backend
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
+         - name: Extract metadata for backend (Aliyun ACR)
+           if: steps.filter.outputs.backend == 'true'
+           id: meta-backend-acr
+           uses: docker/metadata-action@v5
+           with:
+              images: crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com/walker-11572/smart-kitchen-backend
+              tags: |
+                 type=ref,event=branch
+                 type=sha,prefix={{branch}}-
+                 type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and Push Backend Image to Aliyun ACR
-        if: steps.filter.outputs.backend == 'true'
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          file: ./backend/Dockerfile
-          push: true
-          tags: ${{ steps.meta-backend-acr.outputs.tags }}
-          cache-from: type=gha,scope=backend
-          cache-to: type=gha,mode=max,scope=backend
-          # 【优化】启用内联缓存，加速后续构建
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
-          # 【优化】只构建变化的层
-          provenance: false
-          sbom: false
+         - name: Build and Push Backend Image to Aliyun ACR
+           if: steps.filter.outputs.backend == 'true'
+           uses: docker/build-push-action@v5
+           with:
+              context: ./backend
+              file: ./backend/Dockerfile
+              push: true
+              tags: ${{ steps.meta-backend-acr.outputs.tags }}
+              cache-from: type=gha,scope=backend
+              cache-to: type=gha,mode=max,scope=backend
+              # 【优化】启用内联缓存，加速后续构建
+              build-args: |
+                 BUILDKIT_INLINE_CACHE=1
+              # 【优化】只构建变化的层
+              provenance: false
+              sbom: false
 
-      # 【新增】如果没有变化，输出日志
-      - name: Skip backend build
-        if: steps.filter.outputs.backend == 'false'
-        run: echo "✅ No backend changes detected, skipping build"
+         # 【新增】如果没有变化，输出日志
+         - name: Skip backend build
+           if: steps.filter.outputs.backend == 'false'
+           run: echo "✅ No backend changes detected, skipping build"
 
-  # ================================
-  # 【优化】前端构建 Job（仅当前端文件变更时执行）
-  # ================================
-  build-frontend:
-    needs: database-migration
-    runs-on: ubuntu-latest
-    outputs:
-      frontend-changed: ${{ steps.filter.outputs.frontend }}
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+   # ================================
+   # 【优化】前端构建 Job（仅当前端文件变更时执行）
+   # ================================
+   build-frontend:
+      needs: database-migration
+      runs-on: ubuntu-latest
+      outputs:
+         frontend-changed: ${{ steps.filter.outputs.frontend }}
+      steps:
+         - name: Checkout Code
+           uses: actions/checkout@v4
 
-      - name: Check for frontend changes
-        uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            frontend:
-              - 'frontend/**'
-              - 'docker-compose.yml'
-              - '.github/workflows/deploy.yml'
+         - name: Check for frontend changes
+           uses: dorny/paths-filter@v3
+           id: filter
+           with:
+              filters: |
+                 frontend:
+                   - 'frontend/**'
+                   - 'docker-compose.yml'
+                   - '.github/workflows/deploy.yml'
 
-      - name: Log in to GHCR
-        if: steps.filter.outputs.frontend == 'true'
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PAT }}
-          logout: false
+         - name: Log in to GHCR
+           if: steps.filter.outputs.frontend == 'true'
+           uses: docker/login-action@v3
+           with:
+              registry: ${{ env.REGISTRY }}
+              username: ${{ github.actor }}
+              password: ${{ secrets.GHCR_PAT }}
+              logout: false
 
-      - name: Login to Aliyun ACR
-        if: steps.filter.outputs.frontend == 'true'
-        uses: docker/login-action@v3
-        with:
-          registry: crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com
-          username: ${{ secrets.ALIYUN_USERNAME }}
-          password: ${{ secrets.ALIYUN_PASSWORD }}
-          logout: false
+         - name: Login to Aliyun ACR
+           if: steps.filter.outputs.frontend == 'true'
+           uses: docker/login-action@v3
+           with:
+              registry: crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com
+              username: ${{ secrets.ALIYUN_USERNAME }}
+              password: ${{ secrets.ALIYUN_PASSWORD }}
+              logout: false
 
-      - name: Set up Docker Buildx
-        if: steps.filter.outputs.frontend == 'true'
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver: docker-container
-          buildkitd-flags: --debug
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+         - name: Set up Docker Buildx
+           if: steps.filter.outputs.frontend == 'true'
+           uses: docker/setup-buildx-action@v3
+           with:
+              driver: docker-container
+              buildkitd-flags: --debug
+              cache-from: type=gha
+              cache-to: type=gha,mode=max
 
-      - name: Extract metadata for frontend (Aliyun ACR)
-        if: steps.filter.outputs.frontend == 'true'
-        id: meta-frontend-acr
-        uses: docker/metadata-action@v5
-        with:
-          images: crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com/walker-11572/smart-kitchen-frontend
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
+         - name: Extract metadata for frontend (Aliyun ACR)
+           if: steps.filter.outputs.frontend == 'true'
+           id: meta-frontend-acr
+           uses: docker/metadata-action@v5
+           with:
+              images: crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com/walker-11572/smart-kitchen-frontend
+              tags: |
+                 type=ref,event=branch
+                 type=sha,prefix={{branch}}-
+                 type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and Push Frontend Image to Aliyun ACR
-        if: steps.filter.outputs.frontend == 'true'
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
-          push: true
-          tags: ${{ steps.meta-frontend-acr.outputs.tags }}
-          cache-from: type=gha,scope=frontend
-          cache-to: type=gha,mode=max,scope=frontend
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
-          provenance: false
-          sbom: false
+         - name: Build and Push Frontend Image to Aliyun ACR
+           if: steps.filter.outputs.frontend == 'true'
+           uses: docker/build-push-action@v5
+           with:
+              context: ./frontend
+              file: ./frontend/Dockerfile
+              push: true
+              tags: ${{ steps.meta-frontend-acr.outputs.tags }}
+              cache-from: type=gha,scope=frontend
+              cache-to: type=gha,mode=max,scope=frontend
+              build-args: |
+                 BUILDKIT_INLINE_CACHE=1
+              provenance: false
+              sbom: false
 
-      - name: Skip frontend build
-        if: steps.filter.outputs.frontend == 'false'
-        run: echo "✅ No frontend changes detected, skipping build"
+         - name: Skip frontend build
+           if: steps.filter.outputs.frontend == 'false'
+           run: echo "✅ No frontend changes detected, skipping build"
 
-  deploy-production:
-    needs: [database-migration, build-backend, build-frontend]  # 【修改】依赖多个构建 job
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to Production Server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # 不依赖 envs 传参，直接在 script 中使用 secrets
-          script: |
-            echo "${{ secrets.ALIYUN_PASSWORD }}" | docker login --username=${{ secrets.ALIYUN_USERNAME }} crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com --password-stdin
+   deploy-production:
+      needs: [database-migration, build-backend, build-frontend] # 【修改】依赖多个构建 job
+      runs-on: ubuntu-latest
+      steps:
+         - name: Deploy to Production Server
+           uses: appleboy/ssh-action@v1.0.3
+           with:
+              host: ${{ secrets.SSH_HOST }}
+              username: ${{ secrets.SSH_USER }}
+              key: ${{ secrets.SSH_PRIVATE_KEY }}
+              # 不依赖 envs 传参，直接在 script 中使用 secrets
+              script: |
+                 echo "${{ secrets.ALIYUN_PASSWORD }}" | docker login --username=${{ secrets.ALIYUN_USERNAME }} crpi-obg02yu23b1k3mun.cn-wulanchabu.personal.cr.aliyuncs.com --password-stdin
 
-            cd /root/smart-kitchen
+                 cd /root/smart-kitchen
 
-            git fetch origin main
-            git reset --hard origin/main
-            git clean -fd
+                 git fetch origin main
+                 git reset --hard origin/main
+                 git clean -fd
 
-            # 从 Secrets 创建 .env.production 文件（最稳定的方式）
-            cat <<EOF > .env.production
-            DB_HOST=${{ secrets.DB_HOST }}
-            DB_PORT=${{ secrets.DB_PORT }}
-            DB_USER=${{ secrets.DB_USER }}
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-            DB_NAME=${{ secrets.DB_NAME }}
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
-            NODE_ENV=production
-            PORT=3001
-            APP_SECRET=${{ secrets.APP_SECRET }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            ALLOWED_ORIGINS=http://${{ secrets.DB_HOST }},http://localhost:5173
-            DB_POOL_MAX=20
-            DB_POOL_MIN=5
-            LOG_LEVEL=info
-            QUERY_LOGGING=false
-            EOF
+                 # 从 Secrets 创建 .env.production 文件（最稳定的方式）
+                 cat <<EOF > .env.production
+                 DB_HOST=${{ secrets.DB_HOST }}
+                 DB_PORT=${{ secrets.DB_PORT }}
+                 DB_USER=${{ secrets.DB_USER }}
+                 DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+                 DB_NAME=${{ secrets.DB_NAME }}
+                 DATABASE_URL=${{ secrets.DATABASE_URL }}
+                 NODE_ENV=production
+                 PORT=3001
+                 APP_SECRET=${{ secrets.APP_SECRET }}
+                 JWT_SECRET=${{ secrets.JWT_SECRET }}
+                 ALLOWED_ORIGINS=http://${{ secrets.DB_HOST }},http://localhost:5173
+                 DB_POOL_MAX=20
+                 DB_POOL_MIN=5
+                 LOG_LEVEL=info
+                 QUERY_LOGGING=false
+                 EOF
 
-            cp .env.production .env
+                 cp .env.production .env
 
-            docker compose down --remove-orphans
+                 docker compose down --remove-orphans
 
-            echo "📦 Force pulling latest images..."
-            docker compose pull --policy always
+                 echo "📦 Force pulling latest images..."
+                 docker compose pull --policy always
 
-            echo "🚀 Starting services..."
-            docker compose up -d
+                 echo "🚀 Starting services..."
+                 docker compose up -d
 
-            echo "⏳ Waiting for services..."
+                 echo "⏳ Waiting for services..."
 
-            BACKEND_SERVICE=$(docker compose ps --services | grep backend | head -n 1)
-            echo "Waiting for Backend API ($BACKEND_SERVICE)..."
-            for i in {1..60}; do
-              if curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/api/health | grep -q "200"; then
-                echo "✅ Backend API ready."
-                break
-              fi
-              if [ $i -eq 60 ]; then
-                echo "⚠️ Backend health check timeout."
-              fi
-              sleep 1
-            done
+                 BACKEND_SERVICE=$(docker compose ps --services | grep backend | head -n 1)
+                 echo "Waiting for Backend API ($BACKEND_SERVICE)..."
+                 for i in {1..60}; do
+                   if curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/api/health | grep -q "200"; then
+                     echo "✅ Backend API ready."
+                     break
+                   fi
+                   if [ $i -eq 60 ]; then
+                     echo "⚠️ Backend health check timeout."
+                   fi
+                   sleep 1
+                 done
 
-            echo "🔍 Final verification..."
-            sleep 5
-            curl -f http://localhost:3001/api/health || (echo "❌ Backend health check failed"; exit 1)
-            curl -f http://localhost || (echo "❌ Frontend health check failed"; exit 1)
+                 echo "🔍 Final verification..."
+                 sleep 5
+                 curl -f http://localhost:3001/api/health || (echo "❌ Backend health check failed"; exit 1)
+                 curl -f http://localhost || (echo "❌ Frontend health check failed"; exit 1)
 
-            echo "📋 Checking nginx configuration..."
-            FRONTEND_CONTAINER=$(docker compose ps --services | grep frontend | head -n 1)
-            if [ -n "$FRONTEND_CONTAINER" ]; then
-              docker compose exec -T $FRONTEND_CONTAINER nginx -t
-              echo "✅ Nginx configuration test passed"
-              
-              echo "📄 Current nginx configuration:"
-              docker compose exec -T $FRONTEND_CONTAINER cat /etc/nginx/conf.d/default.conf | head -20
-            fi
+                 echo "📋 Checking nginx configuration..."
+                 FRONTEND_CONTAINER=$(docker compose ps --services | grep frontend | head -n 1)
+                 if [ -n "$FRONTEND_CONTAINER" ]; then
+                   docker compose exec -T $FRONTEND_CONTAINER nginx -t
+                   echo "✅ Nginx configuration test passed"
+                   
+                   echo "📄 Current nginx configuration:"
+                   docker compose exec -T $FRONTEND_CONTAINER cat /etc/nginx/conf.d/default.conf | head -20
+                 fi
 
-            echo "🧹 Cleaning up dangling images..."
-            docker image prune -f
+                 echo "🧹 Cleaning up dangling images..."
+                 docker image prune -f
 
-            echo "🎉 Deployment successful!"
+                 echo "🎉 Deployment successful!"
