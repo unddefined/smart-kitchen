@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { sanitizeObject } from "@/utils/sanitizer";
 
 export const useServingStore = defineStore("serving", {
    state: () => ({
@@ -78,13 +79,13 @@ export const useServingStore = defineStore("serving", {
       async loadOrders(filters = {}) {
          this.loading = true;
          try {
-            // 模拟API调用
+            // 模拟 API 调用
             const response = await fetch("/api/serving/orders", {
                method: "POST",
                headers: {
                   "Content-Type": "application/json",
                },
-               body: JSON.stringify(filters),
+               body: JSON.stringify(sanitizeObject(filters)),
             });
 
             if (!response.ok) {
@@ -121,12 +122,13 @@ export const useServingStore = defineStore("serving", {
       // 更新菜品优先级（催菜）
       async updateItemPriority(itemId, priority, reason) {
          try {
+            const sanitizedReason = reason ? sanitizeObject({ reason }).reason : undefined;
             const response = await fetch(`/api/serving/items/${itemId}/priority`, {
                method: "PATCH",
                headers: {
                   "Content-Type": "application/json",
                },
-               body: JSON.stringify({ priority, reason }),
+               body: JSON.stringify({ priority, reason: sanitizedReason }),
             });
 
             if (!response.ok) {

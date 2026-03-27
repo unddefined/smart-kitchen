@@ -10,6 +10,9 @@ import { useApiBroadcast } from "@/composables/useApiBroadcast";
 // 导入常量
 import { PRIORITY_LEVELS, ORDER_STATUS, ORDER_ITEM_STATUS, STATIONS } from "@/constants/api";
 
+// 导入 XSS 防护工具
+import { sanitizeOrderData, sanitizeOrderItemData, sanitizeDishData, sanitizeUserData } from "@/utils/sanitizer";
+
 // 创建广播服务实例
 const broadcastService = useApiBroadcast();
 
@@ -64,13 +67,13 @@ async function request(url, options = {}) {
 
 // API服务对象
 export const api = {
-   // 订单相关API
+   // 订单相关 API
    orders: {
       // 创建订单
       create: (orderData) =>
          request("/api/orders", {
             method: "POST",
-            body: JSON.stringify(orderData),
+            body: JSON.stringify(sanitizeOrderData(orderData)),
          }),
 
       // 获取订单列表
@@ -93,7 +96,7 @@ export const api = {
       update: (id, updateData) =>
          request(`/api/orders/${id}`, {
             method: "PATCH",
-            body: JSON.stringify(updateData),
+            body: JSON.stringify(sanitizeOrderData(updateData)),
          }),
 
       // 取消订单
@@ -148,14 +151,14 @@ export const api = {
       create: (orderId, itemData) =>
          request(`/api/orders/${orderId}/items`, {
             method: "POST",
-            body: JSON.stringify(itemData),
+            body: JSON.stringify(sanitizeOrderItemData(itemData)),
          }),
 
       // 更新订单菜品信息（份量、备注等）
       update: (itemId, orderId, itemData) =>
          request(`/api/orders/${orderId}/items/${itemId}`, {
             method: "PUT",
-            body: JSON.stringify(itemData),
+            body: JSON.stringify(sanitizeOrderItemData(itemData)),
          }),
 
       // 删除订单菜品
@@ -184,7 +187,7 @@ export const api = {
          }),
    },
 
-   // 菜品相关API
+   // 菜品相关 API
    dishes: {
       // 获取菜品列表
       list: () => request("/api/dishes"),
@@ -194,19 +197,18 @@ export const api = {
 
       // 获取菜品详情
       get: (id) => request(`/api/dishes/${id}`),
-
       // 创建菜品
       create: (dishData) =>
          request("/api/dishes", {
             method: "POST",
-            body: JSON.stringify(dishData),
+            body: JSON.stringify(sanitizeDishData(dishData)),
          }),
 
       // 更新菜品
       update: (id, dishData) =>
          request(`/api/dishes/${id}`, {
             method: "PUT",
-            body: JSON.stringify(dishData),
+            body: JSON.stringify(sanitizeDishData(dishData)),
          }),
 
       // 删除菜品
@@ -280,26 +282,25 @@ export const api = {
          }),
    },
 
-   // 用户相关API
+   // 用户相关 API
    users: {
       // 获取用户列表
       list: () => request("/api/users"),
 
       // 获取用户详情
       get: (id) => request(`/api/users/${id}`),
-
       // 创建用户
       create: (userData) =>
          request("/api/users", {
             method: "POST",
-            body: JSON.stringify(userData),
+            body: JSON.stringify(sanitizeUserData(userData)),
          }),
 
       // 更新用户
       update: (id, userData) =>
          request(`/api/users/${id}`, {
             method: "PUT",
-            body: JSON.stringify(userData),
+            body: JSON.stringify(sanitizeUserData(userData)),
          }),
 
       // 删除用户
