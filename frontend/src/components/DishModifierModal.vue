@@ -23,9 +23,7 @@
             <!-- 错误状态 -->
             <div v-else-if="loadDishesError" class="text-center py-8">
                <p class="text-red-500">{{ loadDishesError }}</p>
-               <button @click="loadDishes" class="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">
-                  重试
-               </button>
+               <button @click="loadDishes" class="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">重试</button>
             </div>
 
             <!-- 菜品选择器 -->
@@ -48,10 +46,7 @@
          </div>
 
          <div class="p-4 border-t bg-gray-50 flex gap-3 sticky bottom-0">
-            <button
-               @click="handleCancel"
-               class="flex-1 py-3 bg-gray-200 text-black rounded-lg font-medium hover:bg-gray-300 transition-colors"
-            >
+            <button @click="handleCancel" class="flex-1 py-3 bg-gray-200 text-black rounded-lg font-medium hover:bg-gray-300 transition-colors">
                取消
             </button>
             <button

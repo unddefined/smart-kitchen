@@ -113,9 +113,7 @@ export function useDishModifier(options = {}) {
          return CATEGORY_PRIORITY_MAP[categoryName] || 1;
       }
 
-      const maxCategory = categories.reduce((a, b) =>
-         categoryPriority[a] > categoryPriority[b] ? a : b,
-      );
+      const maxCategory = categories.reduce((a, b) => (categoryPriority[a] > categoryPriority[b] ? a : b));
 
       const maxPriority = categoryPriority[maxCategory];
 
@@ -167,29 +165,18 @@ export function useDishModifier(options = {}) {
     * @returns {Object} 包含 removedItems, modifiedItems, addedItems
     */
    const diffChanges = () => {
-      const originalMap = new Map(
-         originalOrderItems.value.filter((i) => i.orderItemId).map((i) => [i.orderItemId, i]),
-      );
-      const currentMap = new Map(
-         selectedOrderItems.value.filter((i) => i.orderItemId).map((i) => [i.orderItemId, i]),
-      );
+      const originalMap = new Map(originalOrderItems.value.filter((i) => i.orderItemId).map((i) => [i.orderItemId, i]));
+      const currentMap = new Map(selectedOrderItems.value.filter((i) => i.orderItemId).map((i) => [i.orderItemId, i]));
 
       // 删除的菜品：原来有但现在没有
-      const removedItems = originalOrderItems.value.filter(
-         (item) => !currentMap.has(item.orderItemId),
-      );
+      const removedItems = originalOrderItems.value.filter((item) => !currentMap.has(item.orderItemId));
 
       // 更新的菜品：orderItemId 存在但内容有变化
       const modifiedItems = selectedOrderItems.value
          .filter((i) => i.orderItemId)
          .filter((i) => {
             const original = originalMap.get(i.orderItemId);
-            return (
-               original &&
-               (original.quantity !== i.quantity ||
-                  original.remark !== i.remark ||
-                  original.weight !== i.weight)
-            );
+            return original && (original.quantity !== i.quantity || original.remark !== i.remark || original.weight !== i.weight);
          });
 
       // 新增的菜品：orderItemId 为 null
@@ -227,9 +214,7 @@ export function useDishModifier(options = {}) {
 
          // 并行批量删除被移除的菜品
          if (removedItems.length > 0) {
-            await Promise.all(
-               removedItems.map((item) => api.orderItems.delete(item.orderItemId, orderId)),
-            );
+            await Promise.all(removedItems.map((item) => api.orderItems.delete(item.orderItemId, orderId)));
             showSuccess(`成功删除 ${removedItems.length} 个菜品`);
             hasChanges = true;
          }
