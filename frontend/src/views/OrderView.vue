@@ -75,23 +75,7 @@
                </span>
             </div>
             <div class="gap-3 sm:columns-2 md:columns-3 lg:columns-4">
-               <div
-                  v-show="!isServedCollapsed"
-                  v-for="dish in servedDishes"
-                  :key="dish.id"
-                  class="mb-2 break-inside-avoid p-2 rounded-lg border border-gray-300 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
-               >
-                  <div class="flex justify-between font-medium text-gray-800 text-xl">
-                     <span>{{ dish.dish?.name || "未知菜品" }}</span>
-                     <span>×{{ dish.quantity }}</span>
-                  </div>
-                  <div v-if="dish.weight" class="text-xl text-gray-600 mt-1">
-                     {{ dish.weight }}
-                  </div>
-                  <div v-if="dish.remark" class="text-xl text-gray-600 mt-2 p-2 bg-gray-100 rounded">
-                     {{ dish.remark }}
-                  </div>
-               </div>
+               <DishCard v-show="!isServedCollapsed" v-for="dish in servedDishes" :key="dish.id" :dish="dish" @click="handleDishClick" />
             </div>
          </div>
 
@@ -99,31 +83,14 @@
          <div class="bg-white rounded-xl p-3 shadow-md">
             <h3 class="text-lg font-medium text-gray-800 mb-2">待上菜品</h3>
             <div class="gap-3 sm:columns-2 md:columns-3 lg:columns-4">
-               <div
+               <DishCard
                   v-for="dish in pendingDishes"
                   :key="dish.id"
-                  :class="[
-                     'mb-2 break-inside-avoid p-2 rounded-lg border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer',
-                     getDishPriorityClass(dish.priority || 0),
-                  ]"
-                  @click="handleDishClick(dish)"
-               >
-                  <div class="flex justify-between font-medium text-gray-800">
-                     <span class="text-xl">
-                        <span>{{ dish.dish?.name || "未知菜品" }}</span>
-                        <span>×{{ dish.quantity }}</span>
-                     </span>
-                     <span class="px-2 py-0.5 rounded-full text-base bg-gray-300">{{ getOrderItemStatusText(dish.status) }}</span>
-                  </div>
-                  <div v-if="dish.weight" class="text-xl text-gray-600 mt-1">
-                     {{ dish.weight }}
-                  </div>
-                  <!-- 普通备注 -->
-                  <div v-else-if="dish.remark" class="text-xl text-gray-600 mt-2 p-2 bg-gray-100 rounded">
-                     {{ dish.remark }}
-                  </div>
-                  <div class="dish-meta"></div>
-               </div>
+                  :dish="dish"
+                  :priority-class="getDishPriorityClass(dish.priority || 0)"
+                  :status-text="getOrderItemStatusText(dish.status)"
+                  @click="handleDishClick"
+               />
             </div>
          </div>
 
@@ -282,6 +249,7 @@
 import { ref, computed, watch } from "vue";
 import { OrderService } from "@/services";
 import ConfirmModal from "@/components/ConfirmModal.vue";
+import DishCard from "@/components/DishCard.vue";
 import { useToast } from "@/composables/useToast";
 import { useDishModifier } from "@/composables/useDishModifier";
 import { useDishManager } from "@/composables/useDishManager";
