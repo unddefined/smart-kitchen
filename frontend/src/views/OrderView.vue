@@ -300,9 +300,6 @@ let orderUpdatedUnsubscribe = null;
 let itemUpdatedUnsubscribe = null;
 let itemDeletedUnsubscribe = null;
 
-// 检查 WebSocket 连接状态
-console.log("🔍 [WebSocket] OrderView 初始化，当前连接状态:", ws.isConnected.value);
-
 // Props
 const props = defineProps({
    orderId: {
@@ -637,56 +634,32 @@ watch(
 // WebSocket 事件监听 - 监听当前订单的所有更新
 const setupWebSocketListeners = () => {
    const currentOrderId = parseInt(props.orderId);
-   console.log(`📡 [WebSocket] 开始设置订单 #${currentOrderId} 的监听...`);
-   console.log(`🔍 [WebSocket] 当前 WebSocket 连接状态:`, ws.isConnected.value);
-   console.log(`🔍 [WebSocket] 已订阅的房间:`, Array.from(window.subscribedRooms || []));
 
-   // 监听订单更新事件
+   // 监听订单更新事件（起菜、催菜、暂停等）
    orderUpdatedUnsubscribe = ws.listen("order-updated", (data) => {
-      console.log("📡 [WebSocket] 收到 order-updated 事件:", data);
-      console.log("🔍 [WebSocket] 事件数据结构:", JSON.stringify(data, null, 2));
-
       const orderId = data?.id || data?.data?.id;
-      console.log(`🔍 [WebSocket] 解析到的订单 ID: ${orderId}, 当前订单 ID: ${currentOrderId}`);
-
       if (orderId === currentOrderId) {
-         console.log(`✅ [WebSocket] 订单 #${currentOrderId} 有更新（order-updated），立即刷新数据...`);
-         console.log(`📊 [WebSocket] 订单状态变化:`, data.previousStatus || data.data?.previousStatus, "->", data.status || data.data?.status);
          loadOrderDetail();
-      } else {
-         console.log(`⚠️ [WebSocket] 订单 ID 不匹配，跳过（事件订单：#${orderId}，当前订单：#${currentOrderId}）`);
       }
    });
 
-   // 监听订单项更新事件
+   // 监听订单项更新事件（修改菜品）
    itemUpdatedUnsubscribe = ws.listen("item-updated", (data) => {
-      console.log("📡 [WebSocket] 收到 item-updated 事件:", data);
       if (data && data.orderId === currentOrderId) {
-         console.log(`✅ [WebSocket] 订单 #${currentOrderId} 的菜品有更新，立即刷新数据...`);
          loadOrderDetail();
-      } else if (data && data.orderId) {
-         console.log(`⚠️ [WebSocket] 收到其他订单 #${data.orderId} 的更新，跳过（当前订单：#${currentOrderId}）`);
       }
    });
 
    // 监听订单项删除事件
    itemDeletedUnsubscribe = ws.listen("item-deleted", (data) => {
-      console.log("📡 [WebSocket] 收到 item-deleted 事件:", data);
       if (data && data.orderId === currentOrderId) {
-         console.log(`✅ [WebSocket] 订单 #${currentOrderId} 的菜品被删除，立即刷新数据...`);
          loadOrderDetail();
-      } else if (data && data.orderId) {
-         console.log(`⚠️ [WebSocket] 收到其他订单 #${data.orderId} 的删除，跳过（当前订单：#${currentOrderId}）`);
       }
    });
-
-   console.log("✅ [WebSocket] 监听器已设置完成，正在监听中...");
-   console.log(`📊 [WebSocket] 当前事件监听器数量:`, window.eventListeners?.size || 0);
 };
 
 // 清理 WebSocket 监听器
 const cleanupWebSocketListeners = () => {
-   console.log("🧹 [WebSocket] 开始清理监听器...");
    if (orderUpdatedUnsubscribe) {
       orderUpdatedUnsubscribe();
       orderUpdatedUnsubscribe = null;
@@ -699,19 +672,16 @@ const cleanupWebSocketListeners = () => {
       itemDeletedUnsubscribe();
       itemDeletedUnsubscribe = null;
    }
-   console.log("✅ [WebSocket] 监听器已清理");
 };
 
 // 组件挂载时设置 WebSocket 监听
 watch(
    () => props.orderId,
    (newId) => {
-      console.log(`🔍 [WebSocket] orderId 变化：${newId}`);
       // 清理旧的监听
       cleanupWebSocketListeners();
       // 设置新的监听
       if (newId) {
-         console.log(`🚀 [WebSocket] 准备为订单 #${newId} 设置监听`);
          setupWebSocketListeners();
       }
    },
