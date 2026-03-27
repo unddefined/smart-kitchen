@@ -644,12 +644,17 @@ const setupWebSocketListeners = () => {
    // 监听订单更新事件
    orderUpdatedUnsubscribe = ws.listen("order-updated", (data) => {
       console.log("📡 [WebSocket] 收到 order-updated 事件:", data);
-      if (data && data.id === currentOrderId) {
+      console.log("🔍 [WebSocket] 事件数据结构:", JSON.stringify(data, null, 2));
+
+      const orderId = data?.id || data?.data?.id;
+      console.log(`🔍 [WebSocket] 解析到的订单 ID: ${orderId}, 当前订单 ID: ${currentOrderId}`);
+
+      if (orderId === currentOrderId) {
          console.log(`✅ [WebSocket] 订单 #${currentOrderId} 有更新（order-updated），立即刷新数据...`);
-         console.log(`📊 [WebSocket] 订单状态变化:`, data.previousStatus, "->", data.status);
+         console.log(`📊 [WebSocket] 订单状态变化:`, data.previousStatus || data.data?.previousStatus, "->", data.status || data.data?.status);
          loadOrderDetail();
-      } else if (data && data.id) {
-         console.log(`⚠️ [WebSocket] 收到其他订单 #${data.id} 的更新，跳过（当前订单：#${currentOrderId}）`);
+      } else {
+         console.log(`⚠️ [WebSocket] 订单 ID 不匹配，跳过（事件订单：#${orderId}，当前订单：#${currentOrderId}）`);
       }
    });
 
