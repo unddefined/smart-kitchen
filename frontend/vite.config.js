@@ -90,7 +90,9 @@ export default defineConfig(({ mode }) => {
          rollupOptions: {
             output: {
                manualChunks: {
-                  vendor: ["vue", "vue-router", "pinia"],
+                  "vue-vendor": ["vue", "vue-router", "pinia"],
+                  "utils-vendor": ["lodash-es", "axios"],
+                  "ui-vendor": ["@headlessui/vue"],
                },
             },
          },
