@@ -38,24 +38,36 @@ export default defineConfig(({ mode }) => {
                globPatterns: ["**/*.{js,css,html,png,jpg,jpeg,svg,ico}"],
                runtimeCaching: [
                   {
-                     urlPattern: /^https:\/\/api\./,
-                     handler: "CacheFirst",
+                     urlPattern: /^https:\/\/api\./i,
+                     handler: "NetworkFirst", // API 请求优先网络
                      options: {
                         cacheName: "api-cache",
                         expiration: {
-                           maxEntries: 50,
-                           maxAgeSeconds: 60 * 60 * 24, // 24 hours
+                           maxEntries: 100,
+                           maxAgeSeconds: 300, // 5 分钟缓存
+                        },
+                        networkTimeoutSeconds: 10, // 网络超时 10 秒
+                     },
+                  },
+                  {
+                     urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/,
+                     handler: "CacheFirst", // 静态图片资源优先缓存
+                     options: {
+                        cacheName: "static-images",
+                        expiration: {
+                           maxEntries: 60,
+                           maxAgeSeconds: 30 * 24 * 60 * 60, // 30 天缓存
                         },
                      },
                   },
                   {
-                     urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-                     handler: "CacheFirst",
+                     urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*$/i,
+                     handler: "CacheFirst", // Google 字体优先缓存
                      options: {
                         cacheName: "google-fonts-cache",
                         expiration: {
                            maxEntries: 10,
-                           maxAgeSeconds: 60 * 60 * 24 * 365, // 365 days
+                           maxAgeSeconds: 60 * 60 * 24 * 365, // 365 天缓存
                         },
                         cacheableResponse: {
                            statuses: [0, 200],
