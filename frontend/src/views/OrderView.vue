@@ -289,9 +289,16 @@ import { useOrderEditor } from "@/composables/useOrderEditor";
 import OrderEditorModal from "@/components/OrderEditorModal.vue";
 import DishModifierModal from "@/components/DishModifierModal.vue";
 import { getPriorityClass } from "@/constants/priority";
+import { useWebSocket } from "@/utils/websocket";
 
 // 使用 toast 组合式函数（使用全局注入）
 const { showSuccess, showError, showInfo } = useToast();
+
+// WebSocket 监听
+const ws = useWebSocket();
+let orderUpdatedUnsubscribe = null;
+let itemUpdatedUnsubscribe = null;
+let itemDeletedUnsubscribe = null;
 
 // Props
 const props = defineProps({
@@ -378,9 +385,8 @@ const pendingDishes = computed(() => {
    const pending = orderDetail.value.items.filter((item) => item.status !== "served");
    // 待上菜品按优先级降序排列：3(催菜) > 2(等一下) > 1(不急) > 0(未起)
    return pending.sort((a, b) => {
-      if (b.priority !== a.priority) {
-         return b.priority - a.priority;
-      }
+      if (b.priority !== a.priority) return b.priority - a.priority;
+
       return (a.dish?.name || "").localeCompare(b.dish?.name || "");
    });
 });
@@ -393,9 +399,7 @@ const loadOrderDetail = async () => {
 
       // 确保 orderId 是数字类型
       const orderId = parseInt(props.orderId);
-      if (isNaN(orderId)) {
-         throw new Error("无效的订单 ID");
-      }
+      if (isNaN(orderId)) throw new Error("无效的订单 ID");
 
       console.log(`🔄 加载订单详情 #${orderId}...`);
 
@@ -508,9 +512,7 @@ const confirmCancelOrder = async () => {
 
       // 确保 orderId 是数字类型
       const orderId = parseInt(props.orderId);
-      if (isNaN(orderId)) {
-         throw new Error("无效的订单 ID");
-      }
+      if (isNaN(orderId)) throw new Error("无效的订单 ID");
 
       const result = await OrderService.cancelOrder(orderId);
 
@@ -550,9 +552,7 @@ const confirmCompleteOrder = async () => {
 
       // 确保 orderId 是数字类型
       const orderId = parseInt(props.orderId);
-      if (isNaN(orderId)) {
-         throw new Error("无效的订单 ID");
-      }
+      if (isNaN(orderId)) throw new Error("无效的订单 ID");
 
       const result = await OrderService.completeOrder(orderId);
 
@@ -591,9 +591,7 @@ const confirmDeleteOrder = async () => {
 
       // 确保 orderId 是数字类型
       const orderId = parseInt(props.orderId);
-      if (isNaN(orderId)) {
-         throw new Error("无效的订单 ID");
-      }
+      if (isNaN(orderId)) throw new Error("无效的订单 ID");
 
       const result = await OrderService.deleteOrder(orderId);
 
@@ -628,15 +626,74 @@ watch(
    () => props.orderId,
    (newId, oldId) => {
       console.log(`🔍 orderId 变化：${oldId} → ${newId}`);
-      if (newId) {
-         loadOrderDetail();
-      }
+      if (newId) loadOrderDetail();
    },
    { immediate: true },
 );
-const handleModifySuccess = ({ orderId }) => {
-   console.log("✅ 修改菜品成功:", orderId);
+
+// WebSocket 事件监听 - 监听当前订单的所有更新
+const setupWebSocketListeners = () => {
+   const currentOrderId = parseInt(props.orderId);
+   console.log(`📡 设置订单 #${currentOrderId} 的 WebSocket 监听...`);
+
+   // 监听订单更新事件
+   orderUpdatedUnsubscribe = ws.listen("order-updated", (data) => {
+      console.log("📡 收到订单更新:", data);
+      if (data && data.id === currentOrderId) {
+         console.log(`✅ 订单 #${currentOrderId} 有更新，刷新数据...`);
+         loadOrderDetail();
+      }
+   });
+
+   // 监听订单项更新事件
+   itemUpdatedUnsubscribe = ws.listen("item-updated", (data) => {
+      console.log("📡 收到订单项更新:", data);
+      if (data && data.orderId === currentOrderId) {
+         console.log(`✅ 订单 #${currentOrderId} 的菜品有更新，刷新数据...`);
+         loadOrderDetail();
+      }
+   });
+
+   // 监听订单项删除事件
+   itemDeletedUnsubscribe = ws.listen("item-deleted", (data) => {
+      console.log("📡 收到订单项删除:", data);
+      if (data && data.orderId === currentOrderId) {
+         console.log(`✅ 订单 #${currentOrderId} 的菜品被删除，刷新数据...`);
+         loadOrderDetail();
+      }
+   });
+
+   console.log("✅ WebSocket 监听器已设置完成");
 };
+
+// 清理 WebSocket 监听器
+const cleanupWebSocketListeners = () => {
+   if (orderUpdatedUnsubscribe) {
+      orderUpdatedUnsubscribe();
+      orderUpdatedUnsubscribe = null;
+   }
+   if (itemUpdatedUnsubscribe) {
+      itemUpdatedUnsubscribe();
+      itemUpdatedUnsubscribe = null;
+   }
+   if (itemDeletedUnsubscribe) {
+      itemDeletedUnsubscribe();
+      itemDeletedUnsubscribe = null;
+   }
+   console.log("✅ WebSocket 监听器已清理");
+};
+
+// 组件挂载时设置 WebSocket 监听
+watch(
+   () => props.orderId,
+   (newId) => {
+      // 清理旧的监听
+      cleanupWebSocketListeners();
+      // 设置新的监听
+      if (newId) setupWebSocketListeners();
+   },
+   { immediate: true },
+);
 
 // 处理修改菜品错误
 const handleModifyError = ({ error }) => {
