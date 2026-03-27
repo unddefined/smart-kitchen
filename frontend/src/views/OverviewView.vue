@@ -202,7 +202,7 @@ const cardRefs = ref([]);
 const unstartedCardRefs = ref([]);
 
 // 使用 toast 组合式函数（使用全局注入）
-const { showToast, showSuccess, showError, showInfo } = useToast();
+const { toast } = useToast();
 
 // 使用菜品管理 Composable - 专注于交互逻辑
 const dishManager = useDishManager({
@@ -258,7 +258,12 @@ const handleDishClick = async (dish) => {
    };
 
    // 调用基础处理函数，传入 UI 反馈和回调函数
-   await handleDishClickBase(dish, { showSuccess, showError, showInfo }, refreshFn, statusChangeFn);
+   await handleDishClickBase(
+      dish,
+      { showSuccess: (msg) => toast.success(msg), showError: (msg) => toast.error(msg), showInfo: (msg) => toast.info(msg) },
+      refreshFn,
+      statusChangeFn,
+   );
 };
 
 // 包装 handleDishDoubleClick，注入事件回调逻辑

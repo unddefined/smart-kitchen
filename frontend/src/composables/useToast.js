@@ -1,4 +1,4 @@
-import { ref, reactive, inject } from "vue";
+import { reactive, inject } from "vue";
 
 /**
  * Toast 提示组合式函数
@@ -10,17 +10,25 @@ export function useToast() {
 
    // 如果存在全局 toast，直接使用；否则创建本地实例
    if (globalToast) {
+      // 创建一个响应式对象用于模板绑定
+      const toast = reactive({
+         visible: false,
+         message: "",
+         type: "success",
+         duration: 3000,
+      });
+
+      // 统一的 toast 对象 API - 直接附加到 toast 对象上
+      toast.success = (msg, duration) => globalToast.toast.success(msg, duration);
+      toast.error = (msg, duration) => globalToast.toast.error(msg, duration);
+      toast.info = (msg, duration) => globalToast.toast.info(msg, duration);
+
       return {
-         toast: reactive({
-            visible: false, // 占位，实际不使用
-            message: "",
-            type: "success",
-            duration: 3000,
-         }),
-         showToast: globalToast.showToast,
-         showSuccess: globalToast.showSuccess,
-         showError: globalToast.showError,
-         showInfo: globalToast.showInfo,
+         toast,
+         showToast: (msg, type, duration) => globalToast.toast[type === "error" ? "error" : type === "info" ? "info" : "success"](msg, duration),
+         showSuccess: (msg, duration) => globalToast.toast.success(msg, duration),
+         showError: (msg, duration) => globalToast.toast.error(msg, duration),
+         showInfo: (msg, duration) => globalToast.toast.info(msg, duration),
          hideToast: () => {}, // 占位
       };
    }
@@ -80,6 +88,11 @@ export function useToast() {
    const hideToast = () => {
       toast.visible = false;
    };
+
+   // 统一的 toast 对象 API - 直接附加到 toast 对象上
+   toast.success = (message, duration) => showSuccess(message, duration);
+   toast.error = (message, duration) => showError(message, duration);
+   toast.info = (message, duration) => showInfo(message, duration);
 
    return {
       toast,

@@ -1,4 +1,4 @@
-import { ref, reactive } from "vue";
+import { ref } from "vue";
 import { api } from "@/services/api";
 import { useToast } from "@/composables/useToast";
 
@@ -14,7 +14,7 @@ import { useToast } from "@/composables/useToast";
  */
 export function useDishModifier(options = {}) {
    const { onSuccess, onError } = options;
-   const { showSuccess, showError, showInfo } = useToast();
+   const { toast } = useToast();
 
    // 响应式状态
    const showModifyModalVisible = ref(false);
@@ -215,7 +215,7 @@ export function useDishModifier(options = {}) {
          // 并行批量删除被移除的菜品
          if (removedItems.length > 0) {
             await Promise.all(removedItems.map((item) => api.orderItems.delete(item.orderItemId, orderId)));
-            showSuccess(`成功删除 ${removedItems.length} 个菜品`);
+            toast.success(`成功删除 ${removedItems.length} 个菜品`);
             hasChanges = true;
          }
 
@@ -230,7 +230,7 @@ export function useDishModifier(options = {}) {
                   }),
                ),
             );
-            showSuccess(`成功更新 ${modifiedItems.length} 个菜品`);
+            toast.success(`成功更新 ${modifiedItems.length} 个菜品`);
             hasChanges = true;
          }
 
@@ -249,9 +249,9 @@ export function useDishModifier(options = {}) {
             );
 
             if (removedItems.length === 0 && modifiedItems.length === 0) {
-               showSuccess(`成功添加 ${addedItemsWithPriority.length} 个菜品`);
+               toast.success(`成功添加 ${addedItemsWithPriority.length} 个菜品`);
             } else {
-               showSuccess(
+               toast.success(
                   `已删除 ${removedItems.length} 个菜品，已更新 ${modifiedItems.length} 个菜品，已添加 ${addedItemsWithPriority.length} 个菜品`,
                );
             }
@@ -259,7 +259,7 @@ export function useDishModifier(options = {}) {
          }
 
          if (!hasChanges) {
-            showInfo("没有菜品变更");
+            toast.info("没有菜品变更");
          }
 
          // 隐藏弹窗
@@ -273,7 +273,7 @@ export function useDishModifier(options = {}) {
          return { success: true, hasChanges };
       } catch (error) {
          console.error("修改菜品失败:", error);
-         showError("修改菜品失败：" + (error.message || "操作失败"));
+         toast.error("修改菜品失败：" + (error.message || "操作失败"));
 
          // 调用错误回调
          if (onError && typeof onError === "function") {

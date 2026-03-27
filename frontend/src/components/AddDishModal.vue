@@ -237,7 +237,7 @@ const currentEditingDish = ref(null);
 const showAddNewDish = ref(false);
 
 // Toast 提示（使用全局注入）
-const { showSuccess, showError } = useToast();
+const { toast } = useToast();
 
 // 新增菜品表单
 const newDish = ref({
@@ -356,13 +356,13 @@ const handleDeleteDishFromDb = async (dishId) => {
          // 关闭编辑弹窗
          showEditDishModal.value = false;
 
-         showSuccess("菜品已删除");
+         toast.success("菜品已删除");
       } else {
-         showError("删除失败：" + result.message);
+         toast.error("删除失败：" + result.message);
       }
    } catch (error) {
       console.error("删除菜品失败:", error);
-      showError("删除菜品时发生错误");
+      toast.error("删除菜品时发生错误");
    }
 };
 

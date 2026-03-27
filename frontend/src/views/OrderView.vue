@@ -258,7 +258,7 @@ import { getPriorityClass } from "@/constants/priority";
 import { useWebSocket } from "@/utils/websocket";
 
 // 使用 toast 组合式函数（使用全局注入）
-const { showSuccess, showError, showInfo } = useToast();
+const { toast } = useToast();
 
 // WebSocket 监听
 const ws = useWebSocket();
@@ -394,7 +394,7 @@ const handleDishClick = async (dish) => {
 
    // 根据 MVP 文档，优先级为 0 的菜品（未起）不能直接上菜
    if (dish.priority === 0 && dish.status === "ready") {
-      showError(`还未起菜，无法上菜。`);
+      toast.error(`还未起菜，无法上菜。`);
       return;
    }
 
@@ -410,7 +410,12 @@ const handleDishClick = async (dish) => {
    });
 
    const { handleDishClick: handleDishClickBase } = dishManager;
-   await handleDishClickBase(dish, { showSuccess, showError, showInfo }, loadOrderDetail, emit);
+   await handleDishClickBase(
+      dish,
+      { showSuccess: (msg) => toast.success(msg), showError: (msg) => toast.error(msg), showInfo: (msg) => toast.info(msg) },
+      loadOrderDetail,
+      emit,
+   );
 };
 
 const getOrderStatusText = (status) => {
@@ -492,13 +497,13 @@ const confirmCancelOrder = async () => {
          emit("orderCancelled", orderId);
 
          // 显示成功提示
-         showSuccess("订单取消成功");
+         toast.success("订单取消成功");
       } else {
          throw new Error(result.message);
       }
    } catch (error) {
       console.error("取消订单失败:", error);
-      showError("取消订单失败：" + (error.message || "未知错误"));
+      toast.error("取消订单失败：" + (error.message || "未知错误"));
    } finally {
       isCancelling.value = false;
    }
@@ -532,13 +537,13 @@ const confirmCompleteOrder = async () => {
          emit("orderCancelled", orderId);
 
          // 显示成功提示
-         showSuccess("订单完成成功");
+         toast.success("订单完成成功");
       } else {
          throw new Error(result.message);
       }
    } catch (error) {
       console.error("完成订单失败:", error);
-      showError("完成订单失败：" + (error.message || "未知错误"));
+      toast.error("完成订单失败：" + (error.message || "未知错误"));
    } finally {
       isCompleting.value = false;
    }
@@ -570,13 +575,13 @@ const confirmDeleteOrder = async () => {
          emit("back");
 
          // 显示成功提示
-         showSuccess("订单删除成功");
+         toast.success("订单删除成功");
       } else {
          throw new Error(result.message);
       }
    } catch (error) {
       console.error("删除订单失败:", error);
-      showError("删除订单失败：" + (error.message || "未知错误"));
+      toast.error("删除订单失败：" + (error.message || "未知错误"));
    } finally {
       isDeleting.value = false;
    }
@@ -696,9 +701,7 @@ const confirmEditRemark = async () => {
 
       // 确保 orderId 是数字类型
       const orderId = parseInt(props.orderId);
-      if (isNaN(orderId)) {
-         throw new Error("无效的订单 ID");
-      }
+      if (isNaN(orderId)) throw new Error("无效的订单 ID");
 
       // 准备更新数据
       const updateData = {
@@ -715,13 +718,13 @@ const confirmEditRemark = async () => {
          emit("orderCancelled", orderId);
 
          // 显示成功提示
-         showSuccess("订单备注更新成功");
+         toast.success("订单备注更新成功");
       } else {
          throw new Error(result.message);
       }
    } catch (error) {
       console.error("更新订单备注失败:", error);
-      showError("更新订单备注失败：" + (error.message || "未知错误"));
+      toast.error("更新订单备注失败：" + (error.message || "未知错误"));
    } finally {
       isEditingRemark.value = false;
    }

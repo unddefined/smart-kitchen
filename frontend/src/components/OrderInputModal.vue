@@ -264,7 +264,7 @@ import { useToast } from "@/composables/useToast";
 import { useDishLoader } from "@/composables/useDishLoader";
 
 // 使用 toast 组合式函数（现在会自动注入全局实例）
-const { showSuccess, showError } = useToast();
+const { toast } = useToast();
 
 // Props
 const props = defineProps({
@@ -534,13 +534,13 @@ const handleDeleteDishFromDb = async (dishId) => {
          // 关闭编辑弹窗
          showAddDishModal.value = false;
 
-         showSuccess("菜品已删除");
+         toast.success("菜品已删除");
       } else {
-         showError("删除失败：" + result.message);
+         toast.error("删除失败：" + result.message);
       }
    } catch (error) {
       console.error("删除菜品失败:", error);
-      showError("删除菜品时发生错误");
+      toast.error("删除菜品时发生错误");
    }
 };
 
@@ -574,19 +574,19 @@ const submit = async () => {
 
       // 更严格的验证
       if (!hallNumber.value || !hallNumber.value.trim()) {
-         showError("台号不能为空");
+         toast.error("台号不能为空");
          return;
       }
       if (!personCount.value || personCount.value < 1) {
-         showError("人数必须大于 0");
+         toast.error("人数必须大于 0");
          return;
       }
       if (!tableCount.value || tableCount.value < 1) {
-         showError("桌数必须大于 0");
+         toast.error("桌数必须大于 0");
          return;
       }
       if (selectedDishes.value.length === 0) {
-         showError("请选择至少一个菜品");
+         toast.error("请选择至少一个菜品");
          return;
       }
 
@@ -610,13 +610,13 @@ const submit = async () => {
 
       if (!orderResult.success) {
          console.error("订单创建失败:", orderResult.message);
-         showError("订单创建失败：" + orderResult.message);
+         toast.error("订单创建失败：" + orderResult.message);
          return;
       }
 
       if (!orderResult.data || !orderResult.data.id) {
          console.error("订单数据异常:", orderResult);
-         showError("订单创建成功但返回数据异常");
+         toast.error("订单创建成功但返回数据异常");
          return;
       }
 
@@ -658,7 +658,7 @@ const submit = async () => {
          await Promise.all(dishPromises);
       } catch (dishError) {
          console.error("添加菜品失败:", dishError);
-         showError("订单创建成功，但添加菜品失败：" + dishError.message);
+         toast.error("订单创建成功，但添加菜品失败：" + dishError.message);
          // 这里可以选择回滚已创建的订单，或者提示用户手动处理
          return;
       }
@@ -677,13 +677,13 @@ const submit = async () => {
       });
 
       // 显示成功提示
-      showSuccess(`订单创建成功！台号：${hallNumber.value}，共${selectedDishes.value.length}道菜品`);
+      toast.success(`订单创建成功！台号：${hallNumber.value}，共${selectedDishes.value.length}道菜品`);
 
       resetForm();
       closeModal();
    } catch (error) {
       console.error("提交订单失败:", error);
-      showError("提交订单失败：" + error.message);
+      toast.error("提交订单失败：" + error.message);
    }
 };
 

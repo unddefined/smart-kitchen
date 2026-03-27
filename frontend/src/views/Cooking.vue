@@ -315,7 +315,7 @@ import { useToast } from "@/composables/useToast";
 import { useOrderAutoRefresh } from "@/composables/useOrderAutoRefresh";
 
 // 使用 toast 组合式函数（使用全局注入）
-const { showToast, showSuccess, showError, showInfo } = useToast();
+const { toast } = useToast();
 
 // 自动刷新定时器
 let refreshTimer = null;
@@ -777,13 +777,13 @@ const isOrderDisabled = (orderId, actionType) => {
 const confirmAction = async () => {
    // 订单 tab 模式下必须有选中的订单
    if (activeTab.value.startsWith("order-") && !activeOrderId.value) {
-      showError("请先选择一个订单");
+      toast.error("请先选择一个订单");
       return;
    }
 
    // 非订单 tab 模式下必须有选中的订单 ID
    if (!activeTab.value.startsWith("order-") && selectedOrderIds.value.length === 0) {
-      showError("请至少选择一个订单");
+      toast.error("请至少选择一个订单");
       return;
    }
 
@@ -792,7 +792,7 @@ const confirmAction = async () => {
       // 验证订单是否存在
       const order = orders.value.find((o) => o.id === activeOrderId.value);
       if (!order) {
-         showError("订单不存在");
+         toast.error("订单不存在");
          return;
       }
 
@@ -800,19 +800,19 @@ const confirmAction = async () => {
       switch (currentActionType.value) {
          case "start":
             if (order.status !== "started") {
-               showError("只有待起菜状态的订单才能起菜");
+               toast.error("只有待起菜状态的订单才能起菜");
                return;
             }
             break;
          case "urgent":
             if (order.status !== "serving") {
-               showError("只有出餐中的订单才能催菜");
+               toast.error("只有出餐中的订单才能催菜");
                return;
             }
             break;
          case "pause":
             if (order.status !== "serving" && order.status !== "urged") {
-               showError("只有出餐中或催菜状态的订单才能暂停");
+               toast.error("只有出餐中或催菜状态的订单才能暂停");
                return;
             }
             break;
@@ -841,7 +841,7 @@ const confirmAction = async () => {
                urgent: "催菜",
                pause: "暂停",
             };
-            showSuccess(`${actionNames[currentActionType.value]}成功`);
+            toast.success(`${actionNames[currentActionType.value]}成功`);
 
             // 刷新订单列表
             await loadOrders();
@@ -853,11 +853,11 @@ const confirmAction = async () => {
             // 关闭弹窗
             closeActionModal();
          } else {
-            showError(result.message);
+            toast.error(result.message);
          }
       } catch (error) {
          console.error("操作失败:", error);
-         showError("操作失败：" + error.message);
+         toast.error("操作失败：" + error.message);
       }
    } else {
       // 总览 tab 模式 - 批量操作
@@ -902,18 +902,18 @@ const confirmAction = async () => {
          }
 
          if (successCount > 0) {
-            showSuccess(`成功${actionNames[currentActionType.value]}${successCount}个订单`);
+            toast.success(`成功${actionNames[currentActionType.value]}${successCount}个订单`);
             // 刷新订单列表
             await loadOrders();
          } else {
-            showError("没有可操作的订单或操作全部失败");
+            toast.error("没有可操作的订单或操作全部失败");
          }
 
          // 关闭弹窗
          closeActionModal();
       } catch (error) {
          console.error("批量操作失败:", error);
-         showError("操作失败：" + error.message);
+         toast.error("操作失败：" + error.message);
       }
    }
 };

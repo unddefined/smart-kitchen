@@ -13,7 +13,7 @@
          <div id="modal-container" class="fixed inset-0 pointer-events-none"></div>
 
          <!-- 全局 Toast 组件 -->
-         <Toast v-model:visible="globalToast.visible" :message="globalToast.message" :type="globalToast.type" :duration="globalToast.duration" />
+         <Toast v-model:visible="toast.visible" :message="toast.message" :type="toast.type" :duration="toast.duration" />
 
          <!-- 全局底部导航栏 - 烹调/库存/待办/历史 -->
          <nav class="global-bottom-nav safe-area-bottom">
@@ -44,14 +44,18 @@ import { useToast } from "@/composables/useToast";
 const router = useRouter();
 const route = useRoute();
 
-// 开发环境检测
-const isDevelopment = import.meta.env.DEV;
-
 // 使用全局 toast
-const { toast: globalToast, showToast, showSuccess, showError, showInfo, hideToast } = useToast();
+const { toast } = useToast();
 
 // 提供全局 toast 方法给所有子组件
-provide("toast", { showToast, showSuccess, showError, showInfo });
+provide("toast", {
+   // 提供统一的对象 API
+   toast: {
+      success: (msg, duration) => toast.success(msg, duration),
+      error: (msg, duration) => toast.error(msg, duration),
+      info: (msg, duration) => toast.info(msg, duration),
+   },
+});
 
 // PWA 安装提示状态
 const showInstallPrompt = ref(false);

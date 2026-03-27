@@ -14,7 +14,7 @@ import { useToast } from "@/composables/useToast";
  */
 export function useOrderEditor(options = {}) {
    const { onSuccess, onError } = options;
-   const { showSuccess, showError, showInfo } = useToast();
+   const { toast } = useToast();
 
    // 响应式状态
    const showEditModalVisible = ref(false);
@@ -211,7 +211,7 @@ export function useOrderEditor(options = {}) {
             result = await callStatusSpecificAPI(orderIdNum, newStatus);
 
             if (result.success) {
-               showSuccess("订单信息更新成功");
+               toast.success("订单信息更新成功");
             } else {
                throw new Error(result.message);
             }
@@ -219,14 +219,14 @@ export function useOrderEditor(options = {}) {
             // 状态未变化，只更新其他字段
             if (Object.keys(updateData).length === 0) {
                hideEditModal();
-               showInfo("没有需要更新的字段");
+               toast.info("没有需要更新的字段");
                return Promise.resolve({ success: true });
             }
 
             result = await OrderService.updateOrder(orderIdNum, updateData);
 
             if (result.success) {
-               showSuccess("订单信息更新成功");
+               toast.success("订单信息更新成功");
             } else {
                throw new Error(result.message);
             }
@@ -243,7 +243,7 @@ export function useOrderEditor(options = {}) {
          return result;
       } catch (error) {
          console.error("更新订单失败:", error);
-         showError("更新订单失败：" + (error.message || "未知错误"));
+         toast.error("更新订单失败：" + (error.message || "未知错误"));
 
          // 调用错误回调
          if (onError && typeof onError === "function") {
