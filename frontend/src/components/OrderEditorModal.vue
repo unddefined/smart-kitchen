@@ -98,10 +98,10 @@
             </button>
             <button
                @click="handleSubmit"
-               :disabled="isLoading"
+               :disabled="isLoading || !hasChanges"
                :class="[
                   'flex-1 py-3 px-4 rounded-lg text-white text-base cursor-pointer transition-all duration-200',
-                  isLoading ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 hover:-translate-y-0.5',
+                  isLoading || !hasChanges ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 hover:-translate-y-0.5',
                ]"
             >
                {{ isLoading ? "保存中..." : "保存修改" }}
@@ -112,7 +112,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted } from "vue";
+import { ref, reactive, watch, computed } from "vue";
 import { useOrderEditor } from "@/composables/useOrderEditor";
 
 // Props
@@ -145,6 +145,40 @@ const localEditForm = reactive({ ...editForm });
 const localMealDate = ref("");
 const localMealTime = ref("");
 const isLoading = ref(false);
+
+// 计算属性 - 判断表单是否有变更
+const hasChanges = computed(() => {
+   if (!props.orderDetail) return false;
+
+   // 检查各字段是否有变化
+   const hallNumberChanged = String(localEditForm.hallNumber || "") !== String(props.orderDetail.hallNumber || "");
+   const peopleCountChanged = Number(localEditForm.peopleCount || 0) !== Number(props.orderDetail.peopleCount || 0);
+   const tableCountChanged = Number(localEditForm.tableCount || 0) !== Number(props.orderDetail.tableCount || 0);
+   const statusChanged = String(localEditForm.status || "") !== String(props.orderDetail.status || "");
+
+   // 检查用餐时间是否有变化 - 直接比较日期和餐型
+   let originalMealDate = "";
+   if (props.orderDetail.mealTime) {
+      const dateObj = new Date(props.orderDetail.mealTime);
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      originalMealDate = `${year}-${month}-${day}`;
+   }
+
+   // 使用 mealType 字段（非 null）
+   const mealTypeMap = { lunch: "午餐", dinner: "晚餐", breakfast: "早餐", other: "其他" };
+   const originalMealType = mealTypeMap[props.orderDetail.mealType] || "午餐";
+
+   const currentMealDate = localMealDate.value || "";
+   const currentMealType = localMealTime.value || "午餐";
+
+   const mealDateChanged = currentMealDate !== originalMealDate;
+   const mealTypeChanged = currentMealType !== originalMealType;
+   const mealTimeChanged = mealDateChanged || mealTypeChanged;
+
+   return hallNumberChanged || peopleCountChanged || tableCountChanged || statusChanged || mealTimeChanged;
+});
 
 // 监听弹窗显示状态
 watch(
@@ -189,6 +223,15 @@ const handleSubmit = async () => {
 
    isLoading.value = true;
    try {
+      // ⭐ 关键修复：将本地表单数据同步回 composable
+      editForm.hallNumber = localEditForm.hallNumber;
+      editForm.peopleCount = localEditForm.peopleCount;
+      editForm.tableCount = localEditForm.tableCount;
+      editForm.status = localEditForm.status;
+      mealDate.value = localMealDate.value;
+      mealTime.value = localMealTime.value;
+
+      // 使用更新后的表单数据调用确认编辑
       await confirmEditOrder(props.orderDetail.id, props.orderDetail);
    } finally {
       isLoading.value = false;

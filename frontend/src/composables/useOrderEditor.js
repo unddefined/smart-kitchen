@@ -143,10 +143,19 @@ export function useOrderEditor(options = {}) {
          updateData.tableCount = parseInt(editForm.tableCount);
       }
 
-      // 处理用餐时间
+      // 处理用餐时间 - 转换为不带时区的本地时间格式
       const newMealTime = `${mealDate.value} ${mealTime.value}`;
       if (newMealTime !== orderDetail?.mealTime) {
-         updateData.mealTime = newMealTime;
+         // 将 "YYYY-MM-DD 午餐" 格式转换为本地时间 ISO 格式（避免时区问题）
+         const mealTypeMap = {
+            早餐: "08:00:00",
+            午餐: "12:00:00",
+            晚餐: "18:00:00",
+            其他: "12:00:00",
+         };
+         const timePart = mealTypeMap[mealTime.value] || "12:00:00";
+         // 使用本地时间格式，不添加 Z 后缀，避免时区转换
+         updateData.mealTime = `${mealDate.value}T${timePart}`;
          updateData.mealType = convertMealTypeToBackend(mealTime.value);
       }
 

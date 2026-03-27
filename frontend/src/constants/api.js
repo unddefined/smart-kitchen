@@ -1,6 +1,9 @@
 // API 常量定义
 
-// 出餐优先级常量
+// 导入统一的优先级配置
+import { PRIORITY_CONFIG, getPriorityConfig, getPriorityLabel, getPriorityClass } from "./priority";
+
+// 导出旧的 PRIORITY_LEVELS 以保持向后兼容（推荐使用 PRIORITY_CONFIG）
 export const PRIORITY_LEVELS = {
    URGENT: 3, // 红色 - 催菜
    WAIT: 2, // 黄色 - 等一下
@@ -8,6 +11,9 @@ export const PRIORITY_LEVELS = {
    PENDING: 0, // 灰色 - 未起菜
    SERVED: -1, // 灰色 - 已出
 };
+
+// 导出新的优先级配置和工具函数
+export { PRIORITY_CONFIG, getPriorityConfig, getPriorityLabel, getPriorityClass };
 
 // 订单状态常量
 export const ORDER_STATUS = {

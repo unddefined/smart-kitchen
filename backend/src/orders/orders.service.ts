@@ -235,10 +235,54 @@ export class OrdersService {
          }
       }
 
+      // 解析 mealTime 和 mealType（与 create 方法相同的逻辑）
+      const updateData: any = { ...updateOrderDto };
+
+      if (updateOrderDto.mealTime) {
+         try {
+            // 处理 ISO 格式日期（可能带或不带时区信息）
+            let mealTimeDate: Date;
+            const mealTimeStr = updateOrderDto.mealTime.toString();
+
+            // 如果包含 'Z' 后缀，直接解析为 UTC 时间
+            if (mealTimeStr.endsWith("Z")) {
+               mealTimeDate = new Date(mealTimeStr);
+            } else {
+               // 不带时区信息的 ISO 格式，按本地时间解析
+               // 例如："2026-03-27T12:00:00" 会被视为本地时间
+               mealTimeDate = new Date(mealTimeStr);
+            }
+
+            if (isNaN(mealTimeDate.getTime())) {
+               throw new Error("无效的用餐时间格式");
+            }
+            updateData.mealTime = mealTimeDate;
+         } catch (error) {
+            throw new Error(
+               `用餐时间格式错误：${typeof updateOrderDto.mealTime === "string" ? updateOrderDto.mealTime : "invalid date"}`,
+               error as Error,
+            );
+         }
+      }
+
+      // 处理 mealType（如果提供了 mealTime 但没有提供 mealType）
+      if (updateOrderDto.mealTime && !updateOrderDto.mealType) {
+         const mealTimeStr = updateOrderDto.mealTime.toString();
+         if (mealTimeStr.includes("午餐")) {
+            updateData.mealType = "lunch";
+         } else if (mealTimeStr.includes("晚餐")) {
+            updateData.mealType = "dinner";
+         } else if (mealTimeStr.includes("早餐")) {
+            updateData.mealType = "breakfast";
+         } else {
+            updateData.mealType = "other";
+         }
+      }
+
       const updatedOrder = await this.prisma.order.update({
          where: { id },
          data: {
-            ...updateOrderDto,
+            ...updateData,
             updatedAt: new Date(),
          },
       });

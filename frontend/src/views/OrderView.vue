@@ -103,7 +103,7 @@
                   v-for="dish in pendingDishes"
                   :key="dish.id"
                   :class="[
-                     'mb-2 bg-gray-500 break-inside-avoid p-2 rounded-lg border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer',
+                     'mb-2 break-inside-avoid p-2 rounded-lg border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer',
                      getDishPriorityClass(dish.priority || 0),
                   ]"
                   @click="handleDishClick(dish)"
@@ -288,6 +288,7 @@ import { useDishManager } from "@/composables/useDishManager";
 import { useOrderEditor } from "@/composables/useOrderEditor";
 import OrderEditorModal from "@/components/OrderEditorModal.vue";
 import DishModifierModal from "@/components/DishModifierModal.vue";
+import { getPriorityClass } from "@/constants/priority";
 
 // 使用 toast 组合式函数（使用全局注入）
 const { showSuccess, showError, showInfo } = useToast();
@@ -314,6 +315,7 @@ const isCancelling = ref(false);
 const isDeleting = ref(false);
 const isCompleting = ref(false);
 const isEditingRemark = ref(false);
+const isServedCollapsed = ref(false); // 已出菜品折叠状态
 
 // DishSelector 组件引用 - 已移除，现在由 DishModifierModal 内部管理
 
@@ -325,11 +327,14 @@ const { showEditModalVisible, showEditModal } = useOrderEditor({
 });
 
 // 使用菜品修改器 Composable
-useDishModifier({
+const dishModifier = useDishModifier({
    onSuccess: ({ orderId }) => {
       emit("orderCancelled", orderId);
    },
 });
+
+// 解构出需要的状态
+const { showModifyModalVisible, showModifyModal } = dishModifier;
 
 // 编辑备注表单
 const editRemarkForm = ref({
@@ -338,6 +343,16 @@ const editRemarkForm = ref({
 
 // 编辑备注弹窗状态
 const showEditRemarkModalVisible = ref(false);
+
+// 编辑订单信息回调函数
+const handleEditSuccess = (orderId) => {
+   console.log("✅ 编辑订单成功:", orderId);
+   loadOrderDetail();
+};
+
+const handleEditError = (error) => {
+   console.error("❌ 编辑订单错误:", error);
+};
 
 // 计算属性 - 判断取消按钮是否禁用
 const isCancelButtonDisabled = computed(() => {
@@ -603,6 +618,11 @@ const confirmDeleteOrder = async () => {
    }
 };
 
+// 获取菜品优先级样式类名
+const getDishPriorityClass = (priority) => {
+   return getPriorityClass(priority);
+};
+
 // 监听 orderId 变化，重新加载数据
 watch(
    () => props.orderId,
@@ -636,6 +656,16 @@ const showEditRemarkModal = () => {
    };
 
    showEditRemarkModalVisible.value = true;
+};
+
+// 显示修改菜品弹窗
+const showModifyDishesModal = () => {
+   if (!orderDetail.value) {
+      console.error("❌ [调试] orderDetail 为空！");
+      return;
+   }
+
+   showModifyModal(orderDetail.value);
 };
 
 const hideEditRemarkModal = () => {

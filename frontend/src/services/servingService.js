@@ -1,4 +1,5 @@
 import { api, PRIORITY_LEVELS, ORDER_ITEM_STATUS } from "./api";
+import { getPriorityConfig, getPriorityLabel as getPriorityLabelFromConfig } from "../constants/priority";
 
 // 出餐逻辑服务
 export class ServingService {
@@ -190,8 +191,8 @@ export class ServingService {
    }
 
    // 计算菜品优先级
-   static calculatePriority(dishType, isAddedLater = false, timeElapsed = 0, orderItemCount = 1) {
-      // 后来加的菜优先级为3级
+   static calculatePriority(dishType, isAddedLater = false) {
+      // 后来加的菜优先级为 3 级
       if (isAddedLater) {
          return PRIORITY_LEVELS.URGENT;
       }
@@ -220,21 +221,13 @@ export class ServingService {
 
       if (timeDiff > threshold) {
          // 超过阈值，提高优先级
-         try {
-            const result = await api.orderItems.updatePriority(itemId, PRIORITY_LEVELS.URGENT, "超时自动催菜");
-            return {
-               success: true,
-               adjusted: true,
-               newPriority: PRIORITY_LEVELS.URGENT,
-               message: "优先级已自动调整",
-            };
-         } catch (error) {
-            return {
-               success: false,
-               adjusted: false,
-               message: "自动调整失败: " + error.message,
-            };
-         }
+         await api.orderItems.updatePriority(itemId, PRIORITY_LEVELS.URGENT, "超时自动催菜");
+         return {
+            success: true,
+            adjusted: true,
+            newPriority: PRIORITY_LEVELS.URGENT,
+            message: "优先级已自动调整",
+         };
       }
 
       return {
@@ -246,37 +239,12 @@ export class ServingService {
 
    // 获取优先级对应的颜色
    static getPriorityColor(priority) {
-      switch (priority) {
-         case PRIORITY_LEVELS.URGENT:
-            return "red"; // 红色 - 催菜
-         case PRIORITY_LEVELS.WAIT:
-            return "yellow"; // 黄色 - 等一下
-         case PRIORITY_LEVELS.NORMAL:
-            return "green"; // 绿色 - 不急
-         case PRIORITY_LEVELS.PENDING:
-         case PRIORITY_LEVELS.SERVED:
-            return "gray"; // 灰色 - 未起菜/已出
-         default:
-            return "gray";
-      }
+      return getPriorityConfig(priority).color;
    }
 
    // 获取优先级对应的标签
    static getPriorityLabel(priority) {
-      switch (priority) {
-         case PRIORITY_LEVELS.URGENT:
-            return "催菜";
-         case PRIORITY_LEVELS.WAIT:
-            return "等一下";
-         case PRIORITY_LEVELS.NORMAL:
-            return "不急";
-         case PRIORITY_LEVELS.PENDING:
-            return "未起菜";
-         case PRIORITY_LEVELS.SERVED:
-            return "已出";
-         default:
-            return "未知";
-      }
+      return getPriorityLabelFromConfig(priority);
    }
 
    // 验证订单状态流转
